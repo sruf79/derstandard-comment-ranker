@@ -1,14 +1,13 @@
 (function () {
   'use strict';
 
-  // ── v2.4.4: Disable scroll anchoring globally ──────────────────
-  // Prevents auto-scroll jumps on mobile browsers (especially Android/Kiwi)
-  // when CSS order reordering creates a mismatch between DOM and visual order.
-  // This must run early, before any DOM manipulation, to cover the entire page
-  // including elements outside main.forum--main (e.g., footer).
-  if (document.documentElement) {
-    document.documentElement.style.overflowAnchor = 'none';
-  }
+  // v2.4.4 disabled the browser's scroll anchoring for the whole page, to avoid
+  // jumps while CSS order reorders the forum. That also removed the browser's
+  // protection against everything ELSE that changes height above the reader
+  // (article images, ads, the forum header) — while the page was loading, the
+  // text being read moved by more than 2000px. Scroll anchoring is now only
+  // suspended during our own re-sorts (see sortPostings), which correct the
+  // position themselves.
 
   // v2.4.10: Konsolen-Ausgaben nur noch im Debug-Modus (vorher 28 Logs, teils in Schleifen).
   const DEBUG = false;
@@ -1761,8 +1760,8 @@
   // breaking votes, counters, and visual feedback), we use CSS
   // flexbox ordering. The DOM stays completely untouched.
   // ── v2.4.10: keep the reader's visible position stable ─────────────────
-  // Page-wide scroll anchoring is disabled (overflowAnchor:none, see top of
-  // file) because it misbehaves with CSS order. We therefore anchor manually:
+  // The browser's scroll anchoring misbehaves with CSS order, so it is
+  // suspended during a re-sort (see sortPostings) and we anchor manually:
   // remember where the element the reader is currently looking at sits, apply
   // the change, and scroll by the difference — all in the same task, i.e.
   // before the browser paints, so no jump is visible.
@@ -1776,6 +1775,18 @@
     if (rect.top >= vh) return null;
     // Reader is below the forum: keep the forum's bottom edge in place.
     if (rect.bottom <= 0) return { el: main, edge: 'bottom', y: rect.bottom };
+    // Badge bar on screen (reader is at the top of the forum, e.g. just clicked
+    // a badge): keep the BAR in place. Anchoring the first posting below it
+    // made the page follow that posting to its new rank — a jump of several
+    // thousand pixels on a badge click. The bar is re-created on every sort,
+    // so it is looked up again when restoring.
+    const bar = shadowRoot.querySelector('#dst-badge-bar');
+    if (bar) {
+      const br = bar.getBoundingClientRect();
+      if (br.height > 0 && br.bottom > 0 && br.top < vh) {
+        return { get: function () { return shadowRoot.querySelector('#dst-badge-bar'); }, edge: 'top', y: br.top };
+      }
+    }
     // Reader is inside the forum: anchor the topmost visible element.
     let best = null, bestTop = Infinity;
     for (const child of main.children) {
@@ -1788,22 +1799,35 @@
   }
 
   function restoreScrollAnchor(anchor) {
-    if (!anchor || !anchor.el.isConnected) return;
-    const r = anchor.el.getBoundingClientRect();
+    if (!anchor) return;
+    const el = anchor.get ? anchor.get() : anchor.el;
+    if (!el || !el.isConnected) return;
+    const r = el.getBoundingClientRect();
     if (anchor.edge === 'top' && r.height === 0) return; // anchor got hidden
     const now = anchor.edge === 'bottom' ? r.bottom : r.top;
     const delta = now - anchor.y;
     if (Math.abs(delta) >= 1) window.scrollBy(0, delta);
   }
 
+  // The browser's own scroll anchoring would fight the manual correction while
+  // CSS order reorders the forum, so it is switched off until the frame after
+  // the sort; nested sorts in the same frame are counted.
+  let anchoringSuspended = 0;
+
   function sortPostings(shadowRoot) {
     if (isSorting) return;
+    const root = document.documentElement;
+    anchoringSuspended++;
+    root.style.overflowAnchor = 'none';
     const anchor = captureScrollAnchor(shadowRoot);
     sortPostingsNow(shadowRoot);
     restoreScrollAnchor(anchor);
     // Native collapse/expand clicks re-render via Lit in microtasks; correct
     // once more right before the next frame is painted.
-    if (anchor) requestAnimationFrame(function () { restoreScrollAnchor(anchor); });
+    requestAnimationFrame(function () {
+      restoreScrollAnchor(anchor);
+      if (--anchoringSuspended === 0) root.style.overflowAnchor = '';
+    });
   }
 
   function sortPostingsNow(shadowRoot) {
@@ -2387,10 +2411,12 @@
     const bar = shadowRoot.querySelector('#dst-badge-bar');
     if (!bar) return;
 
-    // Hide all badge buttons
+    // Hide all badge buttons. visibility (not display) keeps their space, and
+    // the progress bar is laid over them: the bar keeps its height, so the
+    // forum below no longer shifts up and back down by ~14px.
     for (const child of bar.children) {
       if (child.id !== 'dst-progress-container') {
-        child.style.display = 'none';
+        child.style.visibility = 'hidden';
       }
     }
 
@@ -2398,7 +2424,8 @@
     if (!container) {
       container = document.createElement('div');
       container.id = 'dst-progress-container';
-      container.style.cssText = 'flex:1;display:flex;flex-direction:column;gap:3px;min-width:0;';
+      container.style.cssText = 'position:absolute;left:0;right:0;top:10px;bottom:6px;display:flex;flex-direction:column;justify-content:center;gap:3px;min-width:0;';
+      bar.style.position = 'relative';
       bar.appendChild(container);
     }
 
@@ -2452,7 +2479,7 @@
 
     // Show all badge buttons again
     for (const child of bar.children) {
-      child.style.display = '';
+      child.style.visibility = '';
     }
 
     // Remove pulse style
