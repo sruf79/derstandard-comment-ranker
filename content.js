@@ -63,6 +63,23 @@
     { id: 'timeline', modes: ['chronological-new', 'chronological-old'] }
   ];
 
+  // v2.2.2 (back in v3.1.1): two small dots under every segment, in the style
+  // of Material Design's page indicators — they show that the segment has two
+  // sort modes, and the filled dot which one is selected (also on inactive
+  // segments). Real CSS circles, crisp on high-density screens.
+  function buildDotsIndicator(group, currentMode) {
+    const span = document.createElement('span');
+    span.className = 'dots-indicator';
+    span.setAttribute('aria-hidden', 'true');
+    const currentIndex = group.modes.indexOf(currentMode);
+    for (let i = 0; i < group.modes.length; i++) {
+      const dot = document.createElement('span');
+      dot.className = 'dst-dot' + (i === currentIndex ? ' filled' : '');
+      span.appendChild(dot);
+    }
+    return span;
+  }
+
   const ALL_MODES = Object.keys(MODE_DEFS);
 
   // Remembers the last-selected sub-mode per button group so a button keeps
@@ -140,8 +157,10 @@
       padding: 0 8px;
       box-sizing: border-box;
       display: flex;
+      flex-direction: column;     /* label row on top, dots below */
       align-items: center;
       justify-content: center;
+      gap: 5px;
       border-radius: 6px;         /* same rounding as derStandard's posting cards */
       font: inherit;
       font-size: 13px;
@@ -175,6 +194,7 @@
       justify-content: center;
       gap: 5px;
       min-width: 0;
+      max-width: 100%;
     }
     .dst-btn-ico {
       flex: 0 0 auto;
@@ -191,8 +211,25 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    /* ⇅ in the active segment: clicking it again flips the direction */
-    .dst-btn-swap { font-size: 11px; opacity: .55; }
+    /* Two dots: segment has two modes; the filled one is selected */
+    .dots-indicator {
+      display: flex;
+      justify-content: center;
+      gap: 4px;
+      line-height: 1;
+    }
+    .dst-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      box-sizing: border-box;
+      border: 1px solid currentColor;
+      opacity: .55;
+    }
+    .dst-dot.filled {
+      background: currentColor;
+      opacity: .9;
+    }
 
     /* Coffee/Donate button — never active; square, tinted like the track. */
     .dst-badge-btn.dst-coffee-btn {
@@ -1978,8 +2015,7 @@
     // label/icon of its currently-selected sub-mode and cycles through its
     // sub-modes on click. Exactly one group is "active" at any time (the one
     // that owns the current sortMode).
-    // v3.1.0: the three groups form ONE segmented control (#dst-seg); the
-    // active segment shows ⇅ because clicking it again flips the direction.
+    // v3.1.0: the three groups form ONE segmented control (#dst-seg).
     syncGroupSelection();
     const seg = document.createElement('div');
     seg.id = 'dst-seg';
@@ -2008,14 +2044,8 @@
       labelSpan.textContent = m.label;
       topRow.appendChild(iconWrap);
       topRow.appendChild(labelSpan);
-      if (isActive) {
-        const swap = document.createElement('span');
-        swap.className = 'dst-btn-swap';
-        swap.setAttribute('aria-hidden', 'true');
-        swap.textContent = '\u21C5';
-        topRow.appendChild(swap);
-      }
       btn.appendChild(topRow);
+      btn.appendChild(buildDotsIndicator(group, displayedMode));
 
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
