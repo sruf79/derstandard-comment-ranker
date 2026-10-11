@@ -28,6 +28,25 @@
     s.textContent = text;
     return s;
   }
+  // v3.2.2: bold arrow for New/Old, drawn as SVG — the font's ↓/↑ were too
+  // thin, and the heavy Unicode arrows (⬇ ⬆) turn into colour emoji on some
+  // systems. Inherits the text colour; built with createElementNS (AMO-safe).
+  function _mkArrow(down) {
+    const NS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('class', 'ico-time');
+    svg.setAttribute('viewBox', '0 0 16 16');
+    svg.setAttribute('aria-hidden', 'true');
+    const path = document.createElementNS(NS, 'path');
+    path.setAttribute('d', down ? 'M8 2.5v10M3.5 8.5 8 13l4.5-4.5' : 'M8 13.5v-10M3.5 7.5 8 3l4.5 4.5');
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', 'currentColor');
+    path.setAttribute('stroke-width', '2.6');
+    path.setAttribute('stroke-linecap', 'round');
+    path.setAttribute('stroke-linejoin', 'round');
+    svg.appendChild(path);
+    return svg;
+  }
   // ── v2.2.0: grouped toggle buttons ─────────────────────────────
   // Instead of 5 separate sort badges we now render only 3 sort buttons
   // (plus the coffee button). Each button owns several sub-modes and
@@ -54,8 +73,8 @@
     'best':             { label: 'Best',     title: 'Best: einhellig positiv bewertet', buildIcon: function(p) { p.appendChild(_mkSpan('ico-pri','#2e7d32','\u25B2')); } },
     'worst':            { label: 'Worst',    title: 'Worst: einhellig negativ bewertet', buildIcon: function(p) { p.appendChild(_mkSpan('ico-pri','#c62828','\u25BC')); } },
     // Time is neutral (no red/green): the arrow inherits the text colour.
-    'chronological-new':{ label: 'New',      title: 'New: neueste Postings zuerst', buildIcon: function(p) { p.appendChild(_mkSpan('ico-time', null, '\u2193')); } },
-    'chronological-old':{ label: 'Old',      title: 'Old: älteste Postings zuerst', buildIcon: function(p) { p.appendChild(_mkSpan('ico-time', null, '\u2191')); } }
+    'chronological-new':{ label: 'New',      title: 'New: neueste Postings zuerst', buildIcon: function(p) { p.appendChild(_mkArrow(true)); } },
+    'chronological-old':{ label: 'Old',      title: 'Old: älteste Postings zuerst', buildIcon: function(p) { p.appendChild(_mkArrow(false)); } }
   };
 
   // BUTTON_GROUPS: one badge per entry; each click advances to the next mode.
@@ -240,7 +259,7 @@
     /* ico-pri = big (active direction), ico-sec = small (other direction) */
     .ico-pri { font-size: 15px; line-height: 1; }
     .ico-sec { font-size: 10px; line-height: 1; }
-    .ico-time { font-size: 14px; line-height: 1; }
+    .ico-time { width: 14px; height: 14px; display: block; }
     .dst-btn-label {
       min-width: 0;
       overflow: hidden;
