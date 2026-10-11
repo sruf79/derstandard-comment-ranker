@@ -1993,6 +1993,7 @@
 
   // ── Badge bar: 3 grouped toggle badges + coffee ───────────────
   async function changeSortMode(newMode, shadowRoot) {
+    completeNotice = null; // the reader wants the badges now, not the notice
     sortMode = newMode;
     syncGroupSelection();
 
@@ -2258,6 +2259,9 @@
     } else {
       header.appendChild(bar);
     }
+
+    if (completeNotice) renderCompleteNotice(shadowRoot);
+    else if (isLoadingAllPostings && lastProgress) showProgressBar(shadowRoot, ...lastProgress);
   }
 
   function removeSortBadge(shadowRoot) {
@@ -2407,9 +2411,14 @@
   }
 
   // ── v1.7.4: Progress bar replaces badge bar during loading ──────
+  // Last progress shown, so a re-sort during loading (which re-creates the
+  // bar) can show it again instead of flashing the badges for a moment.
+  let lastProgress = null;
+
   function showProgressBar(shadowRoot, loaded, total, message) {
     const bar = shadowRoot.querySelector('#dst-badge-bar');
     if (!bar) return;
+    lastProgress = [loaded, total, message];
 
     // Hide all badge buttons. visibility (not display) keeps their space, and
     // the progress bar is laid over them: the bar keeps its height, so the
@@ -2471,6 +2480,7 @@
   }
 
   function hideProgressBar(shadowRoot) {
+    lastProgress = null;
     const bar = shadowRoot.querySelector('#dst-badge-bar');
     if (!bar) return;
 
@@ -2487,24 +2497,47 @@
     if (pulseStyle) pulseStyle.remove();
   }
 
-  function showProgressComplete(shadowRoot, totalPostings) {
+  // "✓ Alle N Postings geladen!" is shown for 1.5s, but only when background
+  // loading actually added postings while the reader had the badge bar on
+  // screen. The sort that follows re-creates the bar, so the notice is kept
+  // here and re-applied by injectSortBadge (previously it was wiped before it
+  // was ever painted).
+  let completeNotice = null;
+
+  function badgeBarOnScreen(shadowRoot) {
     const bar = shadowRoot.querySelector('#dst-badge-bar');
-    if (!bar) return;
+    if (!bar) return false;
+    const r = bar.getBoundingClientRect();
+    return r.height > 0 && r.bottom > 0 && r.top < window.innerHeight;
+  }
 
+  function renderCompleteNotice(shadowRoot) {
+    const bar = shadowRoot.querySelector('#dst-badge-bar');
+    if (!bar || !completeNotice) return;
+    showProgressBar(shadowRoot, 0, 0); // hides the badges, provides the container
     const container = bar.querySelector('#dst-progress-container');
-    if (container) {
-      container.textContent = '';
-      const outer = document.createElement('div');
-      outer.style.cssText = 'width:100%;height:28px;background:linear-gradient(90deg,#8FAF6F,#B7CCA3);border-radius:14px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(46,125,50,0.25);';
-      const textEl = document.createElement('span');
-      textEl.style.cssText = 'color:white;font-weight:700;font-size:12px;text-shadow:0 1px 2px rgba(0,0,0,0.2);';
-      textEl.textContent = '✓ Alle ' + totalPostings + ' Postings geladen!';
-      outer.appendChild(textEl);
-      container.appendChild(outer);
-    }
+    if (!container) return;
+    container.textContent = '';
+    const outer = document.createElement('div');
+    outer.style.cssText = 'width:100%;height:28px;background:linear-gradient(90deg,#8FAF6F,#B7CCA3);border-radius:14px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(46,125,50,0.25);';
+    const textEl = document.createElement('span');
+    textEl.style.cssText = 'color:white;font-weight:700;font-size:12px;text-shadow:0 1px 2px rgba(0,0,0,0.2);';
+    textEl.textContent = '✓ Alle ' + completeNotice.total + ' Postings geladen!';
+    outer.appendChild(textEl);
+    container.appendChild(outer);
+  }
 
-    // After 1.5s, hide progress and show badges again
-    setTimeout(function() { hideProgressBar(shadowRoot); }, 1500);
+  function showProgressComplete(shadowRoot, totalPostings) {
+    const notice = { total: totalPostings };
+    completeNotice = notice;
+    renderCompleteNotice(shadowRoot);
+
+    // After 1.5s, hide the notice and show the badges again
+    setTimeout(function() {
+      if (completeNotice !== notice) return;
+      completeNotice = null;
+      hideProgressBar(shadowRoot);
+    }, 1500);
   }
 
   function readForumLoadState(shadowRoot) {
@@ -2650,8 +2683,13 @@
       }
       const finalState = readForumLoadState(shadowRoot);
       // v2.4.10: finalState can be null -> previously a TypeError here.
-      if (completed) showProgressComplete(shadowRoot, finalState?.loaded ?? countRendered());
-      else {
+      if (completed) {
+        if (countRendered() > initialCount && badgeBarOnScreen(shadowRoot)) {
+          showProgressComplete(shadowRoot, finalState?.loaded ?? countRendered());
+        } else {
+          hideProgressBar(shadowRoot);
+        }
+      } else {
         hideProgressBar(shadowRoot);
         console.warn('[DST Sorter] Vollständigkeit nicht bestätigt; keine Scroll-Ausweichlösung.',
           finalState?.loaded ?? countRendered());
