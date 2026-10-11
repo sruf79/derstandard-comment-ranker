@@ -51,8 +51,15 @@
     }
     
     /* Box 1: Header mit Extension-Icon links */
-    .header-badge {
+    /* v3.10.1: the name is no button — plain header on the background,
+       only clickable things are pills */
+    .badge-box.header-badge {
       justify-content: flex-start;
+      background: none;
+      box-shadow: none;
+      height: auto;
+      padding: 2px 4px 4px;
+      margin-bottom: 14px;
     }
     
     /* v2.0.5: Extension-Icon statt Dreiecke */
@@ -60,7 +67,6 @@
       width: 32px;
       height: 32px;
       flex-shrink: 0;
-      margin-left: -6px;
       border-radius: 8px;
       object-fit: contain;
     }
@@ -74,8 +80,8 @@
     }
     
     .header-title {
-      font-size: 14px;
-      font-weight: 600;
+      font-size: 15px;
+      font-weight: 700;
       color: #333;
       white-space: nowrap;
       line-height: 1.2;
