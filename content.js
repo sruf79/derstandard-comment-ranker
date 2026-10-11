@@ -310,6 +310,9 @@
       padding: 0;
       border-radius: 50%;
       background: transparent;
+      /* v3.8.2: own round frame in the track's frame colour — separates it
+         from the sort segments and echoes the rounded end of the track */
+      box-shadow: 0 0 0 1px var(--dst-track-border);
       color: #6d4c41;
       position: relative;
     }
