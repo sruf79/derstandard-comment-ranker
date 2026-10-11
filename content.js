@@ -186,7 +186,7 @@
       transform: translateX(calc(var(--dst-i, 0) * (100% + 3px)));
       transition: transform .3s ease, background-color .3s ease, box-shadow .3s ease;
     }
-    /* v3.8.4: two pills with the same rounding, ~0.5cm apart: the three
+    /* v3.8.4: two pills with the same rounding (v3.8.5: 10px apart): the three
        sort segments and the coffee button. v3.8.1: darker frame + soft drop
        shadow, so the bar does not get lost on the page. */
     #dst-seg::before,
@@ -201,7 +201,7 @@
       box-shadow: 0 0 0 1px var(--dst-track-border), 0 2px 6px rgba(0, 0, 0, .15);
       pointer-events: none;
     }
-    #dst-seg::before { left: 0; right: calc(3px + 38px + 3px + 19px); }
+    #dst-seg::before { left: 0; right: calc(3px + 38px + 3px + 10px); }
     #dst-seg::after { right: 0; width: calc(3px + 38px + 3px); }
     /* v3.6.0: the active pill looks like the active badge of the old design:
        green frame + light green (Likes, Balance Top, Timeline), red frame +
@@ -261,10 +261,7 @@
       position: relative;         /* above the sliding thumb */
       background: transparent;
     }
-    #dst-seg .dst-badge-btn:hover {
-      background: hsl(var(--dst-ink) / .06);
-      color: hsl(var(--dst-ink));
-    }
+    /* v3.8.5: no hover colour change on the sort segments */
     #dst-seg .dst-badge-btn.active,
     #dst-seg .dst-badge-btn.active:hover {
       background: transparent;    /* the thumb underneath is the card */
@@ -322,7 +319,7 @@
     #dst-seg .dst-badge-btn.dst-coffee-btn {
       flex: 0 0 38px;
       width: 38px;
-      margin-left: 22px;               /* v3.8.4: 19px gap + pill padding */
+      margin-left: 13px;               /* v3.8.5: 10px gap + pill padding */
       min-height: 38px;
       padding: 0;
       border-radius: 50%;
@@ -2162,8 +2159,8 @@
   }
 
   // Width the round coffee button takes inside the track, incl. its gap and
-  // (v3.8.4) the 19px gap between the two pills plus the pill padding.
-  const COFFEE_SLOT = 38 + 3 + 22;
+  // (v3.8.5) the 10px gap between the two pills plus the pill padding.
+  const COFFEE_SLOT = 38 + 3 + 13;
 
   function injectSortBadge(shadowRoot) {
     const header = shadowRoot.querySelector('.forum--header');
