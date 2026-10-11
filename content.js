@@ -197,14 +197,14 @@
       white-space: nowrap;
       transition: background-color .15s ease, color .15s ease;
     }
-    /* v3.1.2: every inactive segment is a faint tile of its own, so the
-       three segments are visibly separate; the active one sits on the thumb. */
+    /* Segments sit directly on the track (v3.1.4: no separate tiles any
+       more — the sliding card marks the active one); it slides underneath. */
     #dst-seg .dst-badge-btn {
       position: relative;         /* above the sliding thumb */
-      background: color-mix(in srgb, var(--dst-card) 45%, transparent);
+      background: transparent;
     }
     #dst-seg .dst-badge-btn:hover {
-      background: color-mix(in srgb, var(--dst-card) 70%, transparent);
+      background: hsl(var(--dst-ink) / .06);
       color: hsl(var(--dst-ink));
     }
     #dst-seg .dst-badge-btn.active,
@@ -2025,6 +2025,39 @@
     btn.appendChild(buildDotsIndicator(group, mode));
   }
 
+  // The mode the bar shows (a pending click wins over the current sort) —
+  // and groupSelection updated to match it.
+  function syncShownSelection() {
+    syncGroupSelection();
+    if (pendingMode) {
+      const g = getGroupForMode(pendingMode);
+      if (g) groupSelection[g.id] = pendingMode;
+    }
+    return pendingMode || sortMode;
+  }
+
+  // v3.1.4: bring an existing bar up to date without re-creating it, so a
+  // running slide animation (and the progress display) survive a re-sort.
+  function updateSortBar(bar) {
+    const shownMode = syncShownSelection();
+    const activeIdx = BUTTON_GROUPS.findIndex((g) => g.modes.indexOf(shownMode) !== -1);
+    const seg = bar.querySelector('#dst-seg');
+    const thumb = seg.querySelector('#dst-seg-thumb');
+    const btns = seg.querySelectorAll('.dst-badge-btn');
+    BUTTON_GROUPS.forEach((group, i) => {
+      const b = btns[i];
+      if (!b) return;
+      b.classList.toggle('active', i === activeIdx);
+      b.setAttribute('aria-pressed', i === activeIdx ? 'true' : 'false');
+      const mode = groupSelection[group.id];
+      if (b.getAttribute('data-mode') !== mode) fillSegment(b, group, mode);
+    });
+    if (thumb) {
+      thumb.style.display = activeIdx === -1 ? 'none' : '';
+      if (activeIdx !== -1) thumb.style.setProperty('--dst-i', String(activeIdx));
+    }
+  }
+
   function injectSortBadge(shadowRoot) {
     const header = shadowRoot.querySelector('.forum--header');
     if (!header) return;
@@ -2045,8 +2078,16 @@
       });
     } catch (e) { /* ignore */ }
 
-    // Remove existing badge bar
+    // v3.1.4: a bar that is still in place is only UPDATED. Re-creating it on
+    // every sort (several times while postings load in the background)
+    // cancelled the slide animation — the active card just jumped.
     const existingBar = shadowRoot.querySelector('#dst-badge-bar');
+    const mainForBar = shadowRoot.querySelector('main.forum--main');
+    if (existingBar && mainForBar && existingBar.parentNode === mainForBar &&
+        existingBar.querySelector('#dst-seg')) {
+      updateSortBar(existingBar);
+      return;
+    }
     if (existingBar) existingBar.remove();
 
     // Also remove legacy container from v1.4
@@ -2071,8 +2112,7 @@
     // v3.1.0: the three groups form ONE segmented control (#dst-seg).
     // v3.1.2: while a click's re-sort is still pending, the bar shows the
     // clicked mode (pendingMode), not the one the forum is sorted by yet.
-    syncGroupSelection();
-    const shownMode = pendingMode || sortMode;
+    const shownMode = syncShownSelection();
     const seg = document.createElement('div');
     seg.id = 'dst-seg';
     const n = BUTTON_GROUPS.length;
