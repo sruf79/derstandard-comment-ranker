@@ -33,7 +33,7 @@
   // (plus the coffee button). Each button owns several sub-modes and
   // cycles through them on every click:
   //   • Balance  : Balance: Top  ↔ Balance: Low
-  //   • Likes    : Likes: Top    ↔ Likes: Low
+  //   • Best     : Best          ↔ Worst   (v3.2.0, was Likes ↔ Dislikes)
   //   • Timeline : Timeline: New ↔ Timeline: Old (v2.2.2: 2-way toggle)
   //
   // MODE_DEFS: label + icon builder for every individual sort mode.
@@ -49,8 +49,10 @@
   const MODE_DEFS = {
     'balance-top':      { label: 'Balance',  title: 'Balance: Top', buildIcon: function(p) { p.appendChild(_mkSpan('ico-pri','#2e7d32','\u25B2')); p.appendChild(_mkSpan('ico-sec','#c62828','\u25BC')); } },
     'balance-flop':     { label: 'Balance',  title: 'Balance: Low', buildIcon: function(p) { p.appendChild(_mkSpan('ico-sec','#2e7d32','\u25B2')); p.appendChild(_mkSpan('ico-pri','#c62828','\u25BC')); } },
-    'positive-only':    { label: 'Likes',    title: 'Likes',        buildIcon: function(p) { p.appendChild(_mkSpan('ico-pri','#2e7d32','\u25B2')); } },
-    'negative-only':    { label: 'Dislikes', title: 'Dislikes',     buildIcon: function(p) { p.appendChild(_mkSpan('ico-pri','#c62828','\u25BC')); } },
+    // v3.2.0: Best/Worst (Reddit's "Best") replace Likes/Dislikes, which
+    // were nearly identical to Balance (9 of the top 10 the same).
+    'best':             { label: 'Best',     title: 'Best: einhellig positiv bewertet', buildIcon: function(p) { p.appendChild(_mkSpan('ico-pri','#2e7d32','\u25B2')); } },
+    'worst':            { label: 'Worst',    title: 'Worst: einhellig negativ bewertet', buildIcon: function(p) { p.appendChild(_mkSpan('ico-pri','#c62828','\u25BC')); } },
     // Time is neutral (no red/green): the arrow inherits the text colour.
     'chronological-new':{ label: 'New',      title: 'New',          buildIcon: function(p) { p.appendChild(_mkSpan('ico-time', null, '\u2193')); } },
     'chronological-old':{ label: 'Old',      title: 'Old',          buildIcon: function(p) { p.appendChild(_mkSpan('ico-time', null, '\u2191')); } }
@@ -59,7 +61,7 @@
   // BUTTON_GROUPS: one badge per entry; each click advances to the next mode.
   const BUTTON_GROUPS = [
     { id: 'balance',  modes: ['balance-top', 'balance-flop'] },
-    { id: 'likes',    modes: ['positive-only', 'negative-only'] },
+    { id: 'best',     modes: ['best', 'worst'] },
     { id: 'timeline', modes: ['chronological-new', 'chronological-old'] }
   ];
 
@@ -86,7 +88,7 @@
   // showing a sensible label/icon even while another button is the active one.
   const groupSelection = {
     balance:  'balance-top',
-    likes:    'positive-only',
+    best:     'best',
     timeline: 'chronological-new'
   };
 
@@ -1665,13 +1667,28 @@
   // Previously every single comparison re-ran several DOM queries (and in the
   // Timeline modes a scan over all <span>s of a posting). With 1000 postings
   // that is ~20,000 comparisons -> noticeable main-thread jank while reading.
+  // v3.2.0: Reddit's "Best" — the lower bound of the Wilson score interval
+  // (95%) for the share of `hits` among all votes. A posting ranks high only
+  // when a clear majority agrees AND there are enough votes to be sure of it,
+  // so 3:0 does not beat 300:20. Postings without votes score 0.
+  function wilsonLowerBound(hits, total) {
+    if (total <= 0) return 0;
+    const z = 1.96;
+    const p = hits / total;
+    const z2n = z * z / total;
+    return (p + z2n / 2 - z * Math.sqrt((p * (1 - p) + z2n / 4) / total)) / (1 + z2n);
+  }
+
   function computeSortKey(group) {
     const r = readRatings(group.posting);
     const needsTime = sortMode.indexOf('chronological') === 0;
+    const total = r.pos + r.neg;
     return {
       pos: r.pos,
       neg: r.neg,
       net: r.pos - r.neg,
+      best: sortMode === 'best' ? wilsonLowerBound(r.pos, total) : 0,
+      worst: sortMode === 'worst' ? wilsonLowerBound(r.neg, total) : 0,
       time: needsTime ? getPostingTimestamp(group.posting) : 0
     };
   }
@@ -1685,8 +1702,9 @@
   // v2.4.10 – sort definitions:
   //   Balance: Top  -> (positive - negative), highest first
   //   Balance: Low  -> (negative - positive), highest first  (= exact mirror)
-  //   Likes:   Top  -> positive ratings only, highest first (negatives ignored)
-  //   Likes:   Low  -> negative ratings only, highest first (positives ignored)
+  //   Best          -> Wilson lower bound of the plus share, highest first
+  //   Worst         -> Wilson lower bound of the minus share, highest first
+  //                    (v3.2.0, replaced Likes / Dislikes)
   // Ties always fall back to the original forum order (domIndex), so equal
   // scores never get shuffled by an unrelated secondary criterion.
   function sortComparator(a, b) {
@@ -1696,8 +1714,8 @@
     switch (sortMode) {
       case 'balance-top':   diff = kb.net - ka.net; break;
       case 'balance-flop':  diff = ka.net - kb.net; break;
-      case 'positive-only': diff = kb.pos - ka.pos; break;
-      case 'negative-only': diff = kb.neg - ka.neg; break;
+      case 'best':  diff = kb.best - ka.best; break;
+      case 'worst': diff = kb.worst - ka.worst; break;
       case 'chronological-new': diff = kb.time - ka.time; break;
       case 'chronological':      // legacy alias -> behaves like "Old Timeline"
       case 'chronological-old': diff = ka.time - kb.time; break;
@@ -2935,9 +2953,12 @@
     if (currentMode === 'chronological') return 'chronological-old';
     // Migrate old format
     if (currentMode === 'net') return 'balance-top';
-    if (currentMode === 'positive') return 'positive-only';
+    // v3.2.0: Likes/Dislikes were replaced by Best/Worst
+    if (currentMode === 'positive-only') return 'best';
+    if (currentMode === 'negative-only') return 'worst';
+    if (currentMode === 'positive') return 'best';
     // Check legacy boolean key (very old versions)
-    if (data.sortByPositive === true) return 'positive-only';
+    if (data.sortByPositive === true) return 'best';
     if (data.sortByPositive === false) return 'balance-top';
     // Default
     return 'balance-top';
