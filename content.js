@@ -98,8 +98,10 @@
   }
 
   // Keep groupSelection in sync with the currently active sortMode.
-  // Index of the segment the active card slides away from (v3.1.2), or null.
-  let slideFrom = null;
+  // v3.1.2: mode clicked but not sorted yet (the re-sort waits for the
+  // slide animation), and a counter so only the latest click re-sorts.
+  let pendingMode = null;
+  let pendingClick = 0;
 
   function syncGroupSelection() {
     const g = getGroupForMode(sortMode);
@@ -157,7 +159,8 @@
     /* v3.1.2: the active segment's card is ONE element sliding under the
        segments (like the switch in the extension popup, 0.3s). Segments are
        equal-width, so its position is pure CSS: no layout measurement. Its
-       width is set from JS (depends on the number of segments). */
+       width is set from JS (depends on the number of segments). On a click
+       it slides first; the re-sort only starts afterwards. */
     #dst-seg-thumb {
       position: absolute;
       top: 3px;
@@ -1998,6 +2001,30 @@
   // aus dem Storage gelesen (vorher bei JEDER Sortierung zwei Storage-Abfragen).
   let coffeePulseCache = null; // null = noch nicht geprueft, sonst true/false
 
+  // Icon + label + mode dots of one segment (v3.1.2: also used to update a
+  // segment in place on click, before the re-sort re-creates the bar).
+  function fillSegment(btn, group, mode) {
+    const m = MODE_DEFS[mode];
+    btn.textContent = '';
+    btn.setAttribute('data-mode', mode);
+    btn.title = m.title;
+    btn.setAttribute('aria-label', m.title);
+    // AMO Security Fix: createElement statt innerHTML
+    // v2.2.9: [icon][label] centred TOGETHER as one unit (icon belongs to text).
+    const topRow = document.createElement('span');
+    topRow.className = 'dst-btn-toprow';
+    const iconWrap = document.createElement('span');
+    iconWrap.className = 'dst-btn-ico';
+    m.buildIcon(iconWrap);
+    const labelSpan = document.createElement('span');
+    labelSpan.className = 'dst-btn-label';
+    labelSpan.textContent = m.label;
+    topRow.appendChild(iconWrap);
+    topRow.appendChild(labelSpan);
+    btn.appendChild(topRow);
+    btn.appendChild(buildDotsIndicator(group, mode));
+  }
+
   function injectSortBadge(shadowRoot) {
     const header = shadowRoot.querySelector('.forum--header');
     if (!header) return;
@@ -2042,76 +2069,74 @@
     // sub-modes on click. Exactly one group is "active" at any time (the one
     // that owns the current sortMode).
     // v3.1.0: the three groups form ONE segmented control (#dst-seg).
+    // v3.1.2: while a click's re-sort is still pending, the bar shows the
+    // clicked mode (pendingMode), not the one the forum is sorted by yet.
     syncGroupSelection();
+    const shownMode = pendingMode || sortMode;
     const seg = document.createElement('div');
     seg.id = 'dst-seg';
     const n = BUTTON_GROUPS.length;
-    const activeIdx = BUTTON_GROUPS.findIndex((g) => g.modes.indexOf(sortMode) !== -1);
+    const activeIdx = BUTTON_GROUPS.findIndex((g) => g.modes.indexOf(shownMode) !== -1);
     const thumb = document.createElement('div');
     thumb.id = 'dst-seg-thumb';
     thumb.setAttribute('aria-hidden', 'true');
     thumb.style.width = 'calc((100% - ' + (6 + 3 * (n - 1)) + 'px) / ' + n + ')';
-    // The bar is re-created on every sort (often twice per click before the
-    // next frame), so the slide is started on whichever bar is still in the
-    // page one frame later: it starts at the previous segment and moves on.
-    const from = (slideFrom !== null && slideFrom !== activeIdx) ? slideFrom : activeIdx;
-    thumb.style.setProperty('--dst-i', String(from));
+    thumb.style.setProperty('--dst-i', String(activeIdx));
     if (activeIdx === -1) thumb.style.display = 'none';
     seg.appendChild(thumb);
-    if (from !== activeIdx) {
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        if (!thumb.isConnected) return;
-        thumb.style.setProperty('--dst-i', String(activeIdx));
-        slideFrom = null;
-      }));
-    }
-    BUTTON_GROUPS.forEach((group) => {
-      const displayedMode = groupSelection[group.id];
-      const m = MODE_DEFS[displayedMode];
-      const isActive = group.modes.indexOf(sortMode) !== -1;
 
+    BUTTON_GROUPS.forEach((group, groupIdx) => {
+      const isActive = groupIdx === activeIdx;
       const btn = document.createElement('div');
       btn.className = 'dst-badge-btn' + (isActive ? ' active' : '');
       btn.setAttribute('data-group', group.id);
-      btn.setAttribute('data-mode', displayedMode);
-      btn.title = m.title;
-      makeKeyboardButton(btn, m.title);
+      makeKeyboardButton(btn, '');
       btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-      // AMO Security Fix: createElement statt innerHTML
-      // Top row: icon + label side by side
-      const topRow = document.createElement('span');
-      topRow.className = 'dst-btn-toprow';
-      // v2.2.9: [icon][label] centred TOGETHER as one unit (icon belongs to text).
-      const iconWrap = document.createElement('span');
-      iconWrap.className = 'dst-btn-ico';
-      m.buildIcon(iconWrap);
-      const labelSpan = document.createElement('span');
-      labelSpan.className = 'dst-btn-label';
-      labelSpan.textContent = m.label;
-      topRow.appendChild(iconWrap);
-      topRow.appendChild(labelSpan);
-      btn.appendChild(topRow);
-      btn.appendChild(buildDotsIndicator(group, displayedMode));
+      fillSegment(btn, group, groupSelection[group.id]);
 
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
 
+        const current = pendingMode || sortMode;
         let targetMode;
-        // Switching to another segment: let the active card slide over.
-        const prevIdx = BUTTON_GROUPS.findIndex((g) => g.modes.indexOf(sortMode) !== -1);
-        if (group.modes.indexOf(sortMode) === -1 && prevIdx !== -1) slideFrom = prevIdx;
-        if (group.modes.indexOf(sortMode) !== -1) {
+        if (group.modes.indexOf(current) !== -1) {
           // This group is already active → advance to its next sub-mode.
-          const idx = group.modes.indexOf(sortMode);
+          const idx = group.modes.indexOf(current);
           targetMode = group.modes[(idx + 1) % group.modes.length];
         } else {
           // Switching to a different group → activate its remembered sub-mode.
           targetMode = groupSelection[group.id];
         }
+        const slides = group.modes.indexOf(current) === -1;
         groupSelection[group.id] = targetMode;
 
-        // Re-sort with the new mode (this re-renders the badge bar too).
-        changeSortMode(targetMode, shadowRoot);
+        // v3.1.2: show the new state at once — the active card slides over
+        // (0.3s) or the segment flips its direction — and only re-sort
+        // afterwards. Sorting a large forum blocks the page for a moment;
+        // done first, it would swallow the animation.
+        seg.querySelectorAll('.dst-badge-btn').forEach((b, i) => {
+          b.classList.toggle('active', i === groupIdx);
+          b.setAttribute('aria-pressed', i === groupIdx ? 'true' : 'false');
+        });
+        fillSegment(btn, group, targetMode);
+        thumb.style.display = '';
+        thumb.style.setProperty('--dst-i', String(groupIdx));
+
+        // A newer click supersedes a re-sort that has not started yet.
+        const token = ++pendingClick;
+        pendingMode = targetMode;
+        const run = () => {
+          if (token !== pendingClick) return;
+          pendingMode = null;
+          changeSortMode(targetMode, shadowRoot);   // re-renders the bar too
+        };
+        const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (slides && !reduce) {
+          setTimeout(run, 320);
+        } else {
+          // Let the flipped segment be painted before the re-sort starts.
+          requestAnimationFrame(() => setTimeout(run, 0));
+        }
       });
 
       seg.appendChild(btn);
