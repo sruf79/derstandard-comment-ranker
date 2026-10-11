@@ -47,12 +47,29 @@
     svg.appendChild(path);
     return svg;
   }
+  // v3.5.0: "+" / "−" after "Balance", drawn as SVG like the arrows — in
+  // derStandard's font the "+" is much smaller than the "−".
+  function _mkSign(plus) {
+    const NS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('class', 'dst-btn-sign');
+    svg.setAttribute('viewBox', '0 0 10 10');
+    svg.setAttribute('aria-hidden', 'true');
+    const path = document.createElementNS(NS, 'path');
+    path.setAttribute('d', plus ? 'M1.5 5h7M5 1.5v7' : 'M1.5 5h7');
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', 'currentColor');
+    path.setAttribute('stroke-width', '2.2');
+    path.setAttribute('stroke-linecap', 'round');
+    svg.appendChild(path);
+    return svg;
+  }
   // ── v2.2.0: grouped toggle buttons ─────────────────────────────
   // Instead of 5 separate sort badges we now render only 3 sort buttons
   // (plus the coffee button). Each button owns several sub-modes and
   // cycles through them on every click:
   //   • Balance  : Balance: Top  ↔ Balance: Low
-  //   • Best     : Best          ↔ Worst   (v3.2.0, was Likes ↔ Dislikes)
+  //   • Likes    : Likes         ↔ Dislikes
   //   • Timeline : Timeline: New ↔ Timeline: Old (v2.2.2: 2-way toggle)
   //
   // MODE_DEFS: label + icon builder for every individual sort mode.
@@ -61,17 +78,17 @@
   // active direction's triangle grows (ico-pri = big), the other shrinks
   // (ico-sec = small). Nothing moves, so switching modes is a minimal visual
   // change.
-  // v3.1.0: one short word per segment and direction. v3.2.1: Balance reads
-  // Plus / Minus (derStandard's own terms) — every segment now changes its
-  // label with the direction. New/Old as on Reddit. `title` explains each
+  // v3.1.0: one short word per segment and direction. `title` explains each
   // mode for tooltips and screen readers.
+  // v3.5.0: back to the three sort groups users know — Likes/Dislikes,
+  // Balance (in the middle, the default) and New/Old. Balance reads
+  // "Balance +" / "Balance −" (`sign` is drawn a bit bolder), so every segment
+  // changes its label with the direction. Best/Worst (3.2.0–3.4.1) is gone.
   const MODE_DEFS = {
-    'balance-top':      { label: 'Plus',     title: 'Plus: höchste Bilanz aus Plus- und Minus-Stimmen', buildIcon: function(p) { p.appendChild(_mkSpan('ico-pri','#2e7d32','\u25B2')); p.appendChild(_mkSpan('ico-sec','#c62828','\u25BC')); } },
-    'balance-flop':     { label: 'Minus',    title: 'Minus: niedrigste Bilanz aus Plus- und Minus-Stimmen', buildIcon: function(p) { p.appendChild(_mkSpan('ico-sec','#2e7d32','\u25B2')); p.appendChild(_mkSpan('ico-pri','#c62828','\u25BC')); } },
-    // v3.2.0: Best/Worst (Reddit's "Best") replace Likes/Dislikes, which
-    // were nearly identical to Balance (9 of the top 10 the same).
-    'best':             { label: 'Best',     title: 'Best: einhellig positiv bewertet', buildIcon: function(p) { p.appendChild(_mkSpan('ico-pri','#2e7d32','\u25B2')); } },
-    'worst':            { label: 'Worst',    title: 'Worst: einhellig negativ bewertet', buildIcon: function(p) { p.appendChild(_mkSpan('ico-pri','#c62828','\u25BC')); } },
+    'positive-only':    { label: 'Likes',    title: 'Likes: meiste Plus-Stimmen zuerst', buildIcon: function(p) { p.appendChild(_mkSpan('ico-pri','#2e7d32','▲')); } },
+    'negative-only':    { label: 'Dislikes', title: 'Dislikes: meiste Minus-Stimmen zuerst', buildIcon: function(p) { p.appendChild(_mkSpan('ico-pri','#c62828','▼')); } },
+    'balance-top':      { label: 'Balance', sign: '+',      title: 'Balance +: höchste Bilanz aus Plus- und Minus-Stimmen', buildIcon: function(p) { p.appendChild(_mkSpan('ico-pri','#2e7d32','▲')); p.appendChild(_mkSpan('ico-sec','#c62828','▼')); } },
+    'balance-flop':     { label: 'Balance', sign: '−', title: 'Balance −: niedrigste Bilanz aus Plus- und Minus-Stimmen', buildIcon: function(p) { p.appendChild(_mkSpan('ico-sec','#2e7d32','▲')); p.appendChild(_mkSpan('ico-pri','#c62828','▼')); } },
     // Time is neutral (no red/green): the arrow inherits the text colour.
     'chronological-new':{ label: 'New',      title: 'New: neueste Postings zuerst', buildIcon: function(p) { p.appendChild(_mkArrow(true)); } },
     'chronological-old':{ label: 'Old',      title: 'Old: älteste Postings zuerst', buildIcon: function(p) { p.appendChild(_mkArrow(false)); } }
@@ -79,8 +96,8 @@
 
   // BUTTON_GROUPS: one badge per entry; each click advances to the next mode.
   const BUTTON_GROUPS = [
+    { id: 'likes',    modes: ['positive-only', 'negative-only'] },
     { id: 'balance',  modes: ['balance-top', 'balance-flop'] },
-    { id: 'best',     modes: ['best', 'worst'] },
     { id: 'timeline', modes: ['chronological-new', 'chronological-old'] }
   ];
 
@@ -106,8 +123,8 @@
   // Remembers the last-selected sub-mode per button group so a button keeps
   // showing a sensible label/icon even while another button is the active one.
   const groupSelection = {
+    likes:    'positive-only',
     balance:  'balance-top',
-    best:     'best',
     timeline: 'chronological-new'
   };
 
@@ -199,7 +216,7 @@
     }
     /* v3.4.1: the "flash" of the old badges, on the active pill: a short
        tint plus an expanding ring on every click, while the pill slides.
-       Green for Plus/Best, red for Minus/Worst, neutral for New/Old. Only
+       Green for Likes/Balance +, red for Dislikes/Balance −, neutral for New/Old. Only
        opacity and transform are animated; the re-sort waits until it is over. */
     #dst-seg-thumb[data-tone="pos"] { --dst-flash: #8FAF6F; }
     #dst-seg-thumb[data-tone="neg"] { --dst-flash: #e6a9a3; }
@@ -291,6 +308,13 @@
       min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+    /* "+" / "−" after "Balance" (SVG, same size and weight) */
+    .dst-btn-sign { width: 10px; height: 10px; margin-left: 4px; display: inline-block; vertical-align: -0.5px; }
+    /* Very narrow phones (≈320px): drop the Balance triangles, the sign shows
+       the direction, so "Balance +" still fits. */
+    @media (max-width: 339px) {
+      #dst-seg .dst-badge-btn[data-group="balance"] .dst-btn-ico { display: none; }
     }
     /* Two dots: segment has two modes; the filled one is selected */
     .dots-indicator {
@@ -1730,28 +1754,13 @@
   // Previously every single comparison re-ran several DOM queries (and in the
   // Timeline modes a scan over all <span>s of a posting). With 1000 postings
   // that is ~20,000 comparisons -> noticeable main-thread jank while reading.
-  // v3.2.0: Reddit's "Best" — the lower bound of the Wilson score interval
-  // (95%) for the share of `hits` among all votes. A posting ranks high only
-  // when a clear majority agrees AND there are enough votes to be sure of it,
-  // so 3:0 does not beat 300:20. Postings without votes score 0.
-  function wilsonLowerBound(hits, total) {
-    if (total <= 0) return 0;
-    const z = 1.96;
-    const p = hits / total;
-    const z2n = z * z / total;
-    return (p + z2n / 2 - z * Math.sqrt((p * (1 - p) + z2n / 4) / total)) / (1 + z2n);
-  }
-
   function computeSortKey(group) {
     const r = readRatings(group.posting);
     const needsTime = sortMode.indexOf('chronological') === 0;
-    const total = r.pos + r.neg;
     return {
       pos: r.pos,
       neg: r.neg,
       net: r.pos - r.neg,
-      best: sortMode === 'best' ? wilsonLowerBound(r.pos, total) : 0,
-      worst: sortMode === 'worst' ? wilsonLowerBound(r.neg, total) : 0,
       time: needsTime ? getPostingTimestamp(group.posting) : 0
     };
   }
@@ -1765,9 +1774,8 @@
   // v2.4.10 – sort definitions:
   //   Balance: Top  -> (positive - negative), highest first
   //   Balance: Low  -> (negative - positive), highest first  (= exact mirror)
-  //   Best          -> Wilson lower bound of the plus share, highest first
-  //   Worst         -> Wilson lower bound of the minus share, highest first
-  //                    (v3.2.0, replaced Likes / Dislikes)
+  //   Likes         -> positive ratings only, highest first
+  //   Dislikes      -> negative ratings only, highest first
   // Ties always fall back to the original forum order (domIndex), so equal
   // scores never get shuffled by an unrelated secondary criterion.
   function sortComparator(a, b) {
@@ -1777,8 +1785,8 @@
     switch (sortMode) {
       case 'balance-top':   diff = kb.net - ka.net; break;
       case 'balance-flop':  diff = ka.net - kb.net; break;
-      case 'best':  diff = kb.best - ka.best; break;
-      case 'worst': diff = kb.worst - ka.worst; break;
+      case 'positive-only': diff = kb.pos - ka.pos; break;
+      case 'negative-only': diff = kb.neg - ka.neg; break;
       case 'chronological-new': diff = kb.time - ka.time; break;
       case 'chronological':      // legacy alias -> behaves like "Old Timeline"
       case 'chronological-old': diff = ka.time - kb.time; break;
@@ -2105,6 +2113,7 @@
     const labelSpan = document.createElement('span');
     labelSpan.className = 'dst-btn-label';
     labelSpan.textContent = m.label;
+    if (m.sign) labelSpan.appendChild(_mkSign(m.sign === '+'));
     topRow.appendChild(iconWrap);
     topRow.appendChild(labelSpan);
     btn.appendChild(topRow);
@@ -2112,10 +2121,10 @@
   }
 
   // v3.4.1: short flash of the active pill (CSS .dst-flash), tinted by the
-  // mode: green for Plus/Best, red for Minus/Worst, neutral for New/Old.
+  // mode: green for Likes/Balance +, red for Dislikes/Balance −, neutral for New/Old.
   const FLASH_TONE = {
-    'balance-top': 'pos', 'best': 'pos',
-    'balance-flop': 'neg', 'worst': 'neg'
+    'balance-top': 'pos', 'positive-only': 'pos',
+    'balance-flop': 'neg', 'negative-only': 'neg'
   };
   function flashThumb(thumb, mode) {
     thumb.setAttribute('data-tone', FLASH_TONE[mode] || 'neutral');
@@ -3035,12 +3044,11 @@
     if (currentMode === 'chronological') return 'chronological-old';
     // Migrate old format
     if (currentMode === 'net') return 'balance-top';
-    // v3.2.0: Likes/Dislikes were replaced by Best/Worst
-    if (currentMode === 'positive-only') return 'best';
-    if (currentMode === 'negative-only') return 'worst';
-    if (currentMode === 'positive') return 'best';
+    // v3.5.0: Best/Worst (3.2.0–3.4.1) went back to Likes/Dislikes
+    if (currentMode === 'best' || currentMode === 'positive') return 'positive-only';
+    if (currentMode === 'worst') return 'negative-only';
     // Check legacy boolean key (very old versions)
-    if (data.sortByPositive === true) return 'best';
+    if (data.sortByPositive === true) return 'positive-only';
     if (data.sortByPositive === false) return 'balance-top';
     // Default
     return 'balance-top';
