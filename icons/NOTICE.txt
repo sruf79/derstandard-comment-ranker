@@ -1,0 +1,9 @@
+icons/coffee.svg
+
+The coffee cup is the "hot beverage" emoji (U+2615) from Noto Emoji,
+Copyright 2013 Google LLC, https://github.com/googlefonts/noto-emoji
+Noto Emoji image resources are licensed under the Apache License,
+Version 2.0 (https://www.apache.org/licenses/LICENSE-2.0); the Noto Emoji
+font is licensed under the SIL Open Font License, Version 1.1
+(https://openfontlicense.org). The image is used unmodified apart from
+removing editor metadata.

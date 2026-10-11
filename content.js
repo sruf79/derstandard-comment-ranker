@@ -215,6 +215,26 @@
       pointer-events: none;
     }
     #dst-seg::before { left: 0; right: calc(3px + 38px + 3px + 10px); }
+    /* v3.10.0: a 20px bridge in the same domed look links the two pills; it
+       runs under both of them (pills z-index -1, bridge -2) */
+    #dst-seg-bridge {
+      position: absolute;
+      z-index: -2;
+      top: 50%;
+      height: 20px;
+      right: calc(3px + 38px + 3px - 10px);
+      width: 30px;
+      transform: translateY(-50%);
+      background: linear-gradient(to bottom,
+        color-mix(in srgb, var(--dst-track) 35%, #fff),
+        var(--dst-track) 55%,
+        color-mix(in srgb, var(--dst-track) 94%, #000));
+      box-shadow: 0 0 0 1px var(--dst-track-border),
+        inset 0 1.5px 0 rgba(255, 255, 255, .95),
+        inset 0 -2px 3px rgba(0, 0, 0, .08),
+        0 3px 8px rgba(0, 0, 0, .18);
+      pointer-events: none;
+    }
     #dst-seg::after { right: 0; width: calc(3px + 38px + 3px); }
     /* v3.6.0: the active pill looks like the active badge of the old design:
        green frame + light green (Likes, Balance Top, Timeline), red frame +
@@ -2247,6 +2267,11 @@
     thumb.setAttribute('data-tone', toneOf(shownMode));
     if (activeIdx === -1) thumb.style.display = 'none';
     seg.appendChild(thumb);
+    // v3.10.0: a bridge between the sort pill and the coffee pill
+    const bridge = document.createElement('div');
+    bridge.id = 'dst-seg-bridge';
+    bridge.setAttribute('aria-hidden', 'true');
+    seg.appendChild(bridge);
 
     BUTTON_GROUPS.forEach((group, groupIdx) => {
       const isActive = groupIdx === activeIdx;
@@ -2317,8 +2342,16 @@
     // AMO Security Fix: createElement statt innerHTML
     const coffeeIcon = document.createElement('span');
     coffeeIcon.className = 'dst-coffee-icon';
-    coffeeIcon.style.cssText = 'font-size:16px;line-height:1;vertical-align:middle;transition:transform 0.3s';
-    coffeeIcon.textContent = '☕';
+    coffeeIcon.style.cssText = 'display:inline-flex;line-height:1;vertical-align:middle;transition:transform 0.3s';
+    // v3.10.0: the same cup on every system (Noto Emoji, see icons/NOTICE.txt)
+    // instead of the ☕ character, which looks different on every OS
+    const coffeeImg = document.createElement('img');
+    coffeeImg.src = chrome.runtime.getURL('icons/coffee.svg');
+    coffeeImg.alt = '';
+    coffeeImg.width = 20;
+    coffeeImg.height = 20;
+    coffeeImg.draggable = false;
+    coffeeIcon.appendChild(coffeeImg);
     coffeeBtn.appendChild(coffeeIcon);
     // V14 Dampf-Container mit 5 feinen Wisps
     const steamContainer = document.createElement('div');
