@@ -140,14 +140,16 @@
          Ressort) made a touch lighter, so the bar stands out from the page */
       --dst-track: color-mix(in srgb, var(--theme--base, #e6e6e6) 75%, #fff);
     }
+    /* v3.8.0: two rows — the sort track (always shown and usable) and, while
+       postings are loading, the loading bar below it. */
     #dst-badge-bar {
       display: flex;
-      flex-wrap: nowrap;
-      gap: 6px;
+      flex-direction: column;
+      gap: 10px;
       /* v3.5.1: 31px below, whatever comes next. Before, it was 6px + the
          comment box's own 25px top margin (31px), but only 6px when a pinned
          posting came first. The comment box's top margin is dropped below. */
-      padding: 10px 0 31px 0;
+      padding: 10px 0 31px 0;   /* 31px below the lowest row */
       align-items: stretch;
       box-sizing: border-box;
       width: 100%;
@@ -2565,22 +2567,18 @@
     if (!bar) return;
     lastProgress = [loaded, total, message];
 
-    // Hide all badge buttons. visibility (not display) keeps their space, and
-    // the progress bar is laid over them: the bar keeps its height, so the
-    // forum below no longer shifts up and back down by ~14px.
-    for (const child of bar.children) {
-      if (child.id !== 'dst-progress-container') {
-        child.style.visibility = 'hidden';
-      }
-    }
-
+    // v3.8.0: the loading bar is its own row BELOW the sort track; the sort
+    // segments stay visible and usable while postings load.
     let container = bar.querySelector('#dst-progress-container');
     if (!container) {
       container = document.createElement('div');
       container.id = 'dst-progress-container';
-      container.style.cssText = 'position:absolute;left:0;right:0;top:10px;bottom:31px;display:flex;flex-direction:column;justify-content:center;gap:3px;min-width:0;';
-      bar.style.position = 'relative';
+      container.style.cssText = 'width:100%;display:flex;flex-direction:column;min-width:0;';
+      // The new row pushes the forum down by ~38px: keep what the reader
+      // looks at in place (same anchoring as for a re-sort).
+      const anchor = captureScrollAnchor(shadowRoot);
       bar.appendChild(container);
+      restoreScrollAnchor(anchor);
     }
 
     // v2.4.1: guard the denominator. A trustworthy total is always ≥ the
@@ -2631,11 +2629,12 @@
     if (!bar) return;
 
     const container = bar.querySelector('#dst-progress-container');
-    if (container) container.remove();
-
-    // Show all badge buttons again
-    for (const child of bar.children) {
-      child.style.visibility = '';
+    if (container) {
+      // Removing the row pulls the forum up by ~38px — and a re-sort usually
+      // follows at once, which suspends the browser's own scroll anchoring.
+      const anchor = captureScrollAnchor(shadowRoot);
+      container.remove();
+      restoreScrollAnchor(anchor);
     }
 
     // Remove pulse style
