@@ -167,10 +167,9 @@
       gap: 3px;
       padding: 3px;
       border-radius: 24px;        /* v3.1.5: one pill-shaped track */
-      background: var(--dst-track);
-      /* v3.8.1: darker frame + soft drop shadow, so the bar does not get lost
-         on the page (box-shadow ring: no change in size or layout) */
-      box-shadow: 0 0 0 1px var(--dst-track-border), 0 2px 6px rgba(0, 0, 0, .15);
+      /* v3.8.4: the track is drawn by ::before (sort segments) and ::after
+         (coffee button) — two pills with a gap in the article colour */
+      isolation: isolate;
       box-sizing: border-box;
     }
     /* v3.1.2: the active segment's card is ONE element sliding under the
@@ -187,20 +186,23 @@
       transform: translateX(calc(var(--dst-i, 0) * (100% + 3px)));
       transition: transform .3s ease, background-color .3s ease, box-shadow .3s ease;
     }
-    /* v3.8.3: a second frame, inside the track, around the three sort
-       segments only (not the coffee button): same colour and rounding as the
-       track's outer line. Drawn as a pseudo-element — no extra markup. */
-    #dst-seg::before {
+    /* v3.8.4: two pills with the same rounding, ~0.5cm apart: the three
+       sort segments and the coffee button. v3.8.1: darker frame + soft drop
+       shadow, so the bar does not get lost on the page. */
+    #dst-seg::before,
+    #dst-seg::after {
       content: '';
       position: absolute;
-      top: 3px;
-      bottom: 3px;
-      left: 3px;
-      right: calc(3px + 38px + 3px);   /* track padding + coffee slot */
-      border: 1px solid var(--dst-track-border);
-      border-radius: 20px;
+      top: 0;
+      bottom: 0;
+      z-index: -1;
+      background: var(--dst-track);
+      border-radius: 24px;
+      box-shadow: 0 0 0 1px var(--dst-track-border), 0 2px 6px rgba(0, 0, 0, .15);
       pointer-events: none;
     }
+    #dst-seg::before { left: 0; right: calc(3px + 38px + 3px + 19px); }
+    #dst-seg::after { right: 0; width: calc(3px + 38px + 3px); }
     /* v3.6.0: the active pill looks like the active badge of the old design:
        green frame + light green (Likes, Balance Top, Timeline), red frame +
        light red for the "low" modes (Dislikes, Balance Low) — easy to spot. */
@@ -320,6 +322,7 @@
     #dst-seg .dst-badge-btn.dst-coffee-btn {
       flex: 0 0 38px;
       width: 38px;
+      margin-left: 22px;               /* v3.8.4: 19px gap + pill padding */
       min-height: 38px;
       padding: 0;
       border-radius: 50%;
@@ -2158,8 +2161,9 @@
     }
   }
 
-  // Width the round coffee button takes inside the track, incl. its gap.
-  const COFFEE_SLOT = 38 + 3;
+  // Width the round coffee button takes inside the track, incl. its gap and
+  // (v3.8.4) the 19px gap between the two pills plus the pill padding.
+  const COFFEE_SLOT = 38 + 3 + 22;
 
   function injectSortBadge(shadowRoot) {
     const header = shadowRoot.querySelector('.forum--header');
@@ -2223,7 +2227,7 @@
     const thumb = document.createElement('div');
     thumb.id = 'dst-seg-thumb';
     thumb.setAttribute('aria-hidden', 'true');
-    // v3.7.0: the coffee button sits at the end of the track (38px + 3px gap)
+    // v3.7.0: the coffee button sits at the end of the track (COFFEE_SLOT)
     thumb.style.width = 'calc((100% - ' + (6 + 3 * (n - 1) + COFFEE_SLOT) + 'px) / ' + n + ')';
     thumb.style.setProperty('--dst-i', String(activeIdx));
     thumb.setAttribute('data-tone', toneOf(shownMode));

@@ -1,4 +1,4 @@
-// popup.js — derStandard Comment Ranker v3.8.3
+// popup.js — derStandard Comment Ranker v3.8.4
 // 4-box popup: Header (icon + title), Toggle (enable/disable), Review
 // (browser-aware store link with a delayed golden pulse), and Coffee (donate).
 //
