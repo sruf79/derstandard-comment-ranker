@@ -133,6 +133,9 @@
     #dst-badge-bar, #dst-voter-overlay {
       --dst-ink: var(--theme--on-secondary--hsl, 0 0% 13%);
       --dst-card: var(--theme--card, #fff);
+      /* v3.1.5: the raised pill is brighter than derStandard's cards, so the
+         bar stands out from the page (mix of the Ressort's card colour and white) */
+      --dst-pill: color-mix(in srgb, var(--dst-card) 45%, #fff);
     }
     #dst-badge-bar {
       display: flex;
@@ -152,8 +155,9 @@
       display: flex;
       gap: 3px;
       padding: 3px;
-      border-radius: 8px;
-      background: hsl(var(--dst-ink) / .08);
+      border-radius: 24px;        /* v3.1.5: one pill-shaped track */
+      background: hsl(var(--dst-ink) / .10);
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, .08);
       box-sizing: border-box;
     }
     /* v3.1.2: the active segment's card is ONE element sliding under the
@@ -166,9 +170,9 @@
       top: 3px;
       bottom: 3px;
       left: 3px;
-      border-radius: 6px;
-      background: var(--dst-card);
-      box-shadow: 0 0 0 1px hsl(var(--dst-ink) / .15);
+      border-radius: 20px;        /* v3.1.5: raised pill with a soft shadow */
+      background: var(--dst-pill);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, .12), 0 2px 8px rgba(0, 0, 0, .12);
       transform: translateX(calc(var(--dst-i, 0) * (100% + 3px)));
       transition: transform .3s ease;
     }
@@ -186,7 +190,7 @@
       align-items: center;
       justify-content: center;
       gap: 5px;
-      border-radius: 6px;         /* same rounding as derStandard's posting cards */
+      border-radius: 20px;        /* pill, like the sliding card */
       font: inherit;
       font-size: 13px;
       font-weight: 600;
@@ -266,8 +270,9 @@
       width: 44px;
       min-height: 44px;
       padding: 0;
-      border-radius: 8px;
-      background: hsl(var(--dst-ink) / .08);
+      border-radius: 50%;
+      background: var(--dst-pill);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, .12);
       color: #6d4c41;
       position: relative;
     }
@@ -2498,11 +2503,11 @@
     // Outer bar
     const outer = document.createElement('div');
     // v3.1.0: neutral, in derStandard's text colour (green is kept for ratings)
-    outer.style.cssText = 'width:100%;height:28px;background:hsl(var(--dst-ink) / .08);border-radius:6px;position:relative;overflow:hidden;';
+    outer.style.cssText = 'width:100%;height:28px;background:hsl(var(--dst-ink) / .10);border-radius:14px;position:relative;overflow:hidden;';
 
     // Inner fill
     const fill = document.createElement('div');
-    fill.style.cssText = 'position:absolute;left:0;top:0;height:100%;width:' + percentage + '%;background:hsl(var(--dst-ink) / .18);border-radius:6px;transition:width 0.4s ease;';
+    fill.style.cssText = 'position:absolute;left:0;top:0;height:100%;width:' + percentage + '%;background:hsl(var(--dst-ink) / .18);border-radius:14px;transition:width 0.4s ease;';
 
     // Pulse animation on fill
     const pulseStyle = document.createElement('style');
@@ -2568,7 +2573,7 @@
     if (!container) return;
     container.textContent = '';
     const outer = document.createElement('div');
-    outer.style.cssText = 'width:100%;height:28px;background:hsl(var(--dst-ink) / .18);border-radius:6px;display:flex;align-items:center;justify-content:center;';
+    outer.style.cssText = 'width:100%;height:28px;background:hsl(var(--dst-ink) / .18);border-radius:14px;display:flex;align-items:center;justify-content:center;';
     const textEl = document.createElement('span');
     textEl.style.cssText = 'color:hsl(var(--dst-ink));font-weight:700;font-size:12px;';
     textEl.textContent = '✓ Alle ' + completeNotice.total + ' Postings geladen!';
