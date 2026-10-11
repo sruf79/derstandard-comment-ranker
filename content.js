@@ -292,20 +292,19 @@
     }
 
     /* Coffee/Donate button — never active; square, tinted like the track. */
-    .dst-badge-btn.dst-coffee-btn {
-      flex: 0 0 44px;
-      width: 44px;
-      min-height: 44px;
+    /* v3.7.0: inside the track as its last, round slot (38px) */
+    #dst-seg .dst-badge-btn.dst-coffee-btn {
+      flex: 0 0 38px;
+      width: 38px;
+      min-height: 38px;
       padding: 0;
       border-radius: 50%;
-      /* v3.5.1: same colour as the track (was the brighter active pill) */
-      background: hsl(var(--dst-ink) / .10);
-      box-shadow: inset 0 1px 2px rgba(0, 0, 0, .08);
+      background: transparent;
       color: #6d4c41;
       position: relative;
     }
-    .dst-badge-btn.dst-coffee-btn:hover,
-    .dst-badge-btn.dst-coffee-btn.dst-pulsing {
+    #dst-seg .dst-badge-btn.dst-coffee-btn:hover,
+    #dst-seg .dst-badge-btn.dst-coffee-btn.dst-pulsing {
       background: #fff8e1;
       outline: 2px solid #FFD700;
       outline-offset: -2px;
@@ -317,11 +316,19 @@
     }
     /* v2.4.5: Auto-Puls alle 15 Tage — respektiert reduzierte Bewegung */
     @media (prefers-reduced-motion: reduce) {
-      .dst-badge-btn.dst-coffee-btn.dst-pulsing {
+      #dst-seg .dst-badge-btn.dst-coffee-btn.dst-pulsing {
         animation: none;
         box-shadow: 0 0 10px 2px rgba(255, 215, 0, 0.35);
       }
     }
+
+    /* v3.7.0: golden click flash of the coffee button (like the sort flash) */
+    @keyframes dst-coffee-flash {
+      0%   { background-color: #FFE27A; box-shadow: 0 0 0 2px #FFD700, 0 0 0 8px rgba(255, 215, 0, .45); }
+      55%  { background-color: #fff1b8; box-shadow: 0 0 0 2px #FFD700, 0 0 0 5px rgba(255, 215, 0, .2); }
+      100% { background-color: #fff8e1; box-shadow: 0 0 0 2px #FFD700, 0 0 0 2px rgba(255, 215, 0, 0); }
+    }
+    #dst-seg .dst-badge-btn.dst-coffee-btn.dst-flash { animation: dst-coffee-flash .45s ease-out; }
 
     /* Golden Pulse animation for Coffee badge */
     @keyframes dst-coffee-golden-pulse {
@@ -2127,6 +2134,9 @@
     }
   }
 
+  // Width the round coffee button takes inside the track, incl. its gap.
+  const COFFEE_SLOT = 38 + 3;
+
   function injectSortBadge(shadowRoot) {
     const header = shadowRoot.querySelector('.forum--header');
     if (!header) return;
@@ -2189,7 +2199,8 @@
     const thumb = document.createElement('div');
     thumb.id = 'dst-seg-thumb';
     thumb.setAttribute('aria-hidden', 'true');
-    thumb.style.width = 'calc((100% - ' + (6 + 3 * (n - 1)) + 'px) / ' + n + ')';
+    // v3.7.0: the coffee button sits at the end of the track (38px + 3px gap)
+    thumb.style.width = 'calc((100% - ' + (6 + 3 * (n - 1) + COFFEE_SLOT) + 'px) / ' + n + ')';
     thumb.style.setProperty('--dst-i', String(activeIdx));
     thumb.setAttribute('data-tone', toneOf(shownMode));
     if (activeIdx === -1) thumb.style.display = 'none';
@@ -2318,6 +2329,10 @@
 
     coffeeBtn.addEventListener('click', (e) => {
       e.stopPropagation();
+      // v3.7.0: golden click flash like the sort segments' flash
+      const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      coffeeBtn.classList.remove('dst-flash');
+      if (!reduceMotion) requestAnimationFrame(() => coffeeBtn.classList.add('dst-flash'));
       // Acknowledge by incrementing n, so pulse returns only at the next calculated day.
       coffeeBtn.classList.remove('dst-pulsing');
       coffeePulseCache = false;
@@ -2330,7 +2345,12 @@
           });
         }
       } catch (err) { /* noop */ }
-      window.open('https://buymeacoffee.com/diversion', '_blank');
+      // Open the page once the flash has been seen (still within the click's
+      // user activation, so it is not blocked as a popup).
+      setTimeout(() => window.open('https://buymeacoffee.com/diversion', '_blank'), reduceMotion ? 0 : 350);
+    });
+    coffeeBtn.addEventListener('animationend', (e) => {
+      if (e.animationName === 'dst-coffee-flash') coffeeBtn.classList.remove('dst-flash');
     });
 
     // Decide whether to auto-pulse this time (fail-safe: no pulse on any error).
@@ -2364,7 +2384,8 @@
       }
     } catch (err) { /* noop */ }
 
-    bar.appendChild(coffeeBtn);
+    // v3.7.0: inside the track, as its last (round) slot
+    seg.appendChild(coffeeBtn);
 
     // v2.2.7: Insert the bar as the FIRST CHILD of main.forum--main so it
     // inherits that container's exact width (aligns with the composer frame &
