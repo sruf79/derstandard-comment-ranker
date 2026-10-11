@@ -1312,6 +1312,11 @@
     const stableId = getStablePostingId(posting);
     if (stableId) return stableId;
 
+    // Deleted postings carry no id at all, and the fallback below gives every
+    // one of them the same key ("Posting von gelöschtem Profil|0:0"). They were
+    // all hidden as "duplicates" of the first one — together with their replies.
+    if (posting.classList.contains('posting-deleted')) return null;
+
     // 3) Last-resort fallback: author + rating counts. Unreliable (ratings can be
     //    stale between the two copies), kept only for postings that somehow lack
     //    the nested encoded id.
@@ -1531,6 +1536,10 @@
           siblings: [],
           pinned: pinned,
           isDuplicate: isDuplicate,
+          // "Posting durch Poster:in gelöscht." without replies: nothing to read,
+          // so it is hidden. With replies it stays, as the replies hang off it.
+          isDeletedAlone: child.classList.contains('posting-deleted') &&
+            !child.classList.contains('posting-with-thread'),
           postingId: postingId,
           domIndex: groups.length
         };
@@ -1846,14 +1855,24 @@
       // Step 1: Hide duplicate postings. v2.4.10: NOT removed any more — the
       // nodes belong to derStandard's Lit templates, and removing them can break
       // later native re-renders. display:none has the same visual effect.
-      const duplicateGroups = allGroups.filter((g) => g.isDuplicate);
-      for (const dup of duplicateGroups) {
+      // Deleted postings without replies are hidden the same way.
+      const isHidden = (g) => g.isDuplicate || g.isDeletedAlone;
+      const hiddenGroups = allGroups.filter(isHidden);
+      for (const dup of hiddenGroups) {
         dup.posting.style.display = 'none';
         dup.siblings.forEach((sib) => { sib.style.display = 'none'; });
       }
 
       // Step 2: Separate pinned from regular
-      const remainingGroups = allGroups.filter((g) => !g.isDuplicate);
+      const remainingGroups = allGroups.filter((g) => !isHidden(g));
+      // A posting hidden by an earlier sort that no longer qualifies (e.g. a
+      // deleted posting that got a reply) becomes visible again.
+      for (const g of remainingGroups) {
+        if (g.posting.style.display === 'none') g.posting.style.display = '';
+        g.siblings.forEach((sib) => {
+          if (sib.tagName === 'SECTION' && sib.style.display === 'none') sib.style.display = '';
+        });
+      }
       const pinnedGroups = remainingGroups.filter((g) => g.pinned);
       const regularGroups = remainingGroups.filter((g) => !g.pinned);
 
@@ -2839,7 +2858,7 @@
         const main = shadowRoot.querySelector('main.forum--main');
         if (main) {
           const { groups: allGrps } = collectPostingGroups(main);
-          const sortableGrps = allGrps.filter(function(g) { return !g.isDuplicate; });
+          const sortableGrps = allGrps.filter(function(g) { return !g.isDuplicate && !g.isDeletedAlone; });
           const newSig = buildSortSignature(sortableGrps);
           if (newSig !== lastSortSignature) {
             sortPostings(shadowRoot);
