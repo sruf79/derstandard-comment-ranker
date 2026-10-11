@@ -179,7 +179,10 @@
       display: flex;
       flex-wrap: nowrap;
       gap: 6px;
-      padding: 10px 0 6px 0;
+      /* v3.5.1: 31px below, whatever comes next. Before, it was 6px + the
+         comment box's own 25px top margin (31px), but only 6px when a pinned
+         posting came first. The comment box's top margin is dropped below. */
+      padding: 10px 0 31px 0;
       align-items: stretch;
       box-sizing: border-box;
       width: 100%;
@@ -343,8 +346,9 @@
       min-height: 44px;
       padding: 0;
       border-radius: 50%;
-      background: var(--dst-pill);
-      box-shadow: 0 1px 3px rgba(0, 0, 0, .12);
+      /* v3.5.1: same colour as the track (was the brighter active pill) */
+      background: hsl(var(--dst-ink) / .10);
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, .08);
       color: #6d4c41;
       position: relative;
     }
@@ -427,6 +431,10 @@
       90%  { transform: translateY(-51px) translateX(0) rotate(1deg) scaleY(1.88); opacity: 0.015; }
       100% { transform: translateY(-53px) translateX(0) rotate(0deg) scaleY(1.9); opacity: 0; }
     }
+
+    /* v3.5.1: the gap above the comment box comes from the bar (see above);
+       below pinned postings their thread section already leaves 20px. */
+    main.forum--main > dst-posting-box { margin-top: 0 !important; }
 
     /* Mobile: the segmented control stays in ONE row; just tighter padding. */
     @media (max-width: 768px) {
@@ -2595,7 +2603,7 @@
     if (!container) {
       container = document.createElement('div');
       container.id = 'dst-progress-container';
-      container.style.cssText = 'position:absolute;left:0;right:0;top:10px;bottom:6px;display:flex;flex-direction:column;justify-content:center;gap:3px;min-width:0;';
+      container.style.cssText = 'position:absolute;left:0;right:0;top:10px;bottom:31px;display:flex;flex-direction:column;justify-content:center;gap:3px;min-width:0;';
       bar.style.position = 'relative';
       bar.appendChild(container);
     }
