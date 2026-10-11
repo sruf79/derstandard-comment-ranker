@@ -330,12 +330,14 @@
     }
 
     /* Coffee/Donate button — never active; square, tinted like the track. */
-    /* v3.7.0: inside the track as its last, round slot (38px) */
+    /* v3.7.0: inside the track as its last, round slot. v3.9.2: it fills
+       its whole pill (44px, over the track padding), so hover ring, glow and
+       click flash sit on the pill's edge. Takes the same room as before. */
     #dst-seg .dst-badge-btn.dst-coffee-btn {
-      flex: 0 0 38px;
-      width: 38px;
-      margin-left: 13px;               /* v3.8.5: 10px gap + pill padding */
-      min-height: 38px;
+      flex: 0 0 44px;
+      width: 44px;
+      margin: -3px -3px -3px 10px;     /* v3.8.5: 10px gap to the sort pill */
+      min-height: 44px;
       padding: 0;
       border-radius: 50%;
       background: transparent;
@@ -346,7 +348,7 @@
     #dst-seg .dst-badge-btn.dst-coffee-btn.dst-pulsing {
       background: #fff8e1;
       outline: 2px solid #FFD700;
-      outline-offset: -2px;
+      outline-offset: -1px;            /* covers the pill's 1px frame line */
       animation: dst-coffee-golden-pulse 1.5s ease-in-out infinite;
     }
     .dst-badge-btn.dst-coffee-btn:hover .dst-coffee-icon,
@@ -363,9 +365,9 @@
 
     /* v3.7.0: golden click flash of the coffee button (like the sort flash) */
     @keyframes dst-coffee-flash {
-      0%   { background-color: #FFE27A; box-shadow: 0 0 0 2px #FFD700, 0 0 0 8px rgba(255, 215, 0, .45); }
-      55%  { background-color: #fff1b8; box-shadow: 0 0 0 2px #FFD700, 0 0 0 5px rgba(255, 215, 0, .2); }
-      100% { background-color: #fff8e1; box-shadow: 0 0 0 2px #FFD700, 0 0 0 2px rgba(255, 215, 0, 0); }
+      0%   { background-color: #FFE27A; box-shadow: inset 0 0 0 1px #FFD700, 0 0 0 1px #FFD700, 0 0 0 7px rgba(255, 215, 0, .45); }
+      55%  { background-color: #fff1b8; box-shadow: inset 0 0 0 1px #FFD700, 0 0 0 1px #FFD700, 0 0 0 4px rgba(255, 215, 0, .2); }
+      100% { background-color: #fff8e1; box-shadow: inset 0 0 0 1px #FFD700, 0 0 0 1px #FFD700, 0 0 0 1px rgba(255, 215, 0, 0); }
     }
     #dst-seg .dst-badge-btn.dst-coffee-btn.dst-flash { animation: dst-coffee-flash .45s ease-out; }
 
