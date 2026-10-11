@@ -28,42 +28,6 @@
     s.textContent = text;
     return s;
   }
-  // v3.2.2: bold arrow for New/Old, drawn as SVG — the font's ↓/↑ were too
-  // thin, and the heavy Unicode arrows (⬇ ⬆) turn into colour emoji on some
-  // systems. Inherits the text colour; built with createElementNS (AMO-safe).
-  function _mkArrow(down) {
-    const NS = 'http://www.w3.org/2000/svg';
-    const svg = document.createElementNS(NS, 'svg');
-    svg.setAttribute('class', 'ico-time');
-    svg.setAttribute('viewBox', '0 0 16 16');
-    svg.setAttribute('aria-hidden', 'true');
-    const path = document.createElementNS(NS, 'path');
-    path.setAttribute('d', down ? 'M8 2.5v10M3.5 8.5 8 13l4.5-4.5' : 'M8 13.5v-10M3.5 7.5 8 3l4.5 4.5');
-    path.setAttribute('fill', 'none');
-    path.setAttribute('stroke', 'currentColor');
-    path.setAttribute('stroke-width', '2.6');
-    path.setAttribute('stroke-linecap', 'round');
-    path.setAttribute('stroke-linejoin', 'round');
-    svg.appendChild(path);
-    return svg;
-  }
-  // v3.5.0: "+" / "−" after "Balance", drawn as SVG like the arrows — in
-  // derStandard's font the "+" is much smaller than the "−".
-  function _mkSign(plus) {
-    const NS = 'http://www.w3.org/2000/svg';
-    const svg = document.createElementNS(NS, 'svg');
-    svg.setAttribute('class', 'dst-btn-sign');
-    svg.setAttribute('viewBox', '0 0 10 10');
-    svg.setAttribute('aria-hidden', 'true');
-    const path = document.createElementNS(NS, 'path');
-    path.setAttribute('d', plus ? 'M1.5 5h7M5 1.5v7' : 'M1.5 5h7');
-    path.setAttribute('fill', 'none');
-    path.setAttribute('stroke', 'currentColor');
-    path.setAttribute('stroke-width', '2.2');
-    path.setAttribute('stroke-linecap', 'round');
-    svg.appendChild(path);
-    return svg;
-  }
   // ── v2.2.0: grouped toggle buttons ─────────────────────────────
   // Instead of 5 separate sort badges we now render only 3 sort buttons
   // (plus the coffee button). Each button owns several sub-modes and
@@ -81,17 +45,18 @@
   // v3.1.0: one short word per segment and direction. `title` explains each
   // mode for tooltips and screen readers.
   // v3.5.0: back to the three sort groups users know — Likes/Dislikes,
-  // Balance (in the middle, the default) and New/Old. Balance reads
-  // "Balance +" / "Balance −" (`sign` is drawn a bit bolder), so every segment
-  // changes its label with the direction. Best/Worst (3.2.0–3.4.1) is gone.
+  // Balance (in the middle, the default) and New/Old. Best/Worst (3.2.0–3.4.1)
+  // is gone. v3.6.0: Balance keeps its label in both directions — the big
+  // green resp. red triangle shows the direction; New/Old use the ⇥ / ⇤
+  // characters again (KISS).
   const MODE_DEFS = {
     'positive-only':    { label: 'Likes',    title: 'Likes: meiste Plus-Stimmen zuerst', buildIcon: function(p) { p.appendChild(_mkSpan('ico-pri','#2e7d32','▲')); } },
     'negative-only':    { label: 'Dislikes', title: 'Dislikes: meiste Minus-Stimmen zuerst', buildIcon: function(p) { p.appendChild(_mkSpan('ico-pri','#c62828','▼')); } },
-    'balance-top':      { label: 'Balance', sign: '+',      title: 'Balance +: höchste Bilanz aus Plus- und Minus-Stimmen', buildIcon: function(p) { p.appendChild(_mkSpan('ico-pri','#2e7d32','▲')); p.appendChild(_mkSpan('ico-sec','#c62828','▼')); } },
-    'balance-flop':     { label: 'Balance', sign: '−', title: 'Balance −: niedrigste Bilanz aus Plus- und Minus-Stimmen', buildIcon: function(p) { p.appendChild(_mkSpan('ico-sec','#2e7d32','▲')); p.appendChild(_mkSpan('ico-pri','#c62828','▼')); } },
+    'balance-top':      { label: 'Balance',  title: 'Balance Top: höchste Bilanz aus Plus- und Minus-Stimmen', buildIcon: function(p) { p.appendChild(_mkSpan('ico-pri','#2e7d32','▲')); p.appendChild(_mkSpan('ico-sec','#c62828','▼')); } },
+    'balance-flop':     { label: 'Balance',  title: 'Balance Low: niedrigste Bilanz aus Plus- und Minus-Stimmen', buildIcon: function(p) { p.appendChild(_mkSpan('ico-sec','#2e7d32','▲')); p.appendChild(_mkSpan('ico-pri','#c62828','▼')); } },
     // Time is neutral (no red/green): the arrow inherits the text colour.
-    'chronological-new':{ label: 'New',      title: 'New: neueste Postings zuerst', buildIcon: function(p) { p.appendChild(_mkArrow(true)); } },
-    'chronological-old':{ label: 'Old',      title: 'Old: älteste Postings zuerst', buildIcon: function(p) { p.appendChild(_mkArrow(false)); } }
+    'chronological-new':{ label: 'New',      title: 'New: neueste Postings zuerst', buildIcon: function(p) { p.appendChild(_mkSpan('ico-pri', null, '\u21E5')); } },
+    'chronological-old':{ label: 'Old',      title: 'Old: älteste Postings zuerst', buildIcon: function(p) { p.appendChild(_mkSpan('ico-pri', null, '\u21E4')); } }
   };
 
   // BUTTON_GROUPS: one badge per entry; each click advances to the next mode.
@@ -171,9 +136,6 @@
     #dst-badge-bar, #dst-voter-overlay {
       --dst-ink: var(--theme--on-secondary--hsl, 0 0% 13%);
       --dst-card: var(--theme--card, #fff);
-      /* v3.1.5: the raised pill is brighter than derStandard's cards, so the
-         bar stands out from the page (mix of the Ressort's card colour and white) */
-      --dst-pill: color-mix(in srgb, var(--dst-card) 45%, #fff);
     }
     #dst-badge-bar {
       display: flex;
@@ -211,41 +173,39 @@
       top: 3px;
       bottom: 3px;
       left: 3px;
-      border-radius: 20px;        /* v3.1.5: raised pill with a soft shadow */
-      background: var(--dst-pill);
-      box-shadow: 0 1px 2px rgba(0, 0, 0, .12), 0 2px 8px rgba(0, 0, 0, .12);
+      border-radius: 20px;
       transform: translateX(calc(var(--dst-i, 0) * (100% + 3px)));
-      transition: transform .3s ease;
+      transition: transform .3s ease, background-color .3s ease, box-shadow .3s ease;
     }
-    /* v3.4.1: the "flash" of the old badges, on the active pill: a short
-       tint plus an expanding ring on every click, while the pill slides.
-       Green for Likes/Balance +, red for Dislikes/Balance −, neutral for New/Old. Only
-       opacity and transform are animated; the re-sort waits until it is over. */
-    #dst-seg-thumb[data-tone="pos"] { --dst-flash: #8FAF6F; }
-    #dst-seg-thumb[data-tone="neg"] { --dst-flash: #e6a9a3; }
-    #dst-seg-thumb[data-tone="neutral"] { --dst-flash: hsl(var(--dst-ink) / .35); }
-    #dst-seg-thumb::before,
-    #dst-seg-thumb::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      border-radius: inherit;
-      pointer-events: none;
-      opacity: 0;
+    /* v3.6.0: the active pill looks like the active badge of the old design:
+       green frame + light green (Likes, Balance Top, Timeline), red frame +
+       light red for the "low" modes (Dislikes, Balance Low) — easy to spot. */
+    #dst-seg-thumb[data-tone="pos"] {
+      background: #e8f5e9;
+      box-shadow: 0 0 0 2.5px #2e7d32, 0 2px 8px rgba(46, 125, 50, .25);
     }
-    #dst-seg-thumb::before { background: var(--dst-flash); }
-    #dst-seg-thumb::after { box-shadow: 0 0 0 4px var(--dst-flash); }
-    #dst-seg-thumb.dst-flash::before { animation: dst-flash-tint .45s ease-out; }
-    #dst-seg-thumb.dst-flash::after { animation: dst-flash-ring .45s ease-out; }
-    @keyframes dst-flash-tint { 0% { opacity: .6; } 100% { opacity: 0; } }
-    @keyframes dst-flash-ring {
-      0%   { opacity: .7; transform: scale(1); }
-      100% { opacity: 0; transform: scale(1.08, 1.25); }
+    #dst-seg-thumb[data-tone="neg"] {
+      background: #fdecea;
+      box-shadow: 0 0 0 2.5px #c62828, 0 2px 8px rgba(198, 40, 40, .25);
     }
+    /* v3.6.0: the click flash of the old badges (v2.3.1): a short flash of the
+       loading bar's light green resp. red with a soft glow ring, settling
+       back into the active colours. The re-sort waits until it is over. */
+    @keyframes dst-pulse-bounce {
+      0%   { background-color: #B7CCA3; box-shadow: 0 0 0 2.5px #2e7d32, 0 0 0 7px rgba(143,175,111,.35), 0 2px 8px rgba(46,125,50,.25); }
+      55%  { background-color: #d4e6c6; box-shadow: 0 0 0 2.5px #2e7d32, 0 0 0 5px rgba(143,175,111,.18), 0 2px 8px rgba(46,125,50,.20); }
+      100% { background-color: #e8f5e9; box-shadow: 0 0 0 2.5px #2e7d32, 0 0 0 2.5px rgba(143,175,111,0), 0 2px 8px rgba(46,125,50,.25); }
+    }
+    @keyframes dst-pulse-bounce-red {
+      0%   { background-color: #e6a9a3; box-shadow: 0 0 0 2.5px #c62828, 0 0 0 7px rgba(198,40,40,.30), 0 2px 8px rgba(198,40,40,.25); }
+      55%  { background-color: #f3cbc6; box-shadow: 0 0 0 2.5px #c62828, 0 0 0 5px rgba(198,40,40,.16), 0 2px 8px rgba(198,40,40,.20); }
+      100% { background-color: #fdecea; box-shadow: 0 0 0 2.5px #c62828, 0 0 0 2.5px rgba(198,40,40,0), 0 2px 8px rgba(198,40,40,.25); }
+    }
+    #dst-seg-thumb.dst-flash[data-tone="pos"] { animation: dst-pulse-bounce .45s ease-out; }
+    #dst-seg-thumb.dst-flash[data-tone="neg"] { animation: dst-pulse-bounce-red .45s ease-out; }
     @media (prefers-reduced-motion: reduce) {
       #dst-seg-thumb { transition: none; }
-      #dst-seg-thumb.dst-flash::before,
-      #dst-seg-thumb.dst-flash::after { animation: none; }
+      #dst-seg-thumb.dst-flash[data-tone] { animation: none; }
     }
     .dst-badge-btn {
       flex: 1 1 0;
@@ -306,18 +266,10 @@
     /* ico-pri = big (active direction), ico-sec = small (other direction) */
     .ico-pri { font-size: 15px; line-height: 1; }
     .ico-sec { font-size: 10px; line-height: 1; }
-    .ico-time { width: 14px; height: 14px; display: block; }
     .dst-btn-label {
       min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;
-    }
-    /* "+" / "−" after "Balance" (SVG, same size and weight) */
-    .dst-btn-sign { width: 10px; height: 10px; margin-left: 4px; display: inline-block; vertical-align: -0.5px; }
-    /* Very narrow phones (≈320px): drop the Balance triangles, the sign shows
-       the direction, so "Balance +" still fits. */
-    @media (max-width: 339px) {
-      #dst-seg .dst-badge-btn[data-group="balance"] .dst-btn-ico { display: none; }
     }
     /* Two dots: segment has two modes; the filled one is selected */
     .dots-indicator {
@@ -2121,21 +2073,18 @@
     const labelSpan = document.createElement('span');
     labelSpan.className = 'dst-btn-label';
     labelSpan.textContent = m.label;
-    if (m.sign) labelSpan.appendChild(_mkSign(m.sign === '+'));
     topRow.appendChild(iconWrap);
     topRow.appendChild(labelSpan);
     btn.appendChild(topRow);
     btn.appendChild(buildDotsIndicator(group, mode));
   }
 
-  // v3.4.1: short flash of the active pill (CSS .dst-flash), tinted by the
-  // mode: green for Likes/Balance +, red for Dislikes/Balance −, neutral for New/Old.
-  const FLASH_TONE = {
-    'balance-top': 'pos', 'positive-only': 'pos',
-    'balance-flop': 'neg', 'negative-only': 'neg'
-  };
+  // v3.6.0: the active pill is green, or red for the "low" modes (as the
+  // active badge of the old design), and flashes on every click.
+  const LOW_MODES = ['balance-flop', 'negative-only'];
+  function toneOf(mode) { return LOW_MODES.indexOf(mode) !== -1 ? 'neg' : 'pos'; }
   function flashThumb(thumb, mode) {
-    thumb.setAttribute('data-tone', FLASH_TONE[mode] || 'neutral');
+    thumb.setAttribute('data-tone', toneOf(mode));
     thumb.classList.remove('dst-flash');
     requestAnimationFrame(() => thumb.classList.add('dst-flash'));   // restart
     if (!thumb.dataset.flashHooked) {
@@ -2174,6 +2123,7 @@
     if (thumb) {
       thumb.style.display = activeIdx === -1 ? 'none' : '';
       if (activeIdx !== -1) thumb.style.setProperty('--dst-i', String(activeIdx));
+      thumb.setAttribute('data-tone', toneOf(shownMode));
     }
   }
 
@@ -2241,6 +2191,7 @@
     thumb.setAttribute('aria-hidden', 'true');
     thumb.style.width = 'calc((100% - ' + (6 + 3 * (n - 1)) + 'px) / ' + n + ')';
     thumb.style.setProperty('--dst-i', String(activeIdx));
+    thumb.setAttribute('data-tone', toneOf(shownMode));
     if (activeIdx === -1) thumb.style.display = 'none';
     seg.appendChild(thumb);
 
