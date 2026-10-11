@@ -87,80 +87,79 @@
       line-height: 1.2;
     }
     
-    /* Box 2: Toggle — PROMINENT */
-    /* like the active sort pill: green when on, red when off */
-    .toggle-badge {
-      justify-content: flex-start;
-      background: linear-gradient(to bottom, rgba(255, 255, 255, .9), rgba(255, 255, 255, 0) 65%, rgba(0, 0, 0, .05)) #fdecea;
-      box-shadow: var(--bevel), inset 0 0 0 2.5px #c62828, 0 3px 8px rgba(198, 40, 40, .35);
+    /* Box 2: On/off — v3.11.0: a two-segment track like the sort bar on the
+       site: the chosen segment gets the sliding pill with the bevelled red
+       (Deaktiviert) or green (Aktiviert) ring, flush with the frame. */
+    .onoff {
+      position: relative;
+      display: flex;
+      gap: 3px;
+      padding: 3px;
+      height: 50px;
+      margin-bottom: 12px;
+      border-radius: 999px;
+      isolation: isolate;
     }
-    .toggle-badge:has(input:checked) {
-      background-color: #e8f5e9;
-      box-shadow: var(--bevel), inset 0 0 0 2.5px #2e7d32, 0 3px 8px rgba(46, 125, 50, .35);
+    .onoff::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      border-radius: 999px;
+      background: var(--pill-bg);
+      box-shadow: var(--pill-shadow);
     }
-    
-    .toggle-label {
+    .onoff button {
+      position: relative;
+      flex: 1 1 0;
+      border: 0;
+      background: transparent;
+      font: inherit;
       font-size: 14px;
       font-weight: 600;
-      color: #c62828;
-      flex: 1;
-    }
-    .toggle-badge:has(input:checked) .toggle-label { color: #2e7d32; }
-    
-    .switch {
-      position: relative;
-      width: 54px;
-      height: 30px;
-      flex-shrink: 0;
-      margin-left: 14px;
-    }
-    
-    .switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-    
-    .slider {
-      position: absolute;
-      cursor: pointer;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: linear-gradient(to bottom, rgba(0, 0, 0, .18), rgba(0, 0, 0, 0) 60%) #c62828;
-      transition: .3s;
-      border-radius: 30px;
-      box-shadow: inset 0 1px 3px rgba(0,0,0,0.25), 0 1px 0 rgba(255, 255, 255, .6);
-    }
-    
-    .slider:before {
-      position: absolute;
-      content: "\2715";
-      height: 24px;
-      width: 24px;
-      left: 3px;
-      bottom: 3px;
-      background: linear-gradient(to bottom, #fff, #e9e9e9);
-      transition: .3s;
-      border-radius: 50%;
+      color: rgba(51, 51, 51, .8);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 15px;
-      font-weight: bold;
-      color: #c62828;
-      box-shadow: inset 0 1px 0 #fff, 0 2px 4px rgba(0,0,0,0.3);
+      gap: 6px;
+      cursor: pointer;
     }
-    
-    input:checked + .slider {
-      background-color: #2e7d32;
+    .onoff button[aria-pressed="true"] { font-weight: 700; color: #222; }
+    .onoff button:focus-visible { outline: 2px solid #333; outline-offset: 2px; border-radius: 999px; }
+    .onoff-ico-off { color: #c62828; }
+    .onoff-ico-on  { color: #2e7d32; }
+    #onoffThumb {
+      position: absolute;
+      top: -1px;
+      bottom: -1px;
+      left: -1px;
+      width: calc((100% - 9px) / 2 + 8px);
+      border-radius: 999px;
+      background-image: linear-gradient(to bottom, rgba(255, 255, 255, .9), rgba(255, 255, 255, 0) 65%, rgba(0, 0, 0, .05));
+      background-color: #fdecea;
+      box-shadow: var(--bevel), inset 0 0 0 2.5px #c62828, 0 3px 8px rgba(198, 40, 40, .35);
+      transform: translateX(calc(var(--i, 1) * (100% - 5px)));
+      transition: transform .3s ease, background-color .3s ease, box-shadow .3s ease;
     }
-    
-    input:checked + .slider:before {
-      transform: translateX(24px);
-      content: "\2713";
-      color: #2e7d32;
+    .onoff.is-on #onoffThumb {
+      background-color: #e8f5e9;
+      box-shadow: var(--bevel), inset 0 0 0 2.5px #2e7d32, 0 3px 8px rgba(46, 125, 50, .35);
+    }
+    .onoff.no-anim #onoffThumb { transition: none; }
+    /* click flash, as on the site */
+    @keyframes onoff-flash-on {
+      0%   { background-color: #B7CCA3; box-shadow: var(--bevel), inset 0 0 0 2.5px #2e7d32, 0 0 0 4.5px rgba(143,175,111,.35), 0 3px 8px rgba(46,125,50,.35); }
+      100% { background-color: #e8f5e9; box-shadow: var(--bevel), inset 0 0 0 2.5px #2e7d32, 0 0 0 0 rgba(143,175,111,0), 0 3px 8px rgba(46,125,50,.35); }
+    }
+    @keyframes onoff-flash-off {
+      0%   { background-color: #e6a9a3; box-shadow: var(--bevel), inset 0 0 0 2.5px #c62828, 0 0 0 4.5px rgba(198,40,40,.30), 0 3px 8px rgba(198,40,40,.35); }
+      100% { background-color: #fdecea; box-shadow: var(--bevel), inset 0 0 0 2.5px #c62828, 0 0 0 0 rgba(198,40,40,0), 0 3px 8px rgba(198,40,40,.35); }
+    }
+    .onoff.flash #onoffThumb { animation: onoff-flash-off .45s ease-out; }
+    .onoff.is-on.flash #onoffThumb { animation: onoff-flash-on .45s ease-out; }
+    @media (prefers-reduced-motion: reduce) {
+      #onoffThumb { transition: none; }
+      .onoff.flash #onoffThumb { animation: none; }
     }
     
     /* Box 3: Review/Bewerten-Badge (v2.0.5) */
@@ -401,13 +400,11 @@
     </div>
   </div>
   
-  <!-- Box 2: Toggle — PROMINENT mit Active-Badge-Style -->
-  <div class="badge-box toggle-badge">
-    <span class="toggle-label" id="toggleLabel">Extension aktiviert</span>
-    <label class="switch">
-      <input type="checkbox" id="extensionEnabled" checked>
-      <span class="slider"></span>
-    </label>
+  <!-- Box 2: Ein/Aus — Schiene mit zwei Segmenten wie die Sortierleiste (v3.11.0) -->
+  <div class="onoff is-on no-anim" id="onoff" role="group" aria-label="Extension">
+    <div id="onoffThumb" aria-hidden="true"></div>
+    <button type="button" id="btnOff" aria-pressed="false"><span class="onoff-ico-off">&#10005;</span> Deaktiviert</button>
+    <button type="button" id="btnOn" aria-pressed="true"><span class="onoff-ico-on">&#10003;</span> Aktiviert</button>
   </div>
   
   <!-- Box 3: Review/Bewerten — Browser-aware Link (Chrome Web Store / Firefox AMO) -->

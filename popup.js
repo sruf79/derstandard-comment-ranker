@@ -1,4 +1,4 @@
-// popup.js — derStandard Comment Ranker v3.10.2
+// popup.js — derStandard Comment Ranker v3.11.0
 // 4-box popup: Header (icon + title), Toggle (enable/disable), Review
 // (browser-aware store link with a delayed golden pulse), and Coffee (donate).
 //
@@ -19,7 +19,10 @@
 //     gentle nudge again after a while (we can't detect actual donations).
 
 var SORT_KEY = 'dstSorterEnabled';
-var toggle = document.getElementById('extensionEnabled');
+// v3.11.0: on/off as a two-segment track (Deaktiviert | Aktiviert)
+var onoff = document.getElementById('onoff');
+var btnOff = document.getElementById('btnOff');
+var btnOn = document.getElementById('btnOn');
 
 function sendMessageToTab(msg) {
   chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
@@ -29,25 +32,31 @@ function sendMessageToTab(msg) {
   });
 }
 
-// v3.10.2: the label says what the switch shows
-var toggleLabel = document.getElementById('toggleLabel');
-function updateToggleLabel() {
-  toggleLabel.textContent = toggle.checked ? 'Extension aktiviert' : 'Extension deaktiviert';
+function showEnabled(enabled) {
+  onoff.classList.toggle('is-on', enabled);
+  document.getElementById('onoffThumb').style.setProperty('--i', enabled ? '1' : '0');
+  btnOn.setAttribute('aria-pressed', String(enabled));
+  btnOff.setAttribute('aria-pressed', String(!enabled));
 }
 
-// Load saved state
+// Load saved state (no slide animation for the initial state)
 chrome.storage.sync.get([SORT_KEY], function(data) {
-  toggle.checked = data[SORT_KEY] !== false;
-  updateToggleLabel();
+  showEnabled(data[SORT_KEY] !== false);
+  requestAnimationFrame(function() { onoff.classList.remove('no-anim'); });
 });
 
-// Handle toggle
-toggle.addEventListener('change', function() {
-  var enabled = toggle.checked;
-  updateToggleLabel();
+function setEnabled(enabled) {
+  if (onoff.classList.contains('is-on') === enabled) return;
+  showEnabled(enabled);
+  onoff.classList.remove('flash');
+  void onoff.offsetWidth; // restart the flash
+  onoff.classList.add('flash');
   chrome.storage.sync.set({ [SORT_KEY]: enabled });
   sendMessageToTab({ action: 'toggle', enabled: enabled });
-});
+}
+btnOn.addEventListener('click', function() { setEnabled(true); });
+btnOff.addEventListener('click', function() { setEnabled(false); });
+onoff.addEventListener('animationend', function() { onoff.classList.remove('flash'); });
 
 // Coffee button — click handling + recurring pulse live in the IIFE below (v2.4.5).
 
