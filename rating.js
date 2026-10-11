@@ -2,10 +2,10 @@
 //  rating.js — derStandard Comment Ranker v2.1.0
 //  Smart review prompt for the Chrome Web Store / AMO
 //
-//  v2.1.0 LIMITED DISMISSALS (Option A):
+//  v3.1.0 DISMISSALS:
 //  - Bar appears after 3 days
-//  - User can dismiss ("Maybe later") MAX 2 times → bar reappears after 3 days
-//  - After 2nd dismiss: ✕ button disappears, bar stays PERMANENTLY until rated
+//  - ✕ is always there; every dismissal snoozes the bar for 3 days
+//    (v2.1.0 removed the ✕ after the 2nd dismissal — no longer)
 //  - Rating (1-5★) → bar disappears forever
 //
 //  v2.0.8 UNIFIED REVIEW LOGIC + ADBLOCKER-RESISTANT:
@@ -27,8 +27,7 @@
 //
 //  TIMING & DISMISS LOGIC:
 //  - First prompt: 3 days after first page load (installDate)
-//  - Dismiss 1-2: re-prompt after 3 days
-//  - After dismiss #2: bar becomes permanent (no ✕ button)
+//  - Every dismiss: re-prompt after 3 days
 //  - Star click (ratingGiven=true): NEVER show again
 // ═══════════════════════════════════════════════════════════════════════
 
@@ -49,7 +48,6 @@
 
   const DELAY_FIRST_PROMPT  = 3 * 24 * 60 * 60 * 1000;  // 3 days in ms
   const DELAY_AFTER_DISMISS = 3 * 24 * 60 * 60 * 1000;  // 3 days in ms
-  const MAX_DISMISSALS      = 2;                         // Max times user can dismiss
 
   // ── Browser-detection for correct review URL ────────────────────
   // GOAL: every Chromium-based browser (Chrome, Brave, Edge, Opera, Vivaldi,
@@ -264,29 +262,31 @@
   // v2.0.8: Renamed from "rating" to "feedback" to avoid adblocker filters
   const FEEDBACK_CSS = `
     /* Feedback bar — appears below the badge bar inside shadow DOM */
+    /* v3.1.0: derStandard's own card look (theme colours per Ressort) */
     #dst-feedback-bar {
+      --dst-ink: var(--theme--on-secondary--hsl, 0 0% 13%);
       display: flex;
       align-items: center;
       gap: 10px;
       padding: 10px 14px;
-      background: linear-gradient(180deg, #f9fdf6 0%, #eef4e8 100%);
-      border: 1.5px solid #B7CCA3;
-      border-radius: 10px;
+      background: var(--theme--card, #fff);
+      color: hsl(var(--dst-ink));
+      border: 1px solid hsl(var(--dst-ink) / .15);
+      border-radius: 6px;
       margin: 8px 0 4px;
-      box-shadow: 0 2px 8px rgba(183,204,163,0.2);
       position: relative;
       opacity: 1;
       transform: scale(1) translateY(0);
       transform-origin: center center;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: inherit;
     }
 
     #dst-feedback-bar .dst-fdbk-icon {
       width: 32px;
       height: 32px;
       min-width: 32px;
-      background: #B7CCA3;
-      border-radius: 8px;
+      background: hsl(var(--dst-ink) / .08);
+      border-radius: 6px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -300,7 +300,7 @@
     #dst-feedback-bar .dst-fdbk-title {
       font-size: 12.5px;
       font-weight: 700;
-      color: #333;
+      color: hsl(var(--dst-ink));
       margin: 0 0 4px;
       line-height: 1.2;
     }
@@ -314,7 +314,7 @@
     #dst-feedback-bar .dst-fdbk-star {
       font-size: 22px;
       cursor: pointer;
-      color: #ccc;
+      color: hsl(var(--dst-ink) / .25);
       transition: color 0.12s ease, transform 0.12s ease;
       user-select: none;
       line-height: 1;
@@ -325,29 +325,34 @@
 
     #dst-feedback-bar .dst-fdbk-label {
       font-size: 11px;
-      color: #888;
+      color: hsl(var(--dst-ink) / .65);
       margin-left: 8px;
       white-space: nowrap;
       transition: color 0.2s ease, font-weight 0.2s ease;
     }
 
-    /* Dismiss button (v2.1.0: only shown if dismissCount < MAX_DISMISSALS) */
+    /* Dismiss button (v3.1.0: always shown) */
     #dst-feedback-bar .dst-fdbk-dismiss {
-      border: 1.5px solid #ddd;
+      border: 1px solid hsl(var(--dst-ink) / .2);
       border-radius: 999px;
       padding: 5px 10px;
       font-size: 11px;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s;
-      color: #999;
+      color: hsl(var(--dst-ink) / .65);
       background: transparent;
       flex-shrink: 0;
     }
     #dst-feedback-bar .dst-fdbk-dismiss:hover {
-      border-color: #aaa;
-      color: #666;
-      background: #f5f5f5;
+      border-color: hsl(var(--dst-ink) / .4);
+      color: hsl(var(--dst-ink));
+      background: hsl(var(--dst-ink) / .06);
+    }
+    #dst-feedback-bar .dst-fdbk-dismiss:focus-visible,
+    #dst-feedback-bar .dst-fdbk-star:focus-visible {
+      outline: 2px solid hsl(var(--dst-ink));
+      outline-offset: 2px;
     }
 
     /* ═══ Golden Glow Pulse — 4-layer, 3 diminishing cycles ═══ */
@@ -466,8 +471,9 @@
   `;
 
   // ── Build the feedback bar DOM element ────────────────────────────
-  // v2.1.0: Added dismissCount parameter - dismiss button only shown if < MAX_DISMISSALS
-  function createFeedbackBar(dismissCount) {
+  // v3.1.0: the dismiss button is always there — a prompt that cannot be
+  // closed is an anti-pattern and tends to earn bad reviews instead of good ones.
+  function createFeedbackBar() {
     const bar = document.createElement('div');
     bar.id = 'dst-feedback-bar';
 
@@ -487,7 +493,7 @@
     textWrap.className = 'dst-fdbk-text';
     const title = document.createElement('div');
     title.className = 'dst-fdbk-title';
-    title.textContent = 'Bewerte um zu verbessern';
+    title.textContent = 'Gefällt dir die Extension? Bewerte sie!';
     const starsWrap = document.createElement('div');
     starsWrap.className = 'dst-fdbk-stars';
     for (let i = 1; i <= 5; i++) {
@@ -507,14 +513,12 @@
     bar.appendChild(icon);
     bar.appendChild(textWrap);
 
-    // Only add dismiss button if user hasn't reached the limit (v2.1.0)
-    if (dismissCount < MAX_DISMISSALS) {
-      const dismissBtn = document.createElement('button');
-      dismissBtn.className = 'dst-fdbk-dismiss';
-      dismissBtn.title = 'Ein anderes mal';
-      dismissBtn.textContent = '\u2715';
-      bar.appendChild(dismissBtn);
-    }
+    const dismissBtn = document.createElement('button');
+    dismissBtn.className = 'dst-fdbk-dismiss';
+    dismissBtn.title = 'Ein anderes Mal';
+    dismissBtn.setAttribute('aria-label', 'Ein anderes Mal');
+    dismissBtn.textContent = '\u2715';
+    bar.appendChild(dismissBtn);
 
     return bar;
   }
@@ -530,11 +534,10 @@
   }
 
   // ── Wire up star interactions + dismiss ─────────────────────────
-  // v2.1.0: Dismiss button may or may not exist (depends on dismissCount)
   function wireFeedbackBar(bar) {
     const stars = bar.querySelectorAll('.dst-fdbk-star');
     const label = bar.querySelector('.dst-fdbk-label');
-    const dismissBtn = bar.querySelector('.dst-fdbk-dismiss'); // May be null
+    const dismissBtn = bar.querySelector('.dst-fdbk-dismiss');
     let rated = false;
 
     const labels = ['', 'Schlecht', 'Geht so', 'Gut', 'Sehr gut', 'Perfekt'];
@@ -602,7 +605,6 @@
     });
 
     // Dismiss → increment dismissCount → re-prompt after 3 days
-    // v2.1.0: Only wired if button exists (dismissCount < MAX_DISMISSALS)
     if (dismissBtn) {
       dismissBtn.addEventListener('click', async () => {
         if (rated) return;
@@ -688,15 +690,12 @@
     // Not yet 3 days since install
     if (installAge < DELAY_FIRST_PROMPT) return;
 
-    // 5. Dismiss count check (v2.1.0)
-    const dismissCount = data[KEYS.DISMISS_COUNT] || 0;
-
-    // If user has dismissed < MAX_DISMISSALS times, honor the 3-day snooze
-    if (dismissCount < MAX_DISMISSALS && data[KEYS.LAST_DISMISSED]) {
+    // 5. Snooze check
+    // v3.1.0: every dismissal snoozes for 3 days (no permanent bar any more)
+    if (data[KEYS.LAST_DISMISSED]) {
       const dismissAge = now - data[KEYS.LAST_DISMISSED];
       if (dismissAge < DELAY_AFTER_DISMISS) return; // Still in snooze period
     }
-    // If dismissCount >= MAX_DISMISSALS, bar will show permanently (no snooze check)
 
     // 6. Wait for badge bar (proves extension & forum are active)
     const badgeBar = await waitForBadgeBar();
@@ -710,9 +709,9 @@
     // 8. Don't inject twice
     if (shadowRoot.querySelector('#dst-feedback-bar')) return;
 
-    // 9. Inject CSS + feedback bar (v2.1.0: pass dismissCount to control button)
+    // 9. Inject CSS + feedback bar
     injectCSS(shadowRoot);
-    const feedbackBar = createFeedbackBar(dismissCount);
+    const feedbackBar = createFeedbackBar();
     wireFeedbackBar(feedbackBar);
 
     // 10. Insert after the badge bar

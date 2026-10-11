@@ -41,25 +41,20 @@
   // red ▼ right). Only their SIZE changes with the selected sub-mode — the
   // active direction's triangle grows (ico-pri = big), the other shrinks
   // (ico-sec = small). Nothing moves, so switching modes is a minimal visual
-  // change. Labels use the "Kategorie: Wert" format.
+  // change.
+  // v3.1.0: one short word per segment. "Balance" keeps its text in both
+  // directions — the two triangles show the direction. The old "Likes: Low"
+  // actually sorted by the most MINUS votes, hence "Dislikes". New/Old as on
+  // Reddit. `title` is the full name for tooltips and screen readers.
   const MODE_DEFS = {
-    'balance-top':      { label: 'Balance: Top', buildIcon: function(p) { p.appendChild(_mkSpan('ico-pri','#2e7d32','\u25B2')); p.appendChild(_mkSpan('ico-sec','#c62828','\u25BC')); } },
-    'balance-flop':     { label: 'Balance: Low', buildIcon: function(p) { p.appendChild(_mkSpan('ico-sec','#2e7d32','\u25B2')); p.appendChild(_mkSpan('ico-pri','#c62828','\u25BC')); } },
-    'positive-only':    { label: 'Likes: Top',   buildIcon: function(p) { p.appendChild(_mkSpan('ico-pri','#2e7d32','\u25B2')); } },
-    'negative-only':    { label: 'Likes: Low',   buildIcon: function(p) { p.appendChild(_mkSpan('ico-pri','#c62828','\u25BC')); } },
-    // v2.4.2: the Timeline badge now shows a single DIRECTION arrow instead of
-    // the static clock. New → ⇥ (U+21E5, rightwards arrow to bar = "to the end"),
-    // Old → ⇤ (U+21E4, leftwards arrow to bar = "to the beginning"). The arrow
-    // uses color=null so it inherits the label's text colour (neutral, no
-    // red/green semantics — Timeline is intentionally neutral). On mode switch
-    // the single glyph flips direction (like the Likes badge), so arrow+label
-    // stay centred as one unit and nothing else in the badge shifts.
-    'chronological-new':{ label: 'Timeline: New', buildIcon: function(p) { p.appendChild(_mkSpan('ico-pri', null, '\u21E5')); } },
-    'chronological-old':{ label: 'Timeline: Old', buildIcon: function(p) { p.appendChild(_mkSpan('ico-pri', null, '\u21E4')); } }
+    'balance-top':      { label: 'Balance',  title: 'Balance: Top', buildIcon: function(p) { p.appendChild(_mkSpan('ico-pri','#2e7d32','\u25B2')); p.appendChild(_mkSpan('ico-sec','#c62828','\u25BC')); } },
+    'balance-flop':     { label: 'Balance',  title: 'Balance: Low', buildIcon: function(p) { p.appendChild(_mkSpan('ico-sec','#2e7d32','\u25B2')); p.appendChild(_mkSpan('ico-pri','#c62828','\u25BC')); } },
+    'positive-only':    { label: 'Likes',    title: 'Likes',        buildIcon: function(p) { p.appendChild(_mkSpan('ico-pri','#2e7d32','\u25B2')); } },
+    'negative-only':    { label: 'Dislikes', title: 'Dislikes',     buildIcon: function(p) { p.appendChild(_mkSpan('ico-pri','#c62828','\u25BC')); } },
+    // Time is neutral (no red/green): the arrow inherits the text colour.
+    'chronological-new':{ label: 'New',      title: 'New',          buildIcon: function(p) { p.appendChild(_mkSpan('ico-time', null, '\u2193')); } },
+    'chronological-old':{ label: 'Old',      title: 'Old',          buildIcon: function(p) { p.appendChild(_mkSpan('ico-time', null, '\u2191')); } }
   };
-
-  // v2.4.0: modes that sort "worst first" → the active badge turns RED.
-  const LOW_MODES = ['balance-flop', 'negative-only'];
 
   // BUTTON_GROUPS: one badge per entry; each click advances to the next mode.
   const BUTTON_GROUPS = [
@@ -67,26 +62,6 @@
     { id: 'likes',    modes: ['positive-only', 'negative-only'] },
     { id: 'timeline', modes: ['chronological-new', 'chronological-old'] }
   ];
-
-  // v2.2.2: Build dots indicator to show multi-mode capability.
-  // Returns a <span class="dots-indicator"> containing one real CSS circle
-  // per sub-mode (filled = active, hollow = inactive). The dots are centered
-  // BELOW the button text (see CSS) so they never shift horizontally when the
-  // label length changes and stay clear of the thumb-tap zone on mobile.
-  function buildDotsIndicator(group, currentMode) {
-    const span = document.createElement('span');
-    span.className = 'dots-indicator';
-
-    const currentIndex = group.modes.indexOf(currentMode);
-    if (currentIndex === -1) return span; // safety fallback
-
-    for (let i = 0; i < group.modes.length; i++) {
-      const dot = document.createElement('span');
-      dot.className = 'dst-dot' + (i === currentIndex ? ' filled' : '');
-      span.appendChild(dot);
-    }
-    return span;
-  }
 
   const ALL_MODES = Object.keys(MODE_DEFS);
 
@@ -129,197 +104,112 @@
        We do NOT hide section.thread elements — derstandard.at manages their
        visibility natively via the "collapsed" CSS class. */
 
-    /* Icon size hierarchy. v2.4.0: ico-pri = big (active direction),
-       ico-sec = small (inactive direction). Spacing between the two Balance
-       triangles is handled by gap on .dst-btn-ico so it stays identical
-       regardless of which triangle is big/small (order-independent). */
-    .ico-pri { font-size:17px; line-height:1; vertical-align:middle; }
-    .ico-sec { font-size:11px; line-height:1; vertical-align:middle; }
-
-    /* v2.2.2: Dots indicator centered BELOW the button text.
-       Real CSS circles (not Unicode glyphs) → crisp on high-density Android
-       screens, no pixel-bleeding, no horizontal shift when the label changes. */
-    .dots-indicator {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 4px;              /* gap == dot diameter (Gemini "geometric harmony") */
-      line-height: 1;
-      /* v2.2.8: pinned to the bottom via absolute positioning so they are taken
-         OUT of the flex flow. This lets the text row occupy the full button
-         height and center vertically without being pushed up by the dots. */
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 6px;
+    /* ═══ v3.1.0 SORT BAR: one segmented control in derStandard's own look ═══
+       All colours come from derStandard's theme variables, which change with
+       the Ressort (and dark mode); the fallbacks are the default light theme.
+       Green and red appear ONLY in the triangles — they stand for ratings. */
+    #dst-badge-bar, #dst-voter-overlay {
+      --dst-ink: var(--theme--on-secondary--hsl, 0 0% 13%);
+      --dst-card: var(--theme--card, #fff);
     }
-    .dst-dot {
-      width: 4px;
-      height: 4px;
-      border-radius: 50%;
-      box-sizing: border-box;
-      background: transparent;
-      border: 1px solid currentColor;
-      opacity: 0.55;         /* hollow (inactive) dot: subtle outline */
-    }
-    .dst-dot.filled {
-      background: currentColor;
-      opacity: 0.9;          /* filled (active) dot: solid, prominent */
-    }
-
-    /* Badge bar container — NO wrap, single row, spans full posting-frame width.
-       The 3 sort buttons flex-grow to fill; coffee stays a fixed square. */
     #dst-badge-bar {
       display: flex;
       flex-wrap: nowrap;
       gap: 6px;
       padding: 10px 0 6px 0;
       align-items: stretch;
-      justify-content: center;
       box-sizing: border-box;
       width: 100%;
+      font-family: inherit;
     }
-
-    /* Individual badge button — vertical layout: text row on top, dots below */
+    /* The track holding the three sort segments */
+    #dst-seg {
+      flex: 1 1 auto;
+      min-width: 0;
+      display: flex;
+      gap: 3px;
+      padding: 3px;
+      border-radius: 8px;
+      background: hsl(var(--dst-ink) / .08);
+      box-sizing: border-box;
+    }
     .dst-badge-btn {
-      display: inline-flex;
-      flex-direction: column;
+      flex: 1 1 0;
+      min-width: 0;
+      min-height: 38px;           /* + 2 x 3px track padding = 44px touch target */
+      padding: 0 8px;
+      box-sizing: border-box;
+      display: flex;
       align-items: center;
       justify-content: center;
-      gap: 0;
-      background: #fff;
-      color: #333;
-      font-size: 11.5px;
+      border-radius: 6px;         /* same rounding as derStandard's posting cards */
+      font: inherit;
+      font-size: 13px;
       font-weight: 600;
-      padding: 6px 8px 8px 8px;   /* 8px bottom keeps dots clear of the border */
-      border: 2px solid #ddd;
+      line-height: 1;
+      color: hsl(var(--dst-ink) / .8);
       cursor: pointer;
       user-select: none;
       white-space: nowrap;
-      line-height: 1;
-      letter-spacing: .1px;
-      transition: all 0.2s ease;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-      box-sizing: border-box;
-      flex: 1 1 0;                /* sort buttons stretch to fill the frame width equally */
-      min-width: 0;
-      min-height: 42px;           /* uniform height across all four buttons */
-      border-radius: 22px;        /* v2.2.6: pill-like rounding (matches old single-line look) */
-      position: relative;         /* v2.2.8: anchor for the absolutely-positioned dots */
+      transition: background-color .15s ease, color .15s ease;
     }
-    /* Top row: [icon] [label] centred TOGETHER as one unit.
-       v2.2.9: The icon belongs to the text, so the whole [icon][label] group is
-       treated as a single inline unit and centred via justify-content:center.
-       No hidden clone/spacer — that only centred the label alone and made the
-       icon+text combo look shifted to the left. */
+    .dst-badge-btn:hover {
+      background: hsl(var(--dst-ink) / .06);
+      color: hsl(var(--dst-ink));
+    }
+    /* Active segment: a card lifted out of the track, ringed like a posting */
+    .dst-badge-btn.active,
+    .dst-badge-btn.active:hover {
+      background: var(--dst-card);
+      color: hsl(var(--dst-ink));
+      font-weight: 700;
+      box-shadow: 0 0 0 1px hsl(var(--dst-ink) / .15);
+    }
+    .dst-badge-btn:focus-visible {
+      outline: 2px solid hsl(var(--dst-ink));
+      outline-offset: 2px;
+    }
     .dst-btn-toprow {
       display: flex;
       align-items: center;
-      justify-content: center;   /* centre the [icon][label] group as a unit */
-      width: 100%;
-      gap: 4px;
+      justify-content: center;
+      gap: 5px;
+      min-width: 0;
     }
     .dst-btn-ico {
       flex: 0 0 auto;
       display: inline-flex;
       align-items: center;
-      gap: 1px;                  /* v2.4.0: order-independent gap between the two Balance triangles */
+      gap: 1px;
     }
+    /* ico-pri = big (active direction), ico-sec = small (other direction) */
+    .ico-pri { font-size: 15px; line-height: 1; }
+    .ico-sec { font-size: 10px; line-height: 1; }
+    .ico-time { font-size: 14px; line-height: 1; }
     .dst-btn-label {
-      flex: 0 1 auto;            /* hug the text; sits right beside its icon */
-      text-align: center;
+      min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;
-      white-space: nowrap;
     }
-    .dst-badge-btn:hover {
-      border-color: #aaa;
-      background: #f5f5f5;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
+    /* ⇅ in the active segment: clicking it again flips the direction */
+    .dst-btn-swap { font-size: 11px; opacity: .55; }
 
-    /* Active badge: highlighted border, no scale */
-    .dst-badge-btn.active {
-      border-color: #2e7d32;
-      border-width: 2.5px;
-      background: #e8f5e9;
-      box-shadow: 0 2px 8px rgba(46,125,50,0.25);
-      font-weight: 700;
-    }
-    .dst-badge-btn.active:hover {
-      background: #c8e6c9;
-      border-color: #1b5e20;
-    }
-
-    /* v2.4.0: active badge in a "low" sort mode (Balance: Low / Likes: Low)
-       turns RED — same red as the down-triangle (#c62828) — with a subtle
-       reddish background, mirroring the green active look. This makes the sort
-       direction instantly readable from the large border, not just the tiny
-       triangle. Timeline stays green for both modes (New/Old is neither
-       positive nor negative). */
-    .dst-badge-btn.active.dst-low {
-      border-color: #c62828;
-      background: #fdecea;
-      box-shadow: 0 2px 8px rgba(198,40,40,0.25);
-    }
-    .dst-badge-btn.active.dst-low:hover {
-      background: #f9d7d2;
-      border-color: #a01818;
-    }
-
-    /* v2.3.2: Inactive badges visually recede via opacity, making the active
-       badge stand out clearly. This is purely visual — no layout changes. */
-    .dst-badge-btn:not(.active) {
-      opacity: 0.65;
-    }
-
-    /* Click animation — v2.3.1: styled after the green posting-load bar.
-       IMPORTANT: only background-color + box-shadow are animated. These are
-       purely visual and do NOT affect layout, so the text/icon/dots arrangement
-       inside the badge (the flex top-row + absolutely-positioned dots from
-       v2.2.9) stays EXACTLY as-is — nothing shifts. No ::before overlay, no
-       position/z-index changes on any inner element.
-       The badge briefly flashes the loading-bar's light-green (#B7CCA3) with a
-       soft green glow ring, then settles back to the active green (#e8f5e9). */
-    @keyframes dst-pulse-bounce {
-      0%   { background-color: #B7CCA3; box-shadow: 0 0 0 5px rgba(143,175,111,0.35), 0 2px 8px rgba(46,125,50,0.25); }
-      55%  { background-color: #d4e6c6; box-shadow: 0 0 0 3px rgba(143,175,111,0.18), 0 2px 8px rgba(46,125,50,0.20); }
-      100% { background-color: #e8f5e9; box-shadow: 0 2px 8px rgba(46,125,50,0.25); }
-    }
-    .dst-badge-btn.pulse {
-      animation: dst-pulse-bounce 0.5s ease-out;
-    }
-    /* v2.4.0: red flash variant for "low" badges so the click animation
-       matches the red active state (settles at the reddish #fdecea). */
-    @keyframes dst-pulse-bounce-red {
-      0%   { background-color: #e6a9a3; box-shadow: 0 0 0 5px rgba(198,40,40,0.30), 0 2px 8px rgba(198,40,40,0.25); }
-      55%  { background-color: #f3cbc6; box-shadow: 0 0 0 3px rgba(198,40,40,0.16), 0 2px 8px rgba(198,40,40,0.20); }
-      100% { background-color: #fdecea; box-shadow: 0 2px 8px rgba(198,40,40,0.25); }
-    }
-    .dst-badge-btn.pulse.dst-low {
-      animation: dst-pulse-bounce-red 0.5s ease-out;
-    }
-    @media (prefers-reduced-motion: reduce) {
-      .dst-badge-btn.pulse,
-      .dst-badge-btn.pulse.dst-low { animation: none; }
-    }
-
-    /* Coffee/Donate button — never gets active state.
-       Square badge: width == height (42px), single-function so no dots/text. */
+    /* Coffee/Donate button — never active; square, tinted like the track. */
     .dst-badge-btn.dst-coffee-btn {
-      flex: 0 0 auto;
-      width: 42px;
-      min-width: 42px;
+      flex: 0 0 44px;
+      width: 44px;
+      min-height: 44px;
       padding: 0;
-      border-color: #ccc;
+      border-radius: 8px;
+      background: hsl(var(--dst-ink) / .08);
       color: #6d4c41;
-      font-weight: 600;
-      transition: all 0.2s ease;
+      position: relative;
     }
     .dst-badge-btn.dst-coffee-btn:hover,
     .dst-badge-btn.dst-coffee-btn.dst-pulsing {
-      border-color: #FFD700;
       background: #fff8e1;
+      outline: 2px solid #FFD700;
+      outline-offset: -2px;
       animation: dst-coffee-golden-pulse 1.5s ease-in-out infinite;
     }
     .dst-badge-btn.dst-coffee-btn:hover .dst-coffee-icon,
@@ -330,7 +220,6 @@
     @media (prefers-reduced-motion: reduce) {
       .dst-badge-btn.dst-coffee-btn.dst-pulsing {
         animation: none;
-        border-color: #FFD700;
         box-shadow: 0 0 10px 2px rgba(255, 215, 0, 0.35);
       }
     }
@@ -396,27 +285,9 @@
       100% { transform: translateY(-53px) translateX(0) rotate(0deg) scaleY(1.9); opacity: 0; }
     }
 
-    /* ═══ MOBILE (≤768px): wrap badges into readable rows ═══════════════════
-       Desktop layout above is intentionally untouched. These rules live entirely
-       inside the media query, so they can ONLY take effect on viewports ≤768px
-       (phones / Firefox for Android). On wider screens nothing here applies. */
+    /* Mobile: the segmented control stays in ONE row; just tighter padding. */
     @media (max-width: 768px) {
-      #dst-badge-bar {
-        flex-wrap: wrap;            /* allow badges to flow onto multiple rows  */
-        gap: 8px;                   /* a touch more breathing room between rows  */
-        padding: 12px 4px 8px 4px;  /* slightly taller bar for comfortable taps  */
-      }
-      #dst-badge-bar .dst-badge-btn {
-        flex: 0 1 auto;             /* size to label instead of equal-width slices */
-        min-width: auto;            /* drop the 0 min-width so text is never clipped */
-        font-size: 13px;            /* larger, legible text on small screens       */
-        padding: 8px 12px;          /* bigger tap target (≥ ~40px tall)            */
-        white-space: nowrap;        /* keep each label on one line; wrap by badge   */
-      }
-      #dst-badge-bar .dst-badge-btn.dst-coffee-btn {
-        flex: 0 0 auto;             /* coffee button keeps its intrinsic size       */
-        padding: 8px 12px;
-      }
+      .dst-badge-btn { padding: 0 4px; }
     }
 
     /* ═══ VOTER POPUP (v1.9.18) ═══════════════════════════════════════════
@@ -464,8 +335,8 @@
     /* The badge-styled card */
     #dst-voter-card {
       position: relative;
-      background: #ffffff;
-      border-radius: 20px;
+      background: var(--dst-card);
+      border-radius: 8px;
       box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
       width: 100%;
       max-width: 540px;
@@ -473,15 +344,33 @@
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      color: #1a1a1a;
+      font-family: inherit;
+      color: hsl(var(--dst-ink));
       animation: dst-voter-pop 0.18s cubic-bezier(0.2, 0.8, 0.3, 1.1);
     }
     @keyframes dst-voter-pop { from { transform: scale(0.94); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
     /* v2.0.0: no more central heading — each column owns its own header (see
-       .dst-voter-col-head). v2.0.2: the "×" close button was removed; the popup
-       closes via a backdrop click or the Escape key. */
+       .dst-voter-col-head). v3.1.0: a visible "✕" in the top right corner, in
+       addition to backdrop click and Escape. */
+    #dst-voter-close {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      z-index: 2;
+      width: 32px;
+      height: 32px;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: hsl(var(--dst-ink) / .6);
+      font: inherit;
+      font-size: 16px;
+      line-height: 1;
+      cursor: pointer;
+    }
+    #dst-voter-close:hover { background: hsl(var(--dst-ink) / .08); color: hsl(var(--dst-ink)); }
+    #dst-voter-close:focus-visible { outline: 2px solid hsl(var(--dst-ink)); outline-offset: 1px; }
 
     /* Body: two columns */
     #dst-voter-body {
@@ -497,13 +386,13 @@
       flex-direction: column;
       min-width: 0;
     }
-    .dst-voter-col + .dst-voter-col { border-left: 1px solid #ececec; }
+    .dst-voter-col + .dst-voter-col { border-left: 1px solid hsl(var(--dst-ink) / .12); }
     .dst-voter-col-head {
       padding: 13px 14px 11px 14px;
       font-size: 13px;
       position: sticky;
       top: 0;
-      background: #fff;
+      background: var(--dst-card);
       display: flex;
       align-items: center;
       gap: 6px;
@@ -517,7 +406,7 @@
     .dst-voter-col-head .dst-vch-count { font-weight: 600; font-size: 13px; }
     .dst-voter-col-head .dst-vch-label { font-weight: 600; font-size: 13px; }
     .dst-voter-col-head.pos { color: #2e7d32; border-bottom: 2px solid #2e7d32; }
-    .dst-voter-col-head.neg { color: #c62828; border-bottom: 2px solid #c62828; }
+    .dst-voter-col-head.neg { color: #c62828; border-bottom: 2px solid #c62828; padding-right: 44px; }
     .dst-voter-list {
       list-style: none;
       margin: 0;
@@ -530,7 +419,7 @@
       display: block;
       padding: 7px 14px;
       font-size: 13px;
-      color: #1a1a1a;
+      color: inherit;
       text-decoration: none;
       white-space: nowrap;
       overflow: hidden;
@@ -538,13 +427,13 @@
       border-radius: 8px;
       margin: 1px 6px;
     }
-    .dst-voter-list a:hover { background: #f3f6ef; color: #000; }
+    .dst-voter-list a:hover { background: hsl(var(--dst-ink) / .06); }
 
     /* Footer / pagination */
     #dst-voter-foot {
       flex: 0 0 auto;
       padding: 10px 14px;
-      border-top: 1px solid #ececec;
+      border-top: 1px solid hsl(var(--dst-ink) / .12);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -561,14 +450,14 @@
       gap: 10px;
       padding: 30px;
       width: 100%;
-      color: #777;
+      color: hsl(var(--dst-ink) / .65);
       font-size: 13px;
     }
     .dst-voter-spinner {
       width: 28px;
       height: 28px;
-      border: 3px solid #e0e0e0;
-      border-top-color: #2e7d32;
+      border: 3px solid hsl(var(--dst-ink) / .12);
+      border-top-color: hsl(var(--dst-ink) / .7);
       border-radius: 50%;
       animation: dst-voter-spin 0.8s linear infinite;
     }
@@ -579,11 +468,10 @@
     .dst-voter-progress {
       width: 100%;
       height: 28px;
-      background: #e8e8e8;
-      border-radius: 14px;
+      background: hsl(var(--dst-ink) / .08);
+      border-radius: 6px;
       position: relative;
       overflow: hidden;
-      box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
     }
     .dst-voter-progress-fill {
       position: absolute;
@@ -591,19 +479,12 @@
       top: 0;
       height: 100%;
       width: 0%;
-      background: linear-gradient(90deg, #8FAF6F, #B7CCA3);
-      border-radius: 14px;
+      background: hsl(var(--dst-ink) / .18);
+      border-radius: 6px;
       transition: width 0.4s ease;
     }
     .dst-voter-progress-fill--loading {
       animation: dst-voter-progress-pulse 1.5s ease-in-out infinite;
-    }
-    .dst-voter-progress--done {
-      box-shadow: 0 2px 8px rgba(46,125,50,0.25);
-    }
-    .dst-voter-progress--done .dst-voter-progress-text {
-      color: #fff;
-      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
     }
     .dst-voter-progress-text {
       position: absolute;
@@ -614,11 +495,10 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #2e7d32;
+      color: hsl(var(--dst-ink));
       font-weight: 700;
       font-size: 12px;
       z-index: 1;
-      text-shadow: 0 0 3px rgba(255,255,255,0.8);
     }
     @keyframes dst-voter-progress-pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
     .dst-voter-error {
@@ -781,8 +661,8 @@
 
     // v2.0.0: the central "Bewertungen ▲ ▼" heading is gone; each column carries
     // its own header with a coloured triangle, the count, and a descriptive label.
-    // v2.0.2: the "×" close button was removed entirely — the popup now closes via
-    // a backdrop click (outside the card) or the Escape key (see below).
+    // v3.1.0: a visible "✕" again (besides backdrop click and Escape) — on a
+    // phone the card covers nearly the whole screen, little backdrop is left.
 
     // Body with two columns
     const body = document.createElement('div');
@@ -821,8 +701,16 @@
     const foot = document.createElement('div');
     foot.id = 'dst-voter-foot';
 
+    const closeBtn = document.createElement('button');
+    closeBtn.id = 'dst-voter-close';
+    closeBtn.type = 'button';
+    closeBtn.setAttribute('aria-label', 'Schließen');
+    closeBtn.textContent = '\u2715';
+    closeBtn.addEventListener('click', function () { closeVoterPopup(shadowRoot); });
+
     card.appendChild(body);
     card.appendChild(foot);
+    card.appendChild(closeBtn);
     overlay.appendChild(card);
 
     // Close on backdrop click
@@ -2090,19 +1978,23 @@
     // label/icon of its currently-selected sub-mode and cycles through its
     // sub-modes on click. Exactly one group is "active" at any time (the one
     // that owns the current sortMode).
+    // v3.1.0: the three groups form ONE segmented control (#dst-seg); the
+    // active segment shows ⇅ because clicking it again flips the direction.
     syncGroupSelection();
+    const seg = document.createElement('div');
+    seg.id = 'dst-seg';
     BUTTON_GROUPS.forEach((group) => {
       const displayedMode = groupSelection[group.id];
       const m = MODE_DEFS[displayedMode];
       const isActive = group.modes.indexOf(sortMode) !== -1;
 
-      // v2.4.0: an active badge in a "low" sort mode turns red via .dst-low.
-      const isLow = isActive && LOW_MODES.indexOf(displayedMode) !== -1;
       const btn = document.createElement('div');
-      btn.className = 'dst-badge-btn' + (isActive ? ' active' : '') + (isLow ? ' dst-low' : '');
+      btn.className = 'dst-badge-btn' + (isActive ? ' active' : '');
       btn.setAttribute('data-group', group.id);
       btn.setAttribute('data-mode', displayedMode);
-      makeKeyboardButton(btn, m.label);
+      btn.title = m.title;
+      makeKeyboardButton(btn, m.title);
+      btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
       // AMO Security Fix: createElement statt innerHTML
       // Top row: icon + label side by side
       const topRow = document.createElement('span');
@@ -2116,11 +2008,14 @@
       labelSpan.textContent = m.label;
       topRow.appendChild(iconWrap);
       topRow.appendChild(labelSpan);
+      if (isActive) {
+        const swap = document.createElement('span');
+        swap.className = 'dst-btn-swap';
+        swap.setAttribute('aria-hidden', 'true');
+        swap.textContent = '\u21C5';
+        topRow.appendChild(swap);
+      }
       btn.appendChild(topRow);
-
-      // v2.2.2: Add dots indicator (centered BELOW the text) to show multi-mode capability
-      const dotsSpan = buildDotsIndicator(group, displayedMode);
-      btn.appendChild(dotsSpan);
 
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -2138,21 +2033,11 @@
 
         // Re-sort with the new mode (this re-renders the badge bar too).
         changeSortMode(targetMode, shadowRoot);
-
-        // After re-render, find the new active badge and animate it
-        setTimeout(() => {
-          const newActive = shadowRoot.querySelector('.dst-badge-btn.active');
-          if (newActive) {
-            newActive.classList.add('pulse');
-            newActive.addEventListener('animationend', () => {
-              newActive.classList.remove('pulse');
-            }, { once: true });
-          }
-        }, 50);
       });
 
-      bar.appendChild(btn);
+      seg.appendChild(btn);
     });
+    bar.appendChild(seg);
 
     // ── Coffee / Donate button (4th badge, not a sort mode) ─────
     const coffeeBtn = document.createElement('div');
@@ -2468,11 +2353,12 @@
 
     // Outer bar
     const outer = document.createElement('div');
-    outer.style.cssText = 'width:100%;height:28px;background:#e8e8e8;border-radius:14px;position:relative;overflow:hidden;box-shadow:inset 0 1px 3px rgba(0,0,0,0.1);';
+    // v3.1.0: neutral, in derStandard's text colour (green is kept for ratings)
+    outer.style.cssText = 'width:100%;height:28px;background:hsl(var(--dst-ink) / .08);border-radius:6px;position:relative;overflow:hidden;';
 
     // Inner fill
     const fill = document.createElement('div');
-    fill.style.cssText = 'position:absolute;left:0;top:0;height:100%;width:' + percentage + '%;background:linear-gradient(90deg,#8FAF6F,#B7CCA3);border-radius:14px;transition:width 0.4s ease;';
+    fill.style.cssText = 'position:absolute;left:0;top:0;height:100%;width:' + percentage + '%;background:hsl(var(--dst-ink) / .18);border-radius:6px;transition:width 0.4s ease;';
 
     // Pulse animation on fill
     const pulseStyle = document.createElement('style');
@@ -2485,7 +2371,7 @@
 
     // Text overlay
     const textEl = document.createElement('span');
-    textEl.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#2e7d32;font-weight:700;font-size:12px;z-index:1;text-shadow:0 0 3px rgba(255,255,255,0.8);';
+    textEl.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:hsl(var(--dst-ink));font-weight:700;font-size:12px;z-index:1;';
     // v2.4.1: show "X / Y" only when we have a trustworthy total; otherwise
     // just show the loaded count (never the bogus "/ 1").
     textEl.textContent = message
@@ -2538,9 +2424,9 @@
     if (!container) return;
     container.textContent = '';
     const outer = document.createElement('div');
-    outer.style.cssText = 'width:100%;height:28px;background:linear-gradient(90deg,#8FAF6F,#B7CCA3);border-radius:14px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(46,125,50,0.25);';
+    outer.style.cssText = 'width:100%;height:28px;background:hsl(var(--dst-ink) / .18);border-radius:6px;display:flex;align-items:center;justify-content:center;';
     const textEl = document.createElement('span');
-    textEl.style.cssText = 'color:white;font-weight:700;font-size:12px;text-shadow:0 1px 2px rgba(0,0,0,0.2);';
+    textEl.style.cssText = 'color:hsl(var(--dst-ink));font-weight:700;font-size:12px;';
     textEl.textContent = '✓ Alle ' + completeNotice.total + ' Postings geladen!';
     outer.appendChild(textEl);
     container.appendChild(outer);
