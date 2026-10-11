@@ -136,6 +136,9 @@
     #dst-badge-bar, #dst-voter-overlay {
       --dst-ink: var(--theme--on-secondary--hsl, 0 0% 13%);
       --dst-card: var(--theme--card, #fff);
+      /* v3.7.1: the article's background (derStandard's --theme--base, per
+         Ressort) made a touch lighter, so the bar stands out from the page */
+      --dst-track: color-mix(in srgb, var(--theme--base, #e6e6e6) 75%, #fff);
     }
     #dst-badge-bar {
       display: flex;
@@ -159,7 +162,7 @@
       gap: 3px;
       padding: 3px;
       border-radius: 24px;        /* v3.1.5: one pill-shaped track */
-      background: hsl(var(--dst-ink) / .10);
+      background: var(--dst-track);
       box-shadow: inset 0 1px 2px rgba(0, 0, 0, .08);
       box-sizing: border-box;
     }
@@ -2592,7 +2595,7 @@
     // Outer bar
     const outer = document.createElement('div');
     // v3.1.0: neutral, in derStandard's text colour (green is kept for ratings)
-    outer.style.cssText = 'width:100%;height:28px;background:hsl(var(--dst-ink) / .10);border-radius:14px;position:relative;overflow:hidden;';
+    outer.style.cssText = 'width:100%;height:28px;background:var(--dst-track);border-radius:14px;position:relative;overflow:hidden;';
 
     // Inner fill
     const fill = document.createElement('div');
