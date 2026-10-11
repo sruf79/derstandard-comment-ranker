@@ -98,6 +98,9 @@
   }
 
   // Keep groupSelection in sync with the currently active sortMode.
+  // Index of the segment the active card slides away from (v3.1.2), or null.
+  let slideFrom = null;
+
   function syncGroupSelection() {
     const g = getGroupForMode(sortMode);
     if (g) groupSelection[g.id] = sortMode;
@@ -141,6 +144,7 @@
     }
     /* The track holding the three sort segments */
     #dst-seg {
+      position: relative;
       flex: 1 1 auto;
       min-width: 0;
       display: flex;
@@ -149,6 +153,24 @@
       border-radius: 8px;
       background: hsl(var(--dst-ink) / .08);
       box-sizing: border-box;
+    }
+    /* v3.1.2: the active segment's card is ONE element sliding under the
+       segments (like the switch in the extension popup, 0.3s). Segments are
+       equal-width, so its position is pure CSS: no layout measurement. Its
+       width is set from JS (depends on the number of segments). */
+    #dst-seg-thumb {
+      position: absolute;
+      top: 3px;
+      bottom: 3px;
+      left: 3px;
+      border-radius: 6px;
+      background: var(--dst-card);
+      box-shadow: 0 0 0 1px hsl(var(--dst-ink) / .15);
+      transform: translateX(calc(var(--dst-i, 0) * (100% + 3px)));
+      transition: transform .3s ease;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #dst-seg-thumb { transition: none; }
     }
     .dst-badge-btn {
       flex: 1 1 0;
@@ -172,17 +194,21 @@
       white-space: nowrap;
       transition: background-color .15s ease, color .15s ease;
     }
-    .dst-badge-btn:hover {
-      background: hsl(var(--dst-ink) / .06);
+    /* v3.1.2: every inactive segment is a faint tile of its own, so the
+       three segments are visibly separate; the active one sits on the thumb. */
+    #dst-seg .dst-badge-btn {
+      position: relative;         /* above the sliding thumb */
+      background: color-mix(in srgb, var(--dst-card) 45%, transparent);
+    }
+    #dst-seg .dst-badge-btn:hover {
+      background: color-mix(in srgb, var(--dst-card) 70%, transparent);
       color: hsl(var(--dst-ink));
     }
-    /* Active segment: a card lifted out of the track, ringed like a posting */
-    .dst-badge-btn.active,
-    .dst-badge-btn.active:hover {
-      background: var(--dst-card);
+    #dst-seg .dst-badge-btn.active,
+    #dst-seg .dst-badge-btn.active:hover {
+      background: transparent;    /* the thumb underneath is the card */
       color: hsl(var(--dst-ink));
       font-weight: 700;
-      box-shadow: 0 0 0 1px hsl(var(--dst-ink) / .15);
     }
     .dst-badge-btn:focus-visible {
       outline: 2px solid hsl(var(--dst-ink));
@@ -2019,6 +2045,26 @@
     syncGroupSelection();
     const seg = document.createElement('div');
     seg.id = 'dst-seg';
+    const n = BUTTON_GROUPS.length;
+    const activeIdx = BUTTON_GROUPS.findIndex((g) => g.modes.indexOf(sortMode) !== -1);
+    const thumb = document.createElement('div');
+    thumb.id = 'dst-seg-thumb';
+    thumb.setAttribute('aria-hidden', 'true');
+    thumb.style.width = 'calc((100% - ' + (6 + 3 * (n - 1)) + 'px) / ' + n + ')';
+    // The bar is re-created on every sort (often twice per click before the
+    // next frame), so the slide is started on whichever bar is still in the
+    // page one frame later: it starts at the previous segment and moves on.
+    const from = (slideFrom !== null && slideFrom !== activeIdx) ? slideFrom : activeIdx;
+    thumb.style.setProperty('--dst-i', String(from));
+    if (activeIdx === -1) thumb.style.display = 'none';
+    seg.appendChild(thumb);
+    if (from !== activeIdx) {
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        if (!thumb.isConnected) return;
+        thumb.style.setProperty('--dst-i', String(activeIdx));
+        slideFrom = null;
+      }));
+    }
     BUTTON_GROUPS.forEach((group) => {
       const displayedMode = groupSelection[group.id];
       const m = MODE_DEFS[displayedMode];
@@ -2051,6 +2097,9 @@
         e.stopPropagation();
 
         let targetMode;
+        // Switching to another segment: let the active card slide over.
+        const prevIdx = BUTTON_GROUPS.findIndex((g) => g.modes.indexOf(sortMode) !== -1);
+        if (group.modes.indexOf(sortMode) === -1 && prevIdx !== -1) slideFrom = prevIdx;
         if (group.modes.indexOf(sortMode) !== -1) {
           // This group is already active → advance to its next sub-mode.
           const idx = group.modes.indexOf(sortMode);
