@@ -197,8 +197,35 @@
       transform: translateX(calc(var(--dst-i, 0) * (100% + 3px)));
       transition: transform .3s ease;
     }
+    /* v3.4.1: the "flash" of the old badges, on the active pill: a short
+       tint plus an expanding ring on every click, while the pill slides.
+       Green for Plus/Best, red for Minus/Worst, neutral for New/Old. Only
+       opacity and transform are animated; the re-sort waits until it is over. */
+    #dst-seg-thumb[data-tone="pos"] { --dst-flash: #8FAF6F; }
+    #dst-seg-thumb[data-tone="neg"] { --dst-flash: #e6a9a3; }
+    #dst-seg-thumb[data-tone="neutral"] { --dst-flash: hsl(var(--dst-ink) / .35); }
+    #dst-seg-thumb::before,
+    #dst-seg-thumb::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      opacity: 0;
+    }
+    #dst-seg-thumb::before { background: var(--dst-flash); }
+    #dst-seg-thumb::after { box-shadow: 0 0 0 4px var(--dst-flash); }
+    #dst-seg-thumb.dst-flash::before { animation: dst-flash-tint .45s ease-out; }
+    #dst-seg-thumb.dst-flash::after { animation: dst-flash-ring .45s ease-out; }
+    @keyframes dst-flash-tint { 0% { opacity: .6; } 100% { opacity: 0; } }
+    @keyframes dst-flash-ring {
+      0%   { opacity: .7; transform: scale(1); }
+      100% { opacity: 0; transform: scale(1.08, 1.25); }
+    }
     @media (prefers-reduced-motion: reduce) {
       #dst-seg-thumb { transition: none; }
+      #dst-seg-thumb.dst-flash::before,
+      #dst-seg-thumb.dst-flash::after { animation: none; }
     }
     .dst-badge-btn {
       flex: 1 1 0;
@@ -2084,6 +2111,22 @@
     btn.appendChild(buildDotsIndicator(group, mode));
   }
 
+  // v3.4.1: short flash of the active pill (CSS .dst-flash), tinted by the
+  // mode: green for Plus/Best, red for Minus/Worst, neutral for New/Old.
+  const FLASH_TONE = {
+    'balance-top': 'pos', 'best': 'pos',
+    'balance-flop': 'neg', 'worst': 'neg'
+  };
+  function flashThumb(thumb, mode) {
+    thumb.setAttribute('data-tone', FLASH_TONE[mode] || 'neutral');
+    thumb.classList.remove('dst-flash');
+    requestAnimationFrame(() => thumb.classList.add('dst-flash'));   // restart
+    if (!thumb.dataset.flashHooked) {
+      thumb.dataset.flashHooked = '1';
+      thumb.addEventListener('animationend', () => thumb.classList.remove('dst-flash'));
+    }
+  }
+
   // The mode the bar shows (a pending click wins over the current sort) —
   // and groupSelection updated to match it.
   function syncShownSelection() {
@@ -2224,17 +2267,20 @@
         // A newer click supersedes a re-sort that has not started yet.
         const token = ++pendingClick;
         pendingMode = targetMode;
-        const run = () => {
+        const sortNow = () => {
           if (token !== pendingClick) return;
           pendingMode = null;
           changeSortMode(targetMode, shadowRoot);   // re-renders the bar too
         };
+        // v3.4.1: flash right away (while sliding); re-sort once slide and
+        // flash are over — a large forum's re-sort blocks the page and would
+        // otherwise swallow them.
         const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        if (slides && !reduce) {
-          setTimeout(run, 320);
+        if (reduce) {
+          requestAnimationFrame(() => setTimeout(sortNow, 0));
         } else {
-          // Let the flipped segment be painted before the re-sort starts.
-          requestAnimationFrame(() => setTimeout(run, 0));
+          flashThumb(thumb, targetMode);
+          setTimeout(sortNow, 460);
         }
       });
 
