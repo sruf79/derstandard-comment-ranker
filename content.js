@@ -187,6 +187,20 @@
       transform: translateX(calc(var(--dst-i, 0) * (100% + 3px)));
       transition: transform .3s ease, background-color .3s ease, box-shadow .3s ease;
     }
+    /* v3.8.3: a second frame, inside the track, around the three sort
+       segments only (not the coffee button): same colour and rounding as the
+       track's outer line. Drawn as a pseudo-element — no extra markup. */
+    #dst-seg::before {
+      content: '';
+      position: absolute;
+      top: 3px;
+      bottom: 3px;
+      left: 3px;
+      right: calc(3px + 38px + 3px);   /* track padding + coffee slot */
+      border: 1px solid var(--dst-track-border);
+      border-radius: 20px;
+      pointer-events: none;
+    }
     /* v3.6.0: the active pill looks like the active badge of the old design:
        green frame + light green (Likes, Balance Top, Timeline), red frame +
        light red for the "low" modes (Dislikes, Balance Low) — easy to spot. */
@@ -310,9 +324,6 @@
       padding: 0;
       border-radius: 50%;
       background: transparent;
-      /* v3.8.2: own round frame in the track's frame colour — separates it
-         from the sort segments and echoes the rounded end of the track */
-      box-shadow: 0 0 0 1px var(--dst-track-border);
       color: #6d4c41;
       position: relative;
     }
