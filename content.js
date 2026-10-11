@@ -17,17 +17,6 @@
   const MODE_KEY = 'dstSorterMode';
   const AUTOLOAD_KEY = 'dstSorterAutoLoad';
 
-  // ── Sort mode definitions ───────────────────────────────────────
-  // Icon CSS classes: ico-pri = primary (large), ico-sec = secondary (small)
-  // AMO Security Fix: badgeIcons als DOM-Builder-Funktionen statt innerHTML-Strings
-  // Jedes Icon-Element wird per createElement/textContent erzeugt (kein innerHTML)
-  function _mkSpan(cls, color, text) {
-    const s = document.createElement('span');
-    s.className = cls;
-    if (color) s.style.color = color;
-    s.textContent = text;
-    return s;
-  }
   // ── v2.2.0: grouped toggle buttons ─────────────────────────────
   // Instead of 5 separate sort badges we now render only 3 sort buttons
   // (plus the coffee button). Each button owns several sub-modes and
@@ -36,27 +25,21 @@
   //   • Likes    : Likes         ↔ Dislikes
   //   • Timeline : Timeline: New ↔ Timeline: Old (v2.2.2: 2-way toggle)
   //
-  // MODE_DEFS: label + icon builder for every individual sort mode.
-  // v2.4.0: The two Balance triangles keep a FIXED position (green ▲ left,
-  // red ▼ right). Only their SIZE changes with the selected sub-mode — the
-  // active direction's triangle grows (ico-pri = big), the other shrinks
-  // (ico-sec = small). Nothing moves, so switching modes is a minimal visual
-  // change.
+  // MODE_DEFS: label + tooltip for every individual sort mode.
   // v3.1.0: one short word per segment and direction. `title` explains each
   // mode for tooltips and screen readers.
   // v3.5.0: back to the three sort groups users know — Likes/Dislikes,
-  // Balance (in the middle, the default) and New/Old. Best/Worst (3.2.0–3.4.1)
-  // is gone. v3.6.0: Balance keeps its label in both directions — the big
-  // green resp. red triangle shows the direction; New/Old use the ⇥ / ⇤
-  // characters again (KISS).
+  // Balance (in the middle, the default) and New/Old.
+  // v3.12.0: text only, no ▲ ▼ ⇥ ⇤ icons: the word says what a segment does,
+  // the green resp. red pill and the two dots show the direction (Balance
+  // keeps its one word in both directions).
   const MODE_DEFS = {
-    'positive-only':    { label: 'Likes',    title: 'Likes: meiste Plus-Stimmen zuerst', buildIcon: function(p) { p.appendChild(_mkSpan('ico-pri','#2e7d32','▲')); } },
-    'negative-only':    { label: 'Dislikes', title: 'Dislikes: meiste Minus-Stimmen zuerst', buildIcon: function(p) { p.appendChild(_mkSpan('ico-pri','#c62828','▼')); } },
-    'balance-top':      { label: 'Balance',  title: 'Balance Top: höchste Bilanz aus Plus- und Minus-Stimmen', buildIcon: function(p) { p.appendChild(_mkSpan('ico-pri','#2e7d32','▲')); p.appendChild(_mkSpan('ico-sec','#c62828','▼')); } },
-    'balance-flop':     { label: 'Balance',  title: 'Balance Low: niedrigste Bilanz aus Plus- und Minus-Stimmen', buildIcon: function(p) { p.appendChild(_mkSpan('ico-sec','#2e7d32','▲')); p.appendChild(_mkSpan('ico-pri','#c62828','▼')); } },
-    // Time is neutral (no red/green): the arrow inherits the text colour.
-    'chronological-new':{ label: 'New',      title: 'New: neueste Postings zuerst', buildIcon: function(p) { p.appendChild(_mkSpan('ico-pri', null, '\u21E5')); } },
-    'chronological-old':{ label: 'Old',      title: 'Old: älteste Postings zuerst', buildIcon: function(p) { p.appendChild(_mkSpan('ico-pri', null, '\u21E4')); } }
+    'positive-only':    { label: 'Likes',    title: 'Likes: meiste Plus-Stimmen zuerst' },
+    'negative-only':    { label: 'Dislikes', title: 'Dislikes: meiste Minus-Stimmen zuerst' },
+    'balance-top':      { label: 'Balance',  title: 'Balance Top: höchste Bilanz aus Plus- und Minus-Stimmen' },
+    'balance-flop':     { label: 'Balance',  title: 'Balance Low: niedrigste Bilanz aus Plus- und Minus-Stimmen' },
+    'chronological-new':{ label: 'New',      title: 'New: neueste Postings zuerst' },
+    'chronological-old':{ label: 'Old',      title: 'Old: älteste Postings zuerst' }
   };
 
   // BUTTON_GROUPS: one badge per entry; each click advances to the next mode.
@@ -315,15 +298,6 @@
       min-width: 0;
       max-width: 100%;
     }
-    .dst-btn-ico {
-      flex: 0 0 auto;
-      display: inline-flex;
-      align-items: center;
-      gap: 1px;
-    }
-    /* ico-pri = big (active direction), ico-sec = small (other direction) */
-    .ico-pri { font-size: 15px; line-height: 1; }
-    .ico-sec { font-size: 10px; line-height: 1; }
     .dst-btn-label {
       min-width: 0;
       overflow: hidden;
@@ -2132,16 +2106,11 @@
     btn.title = m.title;
     btn.setAttribute('aria-label', m.title);
     // AMO Security Fix: createElement statt innerHTML
-    // v2.2.9: [icon][label] centred TOGETHER as one unit (icon belongs to text).
     const topRow = document.createElement('span');
     topRow.className = 'dst-btn-toprow';
-    const iconWrap = document.createElement('span');
-    iconWrap.className = 'dst-btn-ico';
-    m.buildIcon(iconWrap);
     const labelSpan = document.createElement('span');
     labelSpan.className = 'dst-btn-label';
     labelSpan.textContent = m.label;
-    topRow.appendChild(iconWrap);
     topRow.appendChild(labelSpan);
     btn.appendChild(topRow);
     btn.appendChild(buildDotsIndicator(group, mode));
