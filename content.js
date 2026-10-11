@@ -177,13 +177,18 @@
        equal-width, so its position is pure CSS: no layout measurement. Its
        width is set from JS (depends on the number of segments). On a click
        it slides first; the re-sort only starts afterwards. */
+    /* v3.9.0: the active pill reaches the track's outer frame (incl. its 1px
+       line), so its coloured ring and the frame are one line. It is 8px
+       wider than a segment (3px padding + 1px frame on each side); one step
+       is still segment + 3px gap = 100% - 5px. */
     #dst-seg-thumb {
       position: absolute;
-      top: 3px;
-      bottom: 3px;
-      left: 3px;
-      border-radius: 20px;
-      transform: translateX(calc(var(--dst-i, 0) * (100% + 3px)));
+      top: -1px;
+      bottom: -1px;
+      left: -1px;
+      border-radius: 999px;
+      background-image: linear-gradient(to bottom, rgba(255, 255, 255, .9), rgba(255, 255, 255, 0) 65%, rgba(0, 0, 0, .05));
+      transform: translateX(calc(var(--dst-i, 0) * (100% - 5px)));
       transition: transform .3s ease, background-color .3s ease, box-shadow .3s ease;
     }
     /* v3.8.4: two pills with the same rounding (v3.8.5: 10px apart): the three
@@ -196,9 +201,17 @@
       top: 0;
       bottom: 0;
       z-index: -1;
-      background: var(--dst-track);
+      /* v3.9.0: slightly domed: light at the top, a touch darker at the
+         bottom, a highlight line along the top edge */
+      background: linear-gradient(to bottom,
+        color-mix(in srgb, var(--dst-track) 35%, #fff),
+        var(--dst-track) 55%,
+        color-mix(in srgb, var(--dst-track) 94%, #000));
       border-radius: 24px;
-      box-shadow: 0 0 0 1px var(--dst-track-border), 0 2px 6px rgba(0, 0, 0, .15);
+      box-shadow: 0 0 0 1px var(--dst-track-border),
+        inset 0 1.5px 0 rgba(255, 255, 255, .95),
+        inset 0 -2px 3px rgba(0, 0, 0, .08),
+        0 3px 8px rgba(0, 0, 0, .18);
       pointer-events: none;
     }
     #dst-seg::before { left: 0; right: calc(3px + 38px + 3px + 10px); }
@@ -207,25 +220,25 @@
        green frame + light green (Likes, Balance Top, Timeline), red frame +
        light red for the "low" modes (Dislikes, Balance Low) — easy to spot. */
     #dst-seg-thumb[data-tone="pos"] {
-      background: #e8f5e9;
-      box-shadow: 0 0 0 2.5px #2e7d32, 0 2px 8px rgba(46, 125, 50, .25);
+      background-color: #e8f5e9;
+      box-shadow: inset 0 0 0 2.5px #2e7d32, 0 3px 8px rgba(46, 125, 50, .35);
     }
     #dst-seg-thumb[data-tone="neg"] {
-      background: #fdecea;
-      box-shadow: 0 0 0 2.5px #c62828, 0 2px 8px rgba(198, 40, 40, .25);
+      background-color: #fdecea;
+      box-shadow: inset 0 0 0 2.5px #c62828, 0 3px 8px rgba(198, 40, 40, .35);
     }
     /* v3.6.0: the click flash of the old badges (v2.3.1): a short flash of the
        loading bar's light green resp. red with a soft glow ring, settling
        back into the active colours. The re-sort waits until it is over. */
     @keyframes dst-pulse-bounce {
-      0%   { background-color: #B7CCA3; box-shadow: 0 0 0 2.5px #2e7d32, 0 0 0 7px rgba(143,175,111,.35), 0 2px 8px rgba(46,125,50,.25); }
-      55%  { background-color: #d4e6c6; box-shadow: 0 0 0 2.5px #2e7d32, 0 0 0 5px rgba(143,175,111,.18), 0 2px 8px rgba(46,125,50,.20); }
-      100% { background-color: #e8f5e9; box-shadow: 0 0 0 2.5px #2e7d32, 0 0 0 2.5px rgba(143,175,111,0), 0 2px 8px rgba(46,125,50,.25); }
+      0%   { background-color: #B7CCA3; box-shadow: inset 0 0 0 2.5px #2e7d32, 0 0 0 4.5px rgba(143,175,111,.35), 0 3px 8px rgba(46,125,50,.35); }
+      55%  { background-color: #d4e6c6; box-shadow: inset 0 0 0 2.5px #2e7d32, 0 0 0 2.5px rgba(143,175,111,.18), 0 2px 8px rgba(46,125,50,.20); }
+      100% { background-color: #e8f5e9; box-shadow: inset 0 0 0 2.5px #2e7d32, 0 0 0 0 rgba(143,175,111,0), 0 3px 8px rgba(46,125,50,.35); }
     }
     @keyframes dst-pulse-bounce-red {
-      0%   { background-color: #e6a9a3; box-shadow: 0 0 0 2.5px #c62828, 0 0 0 7px rgba(198,40,40,.30), 0 2px 8px rgba(198,40,40,.25); }
-      55%  { background-color: #f3cbc6; box-shadow: 0 0 0 2.5px #c62828, 0 0 0 5px rgba(198,40,40,.16), 0 2px 8px rgba(198,40,40,.20); }
-      100% { background-color: #fdecea; box-shadow: 0 0 0 2.5px #c62828, 0 0 0 2.5px rgba(198,40,40,0), 0 2px 8px rgba(198,40,40,.25); }
+      0%   { background-color: #e6a9a3; box-shadow: inset 0 0 0 2.5px #c62828, 0 0 0 4.5px rgba(198,40,40,.30), 0 3px 8px rgba(198,40,40,.35); }
+      55%  { background-color: #f3cbc6; box-shadow: inset 0 0 0 2.5px #c62828, 0 0 0 2.5px rgba(198,40,40,.16), 0 2px 8px rgba(198,40,40,.20); }
+      100% { background-color: #fdecea; box-shadow: inset 0 0 0 2.5px #c62828, 0 0 0 0 rgba(198,40,40,0), 0 3px 8px rgba(198,40,40,.35); }
     }
     #dst-seg-thumb.dst-flash[data-tone="pos"] { animation: dst-pulse-bounce .45s ease-out; }
     #dst-seg-thumb.dst-flash[data-tone="neg"] { animation: dst-pulse-bounce-red .45s ease-out; }
@@ -2225,7 +2238,7 @@
     thumb.id = 'dst-seg-thumb';
     thumb.setAttribute('aria-hidden', 'true');
     // v3.7.0: the coffee button sits at the end of the track (COFFEE_SLOT)
-    thumb.style.width = 'calc((100% - ' + (6 + 3 * (n - 1) + COFFEE_SLOT) + 'px) / ' + n + ')';
+    thumb.style.width = 'calc((100% - ' + (6 + 3 * (n - 1) + COFFEE_SLOT) + 'px) / ' + n + ' + 8px)';
     thumb.style.setProperty('--dst-i', String(activeIdx));
     thumb.setAttribute('data-tone', toneOf(shownMode));
     if (activeIdx === -1) thumb.style.display = 'none';
