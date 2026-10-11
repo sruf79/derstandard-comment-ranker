@@ -1,4 +1,4 @@
-// popup.js — derStandard Comment Ranker v3.10.1
+// popup.js — derStandard Comment Ranker v3.10.2
 // 4-box popup: Header (icon + title), Toggle (enable/disable), Review
 // (browser-aware store link with a delayed golden pulse), and Coffee (donate).
 //
@@ -29,14 +29,22 @@ function sendMessageToTab(msg) {
   });
 }
 
+// v3.10.2: the label says what the switch shows
+var toggleLabel = document.getElementById('toggleLabel');
+function updateToggleLabel() {
+  toggleLabel.textContent = toggle.checked ? 'Extension aktiviert' : 'Extension deaktiviert';
+}
+
 // Load saved state
 chrome.storage.sync.get([SORT_KEY], function(data) {
   toggle.checked = data[SORT_KEY] !== false;
+  updateToggleLabel();
 });
 
 // Handle toggle
 toggle.addEventListener('change', function() {
   var enabled = toggle.checked;
+  updateToggleLabel();
   chrome.storage.sync.set({ [SORT_KEY]: enabled });
   sendMessageToTab({ action: 'toggle', enabled: enabled });
 });
