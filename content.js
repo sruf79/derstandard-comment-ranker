@@ -219,26 +219,28 @@
     /* v3.6.0: the active pill looks like the active badge of the old design:
        green frame + light green (Likes, Balance Top, Timeline), red frame +
        light red for the "low" modes (Dislikes, Balance Low) — easy to spot. */
+    /* v3.9.1: the coloured ring is bevelled too: lighter along its top,
+       darker along its bottom edge */
     #dst-seg-thumb[data-tone="pos"] {
       background-color: #e8f5e9;
-      box-shadow: inset 0 0 0 2.5px #2e7d32, 0 3px 8px rgba(46, 125, 50, .35);
+      box-shadow: inset 0 1.5px 0 rgba(255,255,255,.5), inset 0 -1.5px 0 rgba(0,0,0,.28), inset 0 0 0 2.5px #2e7d32, 0 3px 8px rgba(46, 125, 50, .35);
     }
     #dst-seg-thumb[data-tone="neg"] {
       background-color: #fdecea;
-      box-shadow: inset 0 0 0 2.5px #c62828, 0 3px 8px rgba(198, 40, 40, .35);
+      box-shadow: inset 0 1.5px 0 rgba(255,255,255,.5), inset 0 -1.5px 0 rgba(0,0,0,.28), inset 0 0 0 2.5px #c62828, 0 3px 8px rgba(198, 40, 40, .35);
     }
     /* v3.6.0: the click flash of the old badges (v2.3.1): a short flash of the
        loading bar's light green resp. red with a soft glow ring, settling
        back into the active colours. The re-sort waits until it is over. */
     @keyframes dst-pulse-bounce {
-      0%   { background-color: #B7CCA3; box-shadow: inset 0 0 0 2.5px #2e7d32, 0 0 0 4.5px rgba(143,175,111,.35), 0 3px 8px rgba(46,125,50,.35); }
-      55%  { background-color: #d4e6c6; box-shadow: inset 0 0 0 2.5px #2e7d32, 0 0 0 2.5px rgba(143,175,111,.18), 0 2px 8px rgba(46,125,50,.20); }
-      100% { background-color: #e8f5e9; box-shadow: inset 0 0 0 2.5px #2e7d32, 0 0 0 0 rgba(143,175,111,0), 0 3px 8px rgba(46,125,50,.35); }
+      0%   { background-color: #B7CCA3; box-shadow: inset 0 1.5px 0 rgba(255,255,255,.5), inset 0 -1.5px 0 rgba(0,0,0,.28), inset 0 0 0 2.5px #2e7d32, 0 0 0 4.5px rgba(143,175,111,.35), 0 3px 8px rgba(46,125,50,.35); }
+      55%  { background-color: #d4e6c6; box-shadow: inset 0 1.5px 0 rgba(255,255,255,.5), inset 0 -1.5px 0 rgba(0,0,0,.28), inset 0 0 0 2.5px #2e7d32, 0 0 0 2.5px rgba(143,175,111,.18), 0 2px 8px rgba(46,125,50,.20); }
+      100% { background-color: #e8f5e9; box-shadow: inset 0 1.5px 0 rgba(255,255,255,.5), inset 0 -1.5px 0 rgba(0,0,0,.28), inset 0 0 0 2.5px #2e7d32, 0 0 0 0 rgba(143,175,111,0), 0 3px 8px rgba(46,125,50,.35); }
     }
     @keyframes dst-pulse-bounce-red {
-      0%   { background-color: #e6a9a3; box-shadow: inset 0 0 0 2.5px #c62828, 0 0 0 4.5px rgba(198,40,40,.30), 0 3px 8px rgba(198,40,40,.35); }
-      55%  { background-color: #f3cbc6; box-shadow: inset 0 0 0 2.5px #c62828, 0 0 0 2.5px rgba(198,40,40,.16), 0 2px 8px rgba(198,40,40,.20); }
-      100% { background-color: #fdecea; box-shadow: inset 0 0 0 2.5px #c62828, 0 0 0 0 rgba(198,40,40,0), 0 3px 8px rgba(198,40,40,.35); }
+      0%   { background-color: #e6a9a3; box-shadow: inset 0 1.5px 0 rgba(255,255,255,.5), inset 0 -1.5px 0 rgba(0,0,0,.28), inset 0 0 0 2.5px #c62828, 0 0 0 4.5px rgba(198,40,40,.30), 0 3px 8px rgba(198,40,40,.35); }
+      55%  { background-color: #f3cbc6; box-shadow: inset 0 1.5px 0 rgba(255,255,255,.5), inset 0 -1.5px 0 rgba(0,0,0,.28), inset 0 0 0 2.5px #c62828, 0 0 0 2.5px rgba(198,40,40,.16), 0 2px 8px rgba(198,40,40,.20); }
+      100% { background-color: #fdecea; box-shadow: inset 0 1.5px 0 rgba(255,255,255,.5), inset 0 -1.5px 0 rgba(0,0,0,.28), inset 0 0 0 2.5px #c62828, 0 0 0 0 rgba(198,40,40,0), 0 3px 8px rgba(198,40,40,.35); }
     }
     #dst-seg-thumb.dst-flash[data-tone="pos"] { animation: dst-pulse-bounce .45s ease-out; }
     #dst-seg-thumb.dst-flash[data-tone="neg"] { animation: dst-pulse-bounce-red .45s ease-out; }
