@@ -42,20 +42,20 @@
   // active direction's triangle grows (ico-pri = big), the other shrinks
   // (ico-sec = small). Nothing moves, so switching modes is a minimal visual
   // change.
-  // v3.1.0: one short word per segment. "Balance" keeps its text in both
-  // directions — the two triangles show the direction. The old "Likes: Low"
-  // actually sorted by the most MINUS votes, hence "Dislikes". New/Old as on
-  // Reddit. `title` is the full name for tooltips and screen readers.
+  // v3.1.0: one short word per segment and direction. v3.2.1: Balance reads
+  // Plus / Minus (derStandard's own terms) — every segment now changes its
+  // label with the direction. New/Old as on Reddit. `title` explains each
+  // mode for tooltips and screen readers.
   const MODE_DEFS = {
-    'balance-top':      { label: 'Balance',  title: 'Balance: Top', buildIcon: function(p) { p.appendChild(_mkSpan('ico-pri','#2e7d32','\u25B2')); p.appendChild(_mkSpan('ico-sec','#c62828','\u25BC')); } },
-    'balance-flop':     { label: 'Balance',  title: 'Balance: Low', buildIcon: function(p) { p.appendChild(_mkSpan('ico-sec','#2e7d32','\u25B2')); p.appendChild(_mkSpan('ico-pri','#c62828','\u25BC')); } },
+    'balance-top':      { label: 'Plus',     title: 'Plus: höchste Bilanz aus Plus- und Minus-Stimmen', buildIcon: function(p) { p.appendChild(_mkSpan('ico-pri','#2e7d32','\u25B2')); p.appendChild(_mkSpan('ico-sec','#c62828','\u25BC')); } },
+    'balance-flop':     { label: 'Minus',    title: 'Minus: niedrigste Bilanz aus Plus- und Minus-Stimmen', buildIcon: function(p) { p.appendChild(_mkSpan('ico-sec','#2e7d32','\u25B2')); p.appendChild(_mkSpan('ico-pri','#c62828','\u25BC')); } },
     // v3.2.0: Best/Worst (Reddit's "Best") replace Likes/Dislikes, which
     // were nearly identical to Balance (9 of the top 10 the same).
     'best':             { label: 'Best',     title: 'Best: einhellig positiv bewertet', buildIcon: function(p) { p.appendChild(_mkSpan('ico-pri','#2e7d32','\u25B2')); } },
     'worst':            { label: 'Worst',    title: 'Worst: einhellig negativ bewertet', buildIcon: function(p) { p.appendChild(_mkSpan('ico-pri','#c62828','\u25BC')); } },
     // Time is neutral (no red/green): the arrow inherits the text colour.
-    'chronological-new':{ label: 'New',      title: 'New',          buildIcon: function(p) { p.appendChild(_mkSpan('ico-time', null, '\u2193')); } },
-    'chronological-old':{ label: 'Old',      title: 'Old',          buildIcon: function(p) { p.appendChild(_mkSpan('ico-time', null, '\u2191')); } }
+    'chronological-new':{ label: 'New',      title: 'New: neueste Postings zuerst', buildIcon: function(p) { p.appendChild(_mkSpan('ico-time', null, '\u2193')); } },
+    'chronological-old':{ label: 'Old',      title: 'Old: älteste Postings zuerst', buildIcon: function(p) { p.appendChild(_mkSpan('ico-time', null, '\u2191')); } }
   };
 
   // BUTTON_GROUPS: one badge per entry; each click advances to the next mode.
