@@ -137,8 +137,11 @@
       --dst-ink: var(--theme--on-secondary--hsl, 0 0% 13%);
       --dst-card: var(--theme--card, #fff);
       /* v3.7.1: the article's background (derStandard's --theme--base, per
-         Ressort) made a touch lighter, so the bar stands out from the page */
-      --dst-track: color-mix(in srgb, var(--theme--base, #e6e6e6) 75%, #fff);
+         Ressort) made lighter, so the bar stands out from the page
+         (v3.8.1: 35% white, was 25%) */
+      --dst-track: color-mix(in srgb, var(--theme--base, #e6e6e6) 65%, #fff);
+      /* v3.8.1: frame of the track — a darker shade of the same colour */
+      --dst-track-border: color-mix(in srgb, var(--theme--base, #e6e6e6) 75%, #000);
     }
     /* v3.8.0: two rows — the sort track (always shown and usable) and, while
        postings are loading, the loading bar below it. */
@@ -165,7 +168,9 @@
       padding: 3px;
       border-radius: 24px;        /* v3.1.5: one pill-shaped track */
       background: var(--dst-track);
-      box-shadow: inset 0 1px 2px rgba(0, 0, 0, .08);
+      /* v3.8.1: darker frame + soft drop shadow, so the bar does not get lost
+         on the page (box-shadow ring: no change in size or layout) */
+      box-shadow: 0 0 0 1px var(--dst-track-border), 0 2px 6px rgba(0, 0, 0, .15);
       box-sizing: border-box;
     }
     /* v3.1.2: the active segment's card is ONE element sliding under the
