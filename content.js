@@ -1106,7 +1106,24 @@
   }
 
   // ── Extract timestamp from a posting for chronological sort ────
+  // v3.3.1: derStandard puts the exact time on <time data-date="09.10.2026,
+  // 13:04"> (local time). Previously only the relative text ("vor 2 Tagen")
+  // was read, so all postings of the same day/hour tied and New/Old sorted
+  // only roughly.
+  function parseDataDate(value) {
+    const m = /^(\d{1,2})\.(\d{1,2})\.(\d{4}),?\s+(\d{1,2}):(\d{2})/.exec(value || '');
+    if (!m) return 0;
+    const t = new Date(+m[3], +m[2] - 1, +m[1], +m[4], +m[5]).getTime();
+    return isNaN(t) ? 0 : t;
+  }
+
   function getPostingTimestamp(posting) {
+    // Strategy 0: exact time in <time data-date="…"> (current derStandard DOM)
+    const dated = posting.querySelector('time[data-date]');
+    if (dated) {
+      const t = parseDataDate(dated.getAttribute('data-date'));
+      if (t > 0) return t;
+    }
     // Strategy 1: <time datetime="..."> with a valid ISO date
     let timeEl = posting.querySelector('time[datetime]');
     if (timeEl) {
