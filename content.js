@@ -1872,10 +1872,20 @@
       // v3.22.0: the steps only apply to postings where the chosen side
       // outweighs the other (likes > dislikes resp. dislikes > likes); all
       // other postings follow in the same order.
-      case 'positive-only':
-        diff = ((kb.pos > kb.neg) - (ka.pos > ka.neg)) || ((ka.pos === 0) - (kb.pos === 0)) || (ka.neg - kb.neg) || (kb.pos - ka.pos); break;
-      case 'negative-only':
-        diff = ((kb.neg > kb.pos) - (ka.neg > ka.pos)) || ((ka.neg === 0) - (kb.neg === 0)) || (ka.pos - kb.pos) || (kb.neg - ka.neg); break;
+      // v3.24.1: the remaining postings (the chosen side does not outweigh)
+      // follow by the chosen side's votes, most first (e.g. most dislikes).
+      case 'positive-only': {
+        const da = ka.pos > ka.neg, db = kb.pos > kb.neg;
+        diff = (db - da) || (da ? (ka.neg - kb.neg) || (kb.pos - ka.pos)
+                                : (kb.pos - ka.pos) || (ka.neg - kb.neg));
+        break;
+      }
+      case 'negative-only': {
+        const da = ka.neg > ka.pos, db = kb.neg > kb.pos;
+        diff = (db - da) || (da ? (ka.pos - kb.pos) || (kb.neg - ka.neg)
+                                : (kb.neg - ka.neg) || (ka.pos - kb.pos));
+        break;
+      }
       case 'chronological-new': diff = kb.time - ka.time; break;
       case 'chronological':      // legacy alias -> behaves like "Old Timeline"
       case 'chronological-old': diff = ka.time - kb.time; break;
