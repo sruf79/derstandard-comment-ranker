@@ -562,6 +562,14 @@
       left: calc(var(--dst-side) / 2 + 12px); width: calc(var(--dst-side) / 2 - 8px);
       background: var(--dst-line); border-radius: 0 1px 1px 0;
     }
+    /* pinned: the line starts right of the pin, so it is shorter */
+    main.forum--main dst-posting[data-dst-pinned] > .dst-link {
+      display: block; position: absolute; pointer-events: none;
+      top: calc(var(--dst-name-y) - 2px); height: 2px;
+      left: calc(var(--dst-side) / 2 + 30px);
+      width: max(0px, calc(var(--dst-side) / 2 - 26px));
+      background: var(--dst-line); border-radius: 0 1px 1px 0;
+    }
     /* … and past a nested thread between two replies */
     main.forum--main .thread > .thread:has(~ dst-posting)::before {
       content: ''; top: 0; bottom: 0; width: 0;
@@ -579,15 +587,23 @@
       width: 34px; height: 34px;
     }
     dst-posting[data-dst-tile] dst-posting-head dst-posting--context > button { opacity: 0; pointer-events: none; }
-    /* pinned postings: only the pin (tooltip "Angeheftet"), no bold text */
+    /* pinned postings: only the pin (tooltip "Angeheftet"), no bold text. It
+       sits between rating stripe and user name, at the name's height, with a
+       short line on to the name (like the thread line of a reply) */
+    dst-posting[data-dst-pinned] dst-posting-head time { position: static !important; }
     dst-posting[data-dst-tile] dst-posting-head time strong {
-      font-size: 0 !important; display: inline-flex; vertical-align: -2px;
-      margin: 0 0 0 2px; cursor: help;
+      font-size: 0 !important; display: flex; cursor: help; padding: 0 !important;
+      position: absolute; z-index: 1;
+      left: calc(var(--dst-side) / 2 + 10px); top: calc(var(--dst-name-y) - 9px);
       color: hsl(var(--theme--on-secondary--hsl) / .6);
     }
-    dst-posting[data-dst-tile] dst-posting-head time:has(strong) button { padding-left: 5px !important; }
     dst-posting[data-dst-tile] dst-posting-head time strong svg {
-      width: 15px !important; height: 15px !important; margin: 0 !important; pointer-events: none;
+      width: 16px !important; height: 16px !important; margin: 0 !important; pointer-events: none;
+    }
+    @container (max-width: 420px) {
+      dst-posting[data-dst-tile] dst-posting-head time strong svg { width: 14px !important; height: 14px !important; }
+      dst-posting[data-dst-tile] dst-posting-head time strong { top: calc(var(--dst-name-y) - 8px); left: calc(var(--dst-side) / 2 + 8px); }
+      main.forum--main dst-posting[data-dst-pinned] > .dst-link { left: calc(var(--dst-side) / 2 + 25px); width: max(0px, calc(var(--dst-side) / 2 - 21px)); }
     }
     /* thread toggle ("💬 169"): bottom right, under the vote knobs — the
        mirror image of the flag. It fills its column, so it stays centred
@@ -1583,6 +1599,7 @@
     }
     const pin = posting.querySelector('dst-posting-head time strong');
     if (pin && pin.title !== 'Angeheftet') pin.title = 'Angeheftet';
+    if (!!pin !== posting.hasAttribute('data-dst-pinned')) posting.toggleAttribute('data-dst-pinned', !!pin);
     const nUp = posting.querySelector('dst-posting-footer .rate-up');
     const nDn = posting.querySelector('dst-posting-footer .rate-down');
     rail.querySelector('.dst-vk.up').classList.toggle('on', !!(nUp && nUp.classList.contains('active')));
