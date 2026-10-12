@@ -489,6 +489,131 @@
         0 3px 10px rgba(0, 0, 0, .12) !important;
     }
 
+    /* ═══ v4.0.0: POSTING TILES ═════════════════════════════════════════
+       Each posting gets a symmetric frame: on the left a recessed rating
+       stripe (green above red), on the right two glass vote knobs with the
+       plus/minus counts; the footer reads  ⚑ 👁 — Antworten — ⧉ ⤴, with the
+       flag right below the stripe and "share" right below the knobs.
+       Everything is laid out on derStandard's own posting grid: only the
+       column template changes, its named lines (marker, posting, …) stay. */
+    main.forum--main { --dst-rail: 58px; --dst-knob: 42px; --dst-side: calc(var(--dst-rail) + 20px); }
+    @media (max-width: 600px) {
+      main.forum--main { --dst-rail: 44px; --dst-knob: 36px; --dst-side: calc(var(--dst-rail) + 8px); }
+    }
+    main.forum--main dst-posting[data-dst-tile] {
+      grid-template-columns: [permalink-start marker-start] var(--marker-width, 0px) [marker-end] var(--dst-side)
+        [posting-start] minmax(0, 1fr) [posting-end] var(--dst-side) [permalink-end] !important;
+      --posting-background: var(--theme--card);
+      background-color: var(--theme--card) !important;
+    }
+    /* replies: a card of their own instead of a ruled line */
+    main.forum--main .thread dst-posting[data-dst-tile] {
+      border: 1px solid hsl(var(--theme--on-secondary--hsl) / .15) !important;
+      margin-top: 12px;
+    }
+    /* derStandard's own pieces we replace or move */
+    dst-posting[data-dst-tile] dst-posting-head dst-posting--ratinglog,
+    dst-posting[data-dst-tile] dst-posting-footer .rate-up,
+    dst-posting[data-dst-tile] dst-posting-footer .rate-down { display: none !important; }
+    /* the "…" menu stays (its share submenu opens from it) but sits invisibly
+       under our share icon */
+    dst-posting[data-dst-tile] dst-posting-head dst-posting--context {
+      position: absolute; right: calc((var(--dst-side) - 34px) / 2); bottom: 10px;
+      width: 34px; height: 34px;
+    }
+    dst-posting[data-dst-tile] dst-posting-head dst-posting--context > button { opacity: 0; pointer-events: none; }
+    dst-posting[data-dst-tile] dst-posting-head { padding-right: 52px; }
+    /* thread toggle ("💬 169") moves to the top right of the text area */
+    dst-posting[data-dst-tile] dst-posting-footer .answers { position: absolute; top: 12px; right: var(--dst-side); }
+    dst-posting[data-dst-tile] dst-posting-footer {
+      position: static !important;
+      grid-column: marker-end / permalink-end !important;
+      grid-template-columns: var(--dst-side) 1fr auto 1fr var(--dst-side) !important;
+      padding: 0 !important;
+      margin-top: 18px;
+    }
+    dst-posting[data-dst-tile] dst-posting-footer > * { grid-row: 1 !important; }
+    dst-posting[data-dst-tile] dst-posting-footer dst-reply-postingbox { grid-column: 3 !important; }
+    dst-posting[data-dst-tile] dst-posting-footer dst-dialog--report { grid-column: 1 !important; justify-self: center; }
+    dst-posting[data-dst-tile] dst-posting-footer dst-dialog--report button { color: #c62828 !important; }
+    /* rating stripe: recessed, same height as the knob column */
+    .dst-stripe {
+      grid-column: marker-end / posting-start; grid-row: posting-start / content-end;
+      justify-self: center; align-self: stretch;
+      width: 12px; min-height: 60px;
+      display: flex; flex-direction: column; gap: 2px;
+      cursor: pointer;
+    }
+    .dst-stripe > span {
+      flex: 1 1 0; min-height: 0;
+      transition: flex-grow .5s ease;
+      box-shadow: inset 0 1px 1.5px rgba(0, 0, 0, .38), 0 1px 0 rgba(255, 255, 255, .85);
+    }
+    .dst-st-empty { background: hsl(var(--theme--on-secondary--hsl) / .10); }
+    .dst-st-pos { background: rgb(75, 120, 43); }
+    .dst-st-neg { background: rgb(213, 42, 42); }
+    .dst-stripe > .dst-first { border-top-left-radius: 6px; border-top-right-radius: 6px; }
+    .dst-stripe > .dst-last { border-bottom-left-radius: 6px; border-bottom-right-radius: 6px; }
+    /* vote column: ▲ +n … −n ▼ */
+    .dst-rail {
+      grid-column: posting-end / permalink-end; grid-row: posting-start / content-end;
+      justify-self: center; align-self: stretch;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+    }
+    .dst-rail-zone { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+    .dst-rail-top, .dst-rail-bot { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .dst-rail-top { position: sticky; top: 12px; z-index: 1; padding-bottom: 4px; }
+    .dst-vk {
+      flex: none; width: var(--dst-knob); height: var(--dst-knob);
+      border: 0; padding: 0; border-radius: 50%; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      background:
+        radial-gradient(120% 90% at 30% 0%, #fff 0%, rgba(255, 255, 255, 0) 55%),
+        linear-gradient(to bottom, #fff 0%, #f7f8fa 48%, #e4e8ec 52%, #eef1f4 80%, #fafbfc 100%);
+      box-shadow: 0 0 0 1.5px rgba(70, 70, 70, .35), inset 0 -2px 0 rgba(255, 255, 255, .85), 0 3px 8px rgba(0, 0, 0, .2);
+      transition: box-shadow .25s ease;
+    }
+    .dst-vk svg { width: 55%; height: 55%; }
+    .dst-vk.up { color: #2e7d32; }
+    .dst-vk.dn { color: #c62828; }
+    .dst-vk .fill { display: none; }
+    .dst-vk.on .fill { display: block; }
+    .dst-vk.on .line { display: none; }
+    .dst-vk.up.on { box-shadow: 0 0 0 2px rgba(46, 125, 50, .95), inset 0 -2px 0 rgba(255, 255, 255, .85), 0 3px 8px rgba(0, 0, 0, .2), 0 0 12px rgba(46, 125, 50, .55); }
+    .dst-vk.dn.on { box-shadow: 0 0 0 2px rgba(198, 40, 40, .95), inset 0 -2px 0 rgba(255, 255, 255, .85), 0 3px 8px rgba(0, 0, 0, .2), 0 0 12px rgba(198, 40, 40, .55); }
+    .dst-vk.up.dst-flash { animation: dst-vk-flash-pos .45s ease-out; }
+    .dst-vk.dn.dst-flash { animation: dst-vk-flash-neg .45s ease-out; }
+    @keyframes dst-vk-flash-pos { 40% { box-shadow: 0 0 0 3px rgba(46, 125, 50, 1), 0 0 22px 4px rgba(46, 125, 50, .7); transform: scale(1.08); } }
+    @keyframes dst-vk-flash-neg { 40% { box-shadow: 0 0 0 3px rgba(198, 40, 40, 1), 0 0 22px 4px rgba(198, 40, 40, .7); transform: scale(1.08); } }
+    .dst-cnt {
+      font-size: 13px; font-weight: 800; line-height: 1.2; cursor: pointer;
+      font-variant-numeric: tabular-nums; white-space: nowrap;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, .75);
+    }
+    .dst-cnt.pos { color: #2e7d32; }
+    .dst-cnt.neg { color: #c62828; }
+    .dst-cnt.dst-roll { animation: dst-roll .35s ease-out; }
+    @keyframes dst-roll { from { transform: translateY(-7px); opacity: 0; } }
+    /* footer icons that live outside derStandard's footer */
+    .dst-fb {
+      grid-row: footer-start / footer-end; align-self: center;
+      position: relative; z-index: 1; margin-top: 18px;
+      width: 34px; height: 34px; padding: 0; border: 0; border-radius: 50%;
+      background: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: hsl(var(--theme--on-secondary--hsl) / .7);
+    }
+    .dst-fb:hover { background: hsl(var(--theme--on-secondary--hsl) / .06); }
+    .dst-fb svg { width: 22px; height: 22px; }
+    .dst-fb.hide { grid-column: posting-start / posting-end; justify-self: start; }
+    .dst-fb.copy { grid-column: posting-start / posting-end; justify-self: end; }
+    .dst-fb.share { grid-column: posting-end / permalink-end; justify-self: center; }
+    .dst-fb.dst-done { color: #2e7d32; }
+    @media (prefers-reduced-motion: reduce) {
+      .dst-stripe > span { transition: none; }
+      .dst-vk.dst-flash, .dst-cnt.dst-roll { animation: none; }
+    }
+
     /* Mobile: the segmented control stays in ONE row; just tighter padding. */
     @media (max-width: 768px) {
       .dst-badge-btn { padding: 0 4px; }
@@ -1177,6 +1302,251 @@
         el.classList.add('dst-votable');
       });
     } catch (e) { /* ignore */ }
+  }
+
+  // ── v4.0.0: posting tiles ─────────────────────────────────────
+  // Adds the rating stripe, the vote knobs and three footer icons to every
+  // posting. They only TRIGGER derStandard's own controls (vote buttons, the
+  // "…" menu, the report dialog) — voting, sharing, copying and hiding keep
+  // working exactly as before. The new elements are plain children of
+  // <dst-posting>, placed on its grid by CSS; derStandard's nodes are never
+  // moved, so Lit's rendering is not disturbed.
+  const TILE_ICONS = {
+    share: 'M18,16.08C17.24,16.08 16.56,16.38 16.04,16.85L8.91,12.7C8.96,12.47 9,12.24 9,12C9,11.76 8.96,11.53 8.91,11.3L15.96,7.19C16.5,7.69 17.21,8 18,8A3,3 0 0,0 21,5A3,3 0 0,0 18,2A3,3 0 0,0 15,5C15,5.24 15.04,5.47 15.09,5.7L8.04,9.81C7.5,9.31 6.79,9 6,9A3,3 0 0,0 3,12A3,3 0 0,0 6,15C6.79,15 7.5,14.69 8.04,14.19L15.16,18.34C15.11,18.55 15.08,18.77 15.08,19C15.08,20.61 16.39,21.91 18,21.91C19.61,21.91 20.92,20.61 20.92,19A2.92,2.92 0 0,0 18,16.08Z',
+    copy: 'M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z',
+    hide: 'M11.83,9L15,12.16C15,12.11 15,12.05 15,12A3,3 0 0,0 12,9C11.94,9 11.89,9 11.83,9M7.53,9.8L9.08,11.35C9.03,11.56 9,11.77 9,12A3,3 0 0,0 12,15C12.22,15 12.44,14.97 12.65,14.92L14.2,16.47C13.53,16.8 12.79,17 12,17A5,5 0 0,1 7,12C7,11.21 7.2,10.47 7.53,9.8M2,4.27L4.28,6.55L4.73,7C3.08,8.3 1.78,10 1,12C2.73,16.39 7,19.5 12,19.5C13.55,19.5 15.03,19.2 16.38,18.66L16.81,19.08L19.73,22L21,20.73L3.27,3M12,7A5,5 0 0,1 17,12C17,12.64 16.87,13.26 16.64,13.82L19.57,16.75C21.07,15.5 22.27,13.86 23,12C21.27,7.61 17,4.5 12,4.5C10.6,4.5 9.26,4.75 8,5.2L10.17,7.35C10.74,7.13 11.35,7 12,7Z',
+    check: 'M9,20.42L2.79,14.21L5.62,11.38L9,14.77L18.88,4.88L21.71,7.71L9,20.42Z'
+  };
+  const ARROW = 'M12 3.5 20 12.5h-4.6v8h-6.8v-8H4z';
+
+  function tileSvg(path) {
+    return '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="' + path + '"/></svg>';
+  }
+  function knobSvg(down) {
+    const rot = down ? ' style="transform:rotate(180deg)"' : '';
+    return '<svg viewBox="0 0 24 24" aria-hidden="true"' + rot + '>' +
+      '<path class="line" d="' + ARROW + '" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>' +
+      '<path class="fill" d="' + ARROW + '" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>';
+  }
+  // up to 9.999 written out, from 10.000 on "23k"
+  function fmtVotes(n) {
+    return n >= 10000 ? Math.round(n / 1000) + 'k' : n.toLocaleString('de-AT');
+  }
+
+  function tileButton(cls, label, html, onClick) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = cls;
+    b.title = label;
+    b.setAttribute('aria-label', label);
+    b.innerHTML = html;
+    b.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      onClick(b);
+    });
+    return b;
+  }
+
+  // Opens derStandard's "…" menu of a posting and clicks the item with the
+  // given label (the menu is rendered lazily, so wait for it briefly).
+  function runPostingMenu(posting, label) {
+    const ctx = posting.querySelector('dst-posting--context');
+    const trigger = ctx && ctx.querySelector(':scope > button');
+    if (!trigger) return Promise.resolve(false);
+    if (trigger.getAttribute('aria-expanded') !== 'true') trigger.click();
+    return new Promise(function (resolve) {
+      let tries = 0;
+      (function look() {
+        const item = Array.prototype.find.call(ctx.querySelectorAll('[role=menuitem]'), function (b) {
+          return b.textContent.indexOf(label) !== -1;
+        });
+        if (item) { item.click(); resolve(true); }
+        else if (++tries < 20) setTimeout(look, 25);
+        else resolve(false);
+      })();
+    });
+  }
+
+  function openTileVoters(posting) {
+    const rl = posting.querySelector('dst-posting--ratinglog');
+    const forum = document.querySelector('dst-forum');
+    if (!rl || !forum || !forum.shadowRoot || !rl.getAttribute('postingid')) return;
+    openVoterPopup(forum.shadowRoot, rl.getAttribute('postingid'),
+      rl.getAttribute('positiveratings') || '0', rl.getAttribute('negativeratings') || '0');
+  }
+
+  function buildTile(posting) {
+    const stripe = document.createElement('span');
+    stripe.className = 'dst-stripe';
+    stripe.title = 'Bewertungen anzeigen';
+    stripe.innerHTML = '<span class="dst-st-empty"></span><span class="dst-st-pos"></span><span class="dst-st-neg"></span>';
+    stripe.addEventListener('click', function (e) { e.stopPropagation(); openTileVoters(posting); });
+
+    const rail = document.createElement('span');
+    rail.className = 'dst-rail';
+    const vote = function (sel) {
+      return function (btn) {
+        const native = posting.querySelector('dst-posting-footer ' + sel);
+        if (!native) return;
+        btn.classList.remove('dst-flash');
+        void btn.offsetWidth;
+        btn.classList.add('dst-flash');
+        native.click();
+      };
+    };
+    const up = tileButton('dst-vk up', 'Sehr lesenswert', knobSvg(false), vote('.rate-up'));
+    const dn = tileButton('dst-vk dn', 'Nicht lesenswert', knobSvg(true), vote('.rate-down'));
+    const cPos = document.createElement('span');
+    cPos.className = 'dst-cnt pos';
+    const cNeg = document.createElement('span');
+    cNeg.className = 'dst-cnt neg';
+    [cPos, cNeg].forEach(function (c) {
+      c.title = 'Bewertungen anzeigen';
+      c.addEventListener('click', function (e) { e.stopPropagation(); openTileVoters(posting); });
+    });
+    // ▲ +n follows at the top of the screen while a long posting is read and
+    // docks right above −n ▼ at its end (its sticky range ends there, so the
+    // two groups never overlap)
+    const top = document.createElement('span');
+    top.className = 'dst-rail-top';
+    top.append(up, cPos);
+    const zone = document.createElement('span');
+    zone.className = 'dst-rail-zone';
+    zone.append(top);
+    const bottom = document.createElement('span');
+    bottom.className = 'dst-rail-bot';
+    bottom.append(cNeg, dn);
+    rail.append(zone, bottom);
+
+    const hide = tileButton('dst-fb hide', 'User:in ausblenden', tileSvg(TILE_ICONS.hide), function () {
+      runPostingMenu(posting, 'ausblenden');
+    });
+    const copy = tileButton('dst-fb copy', 'Permalink kopieren', tileSvg(TILE_ICONS.copy), function (btn) {
+      runPostingMenu(posting, 'Permalink kopieren').then(function (ok) {
+        const trigger = posting.querySelector('dst-posting--context > button');
+        if (trigger && trigger.getAttribute('aria-expanded') === 'true') trigger.click();
+        if (!ok) return;
+        btn.innerHTML = tileSvg(TILE_ICONS.check);
+        btn.classList.add('dst-done');
+        setTimeout(function () {
+          btn.innerHTML = tileSvg(TILE_ICONS.copy);
+          btn.classList.remove('dst-done');
+        }, 1200);
+      });
+    });
+    const share = tileButton('dst-fb share', 'Posting teilen', tileSvg(TILE_ICONS.share), function () {
+      runPostingMenu(posting, 'Posting teilen');
+    });
+
+    posting.append(stripe, rail, hide, copy, share);
+    posting.setAttribute('data-dst-tile', '');
+  }
+
+  // Brings stripe, counts and knob states in line with derStandard's data.
+  function updateTile(posting) {
+    const stripe = posting.querySelector(':scope > .dst-stripe');
+    const rail = posting.querySelector(':scope > .dst-rail');
+    if (!stripe || !rail) return;
+    const r = readRatings(posting);
+    const prev = posting._dstVotes;
+    posting._dstVotes = r;
+    const cPos = rail.querySelector('.dst-cnt.pos');
+    const cNeg = rail.querySelector('.dst-cnt.neg');
+    cPos.textContent = r.pos ? '+' + fmtVotes(r.pos) : '0';
+    cNeg.textContent = r.neg ? '−' + fmtVotes(r.neg) : '0';
+    if (prev) {
+      [[cPos, prev.pos !== r.pos], [cNeg, prev.neg !== r.neg]].forEach(function (x) {
+        if (!x[1]) return;
+        x[0].classList.remove('dst-roll');
+        void x[0].offsetWidth;
+        x[0].classList.add('dst-roll');
+      });
+    }
+    // derStandard's own rule: every vote is one tenth of the bar until there
+    // are 10 votes; from then on the full bar is split in proportion. The
+    // filled part sits at the bottom, so red always ends at the flag.
+    const total = r.pos + r.neg;
+    const parts = stripe.children;
+    parts[0].style.flexGrow = String(Math.max(0, 10 - total));
+    parts[1].style.flexGrow = String(r.pos);
+    parts[2].style.flexGrow = String(r.neg);
+    parts[0].style.display = total < 10 ? '' : 'none';
+    parts[1].style.display = r.pos ? '' : 'none';
+    parts[2].style.display = r.neg ? '' : 'none';
+    const shown = Array.prototype.filter.call(parts, function (x) { return x.style.display !== 'none'; });
+    Array.prototype.forEach.call(parts, function (x) {
+      x.classList.toggle('dst-first', x === shown[0]);
+      x.classList.toggle('dst-last', x === shown[shown.length - 1]);
+    });
+    const nUp = posting.querySelector('dst-posting-footer .rate-up');
+    const nDn = posting.querySelector('dst-posting-footer .rate-down');
+    rail.querySelector('.dst-vk.up').classList.toggle('on', !!(nUp && nUp.classList.contains('active')));
+    rail.querySelector('.dst-vk.dn').classList.toggle('on', !!(nDn && nDn.classList.contains('active')));
+  }
+
+  function decorateTiles(shadowRoot) {
+    const main = shadowRoot.querySelector('main.forum--main');
+    if (!main) return;
+    main.querySelectorAll('dst-posting.posting').forEach(decorateTile);
+    observeTiles(main);
+  }
+
+  function decorateTile(p) {
+    if (!p.querySelector(':scope > .dst-rail')) {
+      // deleted postings have no rating and no footer: leave them as they are
+      if (!p.querySelector('dst-posting--ratinglog') || !p.querySelector('dst-posting-footer')) return;
+      buildTile(p);
+    }
+    updateTile(p);
+  }
+
+  // Watches new postings (they get their tile right away, also while the
+  // rest is still loading in the background), votes (class "active" on
+  // derStandard's buttons) and new rating numbers. Only OUR elements are
+  // updated here — nothing is sorted and
+  // derStandard's DOM is not touched (see the note at observeForum).
+  let tileObserver = null;
+  let tileObservedMain = null;
+  function observeTiles(main) {
+    if (tileObserver && tileObservedMain === main) return;
+    if (tileObserver) tileObserver.disconnect();
+    tileObservedMain = main;
+    const pending = new Set();
+    let scheduled = false;
+    tileObserver = new MutationObserver(function (mutations) {
+      mutations.forEach(function (m) {
+        const t = m.target;
+        if (!t.closest || t.closest('.dst-rail, .dst-stripe, .dst-fb')) return;
+        if (m.type === 'childList') {
+          m.addedNodes.forEach(function (n) {
+            if (n.nodeType !== 1) return;
+            if (n.tagName === 'DST-POSTING') pending.add(n);
+            else if (n.querySelectorAll) n.querySelectorAll('dst-posting').forEach(function (q) { pending.add(q); });
+          });
+          const host = t.closest('dst-posting');
+          if (host) pending.add(host);
+          return;
+        }
+        const p = t.closest('dst-posting[data-dst-tile]');
+        if (p) pending.add(p);
+      });
+      if (!pending.size || scheduled) return;
+      scheduled = true;
+      requestAnimationFrame(function () {
+        scheduled = false;
+        pending.forEach(function (p) {
+          if (p.isConnected && p.classList.contains('posting')) decorateTile(p);
+        });
+        pending.clear();
+      });
+    });
+    tileObserver.observe(main, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ['class', 'positiveratings', 'negativeratings']
+    });
   }
 
   // ── Utility: read ratings from a posting ───────────────────────
@@ -2294,6 +2664,9 @@
       styleEl.textContent = ICON_STYLE_CSS;
       shadowRoot.appendChild(styleEl);
     }
+
+    // v4.0.0: tiles for all postings loaded so far (runs on every sort)
+    decorateTiles(shadowRoot);
 
     // v1.9.18: Enable the clickable voter popup on the rating numbers.
     attachVoterListener(shadowRoot);
