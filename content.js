@@ -171,7 +171,7 @@
       bottom: -1px;
       left: -1px;
       border-radius: 999px;
-      background-image: linear-gradient(to bottom, rgba(255, 255, 255, .9), rgba(255, 255, 255, 0) 65%, rgba(0, 0, 0, .05));
+      background-image: linear-gradient(to bottom, rgba(255, 255, 255, .95), rgba(255, 255, 255, .4) 45%, rgba(255, 255, 255, 0) 55%, rgba(0, 0, 0, .08));
       transform: translateX(calc(var(--dst-i, 0) * (100% - 5px)));
       transition: transform .3s ease, background-color .3s ease, box-shadow .3s ease;
     }
@@ -223,28 +223,29 @@
     /* v3.6.0: the active pill looks like the active badge of the old design:
        green frame + light green (Likes, Balance Top, Timeline), red frame +
        light red for the "low" modes (Dislikes, Balance Low) — easy to spot. */
-    /* v3.9.1: the coloured ring is bevelled too: lighter along its top,
+    /* v3.9.1: the coloured ring is bevelled too (v3.14.0: stronger — thicker
+       ring, glossier top, deeper lift shadow, a touch more colour): lighter along its top,
        darker along its bottom edge */
     #dst-seg-thumb[data-tone="pos"] {
-      background-color: #e8f5e9;
-      box-shadow: inset 0 1.5px 0 rgba(255,255,255,.5), inset 0 -1.5px 0 rgba(0,0,0,.28), inset 0 0 0 2.5px #2e7d32, 0 3px 8px rgba(46, 125, 50, .35);
+      background-color: #dcefdd;
+      box-shadow: inset 0 2px 0 rgba(255,255,255,.6), inset 0 -2px 0 rgba(0,0,0,.35), inset 0 0 0 3px #2e7d32, 0 4px 10px rgba(46, 125, 50, .45), 0 1px 2px rgba(0, 0, 0, .25);
     }
     #dst-seg-thumb[data-tone="neg"] {
-      background-color: #fdecea;
-      box-shadow: inset 0 1.5px 0 rgba(255,255,255,.5), inset 0 -1.5px 0 rgba(0,0,0,.28), inset 0 0 0 2.5px #c62828, 0 3px 8px rgba(198, 40, 40, .35);
+      background-color: #fbe0dd;
+      box-shadow: inset 0 2px 0 rgba(255,255,255,.6), inset 0 -2px 0 rgba(0,0,0,.35), inset 0 0 0 3px #c62828, 0 4px 10px rgba(198, 40, 40, .45), 0 1px 2px rgba(0, 0, 0, .25);
     }
     /* v3.6.0: the click flash of the old badges (v2.3.1): a short flash of the
        loading bar's light green resp. red with a soft glow ring, settling
        back into the active colours. The re-sort waits until it is over. */
     @keyframes dst-pulse-bounce {
-      0%   { background-color: #B7CCA3; box-shadow: inset 0 1.5px 0 rgba(255,255,255,.5), inset 0 -1.5px 0 rgba(0,0,0,.28), inset 0 0 0 2.5px #2e7d32, 0 0 0 4.5px rgba(143,175,111,.35), 0 3px 8px rgba(46,125,50,.35); }
-      55%  { background-color: #d4e6c6; box-shadow: inset 0 1.5px 0 rgba(255,255,255,.5), inset 0 -1.5px 0 rgba(0,0,0,.28), inset 0 0 0 2.5px #2e7d32, 0 0 0 2.5px rgba(143,175,111,.18), 0 2px 8px rgba(46,125,50,.20); }
-      100% { background-color: #e8f5e9; box-shadow: inset 0 1.5px 0 rgba(255,255,255,.5), inset 0 -1.5px 0 rgba(0,0,0,.28), inset 0 0 0 2.5px #2e7d32, 0 0 0 0 rgba(143,175,111,0), 0 3px 8px rgba(46,125,50,.35); }
+      0%   { background-color: #B7CCA3; box-shadow: inset 0 2px 0 rgba(255,255,255,.6), inset 0 -2px 0 rgba(0,0,0,.35), inset 0 0 0 3px #2e7d32, 0 0 0 4.5px rgba(143,175,111,.35), 0 4px 10px rgba(46,125,50,.45), 0 1px 2px rgba(0,0,0,.25); }
+      55%  { background-color: #d4e6c6; box-shadow: inset 0 2px 0 rgba(255,255,255,.6), inset 0 -2px 0 rgba(0,0,0,.35), inset 0 0 0 3px #2e7d32, 0 0 0 2.5px rgba(143,175,111,.18), 0 3px 9px rgba(46,125,50,.3), 0 1px 2px rgba(0,0,0,.2); }
+      100% { background-color: #dcefdd; box-shadow: inset 0 2px 0 rgba(255,255,255,.6), inset 0 -2px 0 rgba(0,0,0,.35), inset 0 0 0 3px #2e7d32, 0 0 0 0 rgba(143,175,111,0), 0 4px 10px rgba(46,125,50,.45), 0 1px 2px rgba(0,0,0,.25); }
     }
     @keyframes dst-pulse-bounce-red {
-      0%   { background-color: #e6a9a3; box-shadow: inset 0 1.5px 0 rgba(255,255,255,.5), inset 0 -1.5px 0 rgba(0,0,0,.28), inset 0 0 0 2.5px #c62828, 0 0 0 4.5px rgba(198,40,40,.30), 0 3px 8px rgba(198,40,40,.35); }
-      55%  { background-color: #f3cbc6; box-shadow: inset 0 1.5px 0 rgba(255,255,255,.5), inset 0 -1.5px 0 rgba(0,0,0,.28), inset 0 0 0 2.5px #c62828, 0 0 0 2.5px rgba(198,40,40,.16), 0 2px 8px rgba(198,40,40,.20); }
-      100% { background-color: #fdecea; box-shadow: inset 0 1.5px 0 rgba(255,255,255,.5), inset 0 -1.5px 0 rgba(0,0,0,.28), inset 0 0 0 2.5px #c62828, 0 0 0 0 rgba(198,40,40,0), 0 3px 8px rgba(198,40,40,.35); }
+      0%   { background-color: #e6a9a3; box-shadow: inset 0 2px 0 rgba(255,255,255,.6), inset 0 -2px 0 rgba(0,0,0,.35), inset 0 0 0 3px #c62828, 0 0 0 4.5px rgba(198,40,40,.30), 0 4px 10px rgba(198,40,40,.45), 0 1px 2px rgba(0,0,0,.25); }
+      55%  { background-color: #f3cbc6; box-shadow: inset 0 2px 0 rgba(255,255,255,.6), inset 0 -2px 0 rgba(0,0,0,.35), inset 0 0 0 3px #c62828, 0 0 0 2.5px rgba(198,40,40,.16), 0 3px 9px rgba(198,40,40,.3), 0 1px 2px rgba(0,0,0,.2); }
+      100% { background-color: #fbe0dd; box-shadow: inset 0 2px 0 rgba(255,255,255,.6), inset 0 -2px 0 rgba(0,0,0,.35), inset 0 0 0 3px #c62828, 0 0 0 0 rgba(198,40,40,0), 0 4px 10px rgba(198,40,40,.45), 0 1px 2px rgba(0,0,0,.25); }
     }
     #dst-seg-thumb.dst-flash[data-tone="pos"] { animation: dst-pulse-bounce .45s ease-out; }
     #dst-seg-thumb.dst-flash[data-tone="neg"] { animation: dst-pulse-bounce-red .45s ease-out; }

@@ -25,7 +25,7 @@
         inset 0 1.5px 0 rgba(255, 255, 255, .95),
         inset 0 -2px 3px rgba(0, 0, 0, .08),
         0 3px 8px rgba(0, 0, 0, .18);
-      --bevel: inset 0 1.5px 0 rgba(255, 255, 255, .5), inset 0 -1.5px 0 rgba(0, 0, 0, .28);
+      --bevel: inset 0 2px 0 rgba(255, 255, 255, .6), inset 0 -2px 0 rgba(0, 0, 0, .35);
     }
 
     body {
@@ -125,25 +125,25 @@
       left: -1px;
       width: calc((100% - 9px) / 2 + 8px);
       border-radius: 999px;
-      background-image: linear-gradient(to bottom, rgba(255, 255, 255, .9), rgba(255, 255, 255, 0) 65%, rgba(0, 0, 0, .05));
-      background-color: #fdecea;
-      box-shadow: var(--bevel), inset 0 0 0 2.5px #c62828, 0 3px 8px rgba(198, 40, 40, .35);
+      background-image: linear-gradient(to bottom, rgba(255, 255, 255, .95), rgba(255, 255, 255, .4) 45%, rgba(255, 255, 255, 0) 55%, rgba(0, 0, 0, .08));
+      background-color: #fbe0dd;
+      box-shadow: var(--bevel), inset 0 0 0 3px #c62828, 0 4px 10px rgba(198, 40, 40, .45), 0 1px 2px rgba(0, 0, 0, .25);
       transform: translateX(calc(var(--i, 1) * (100% - 5px)));
       transition: transform .3s ease, background-color .3s ease, box-shadow .3s ease;
     }
     .onoff.is-on #onoffThumb {
-      background-color: #e8f5e9;
-      box-shadow: var(--bevel), inset 0 0 0 2.5px #2e7d32, 0 3px 8px rgba(46, 125, 50, .35);
+      background-color: #dcefdd;
+      box-shadow: var(--bevel), inset 0 0 0 3px #2e7d32, 0 4px 10px rgba(46, 125, 50, .45), 0 1px 2px rgba(0, 0, 0, .25);
     }
     .onoff.no-anim #onoffThumb { transition: none; }
     /* click flash, as on the site */
     @keyframes onoff-flash-on {
-      0%   { background-color: #B7CCA3; box-shadow: var(--bevel), inset 0 0 0 2.5px #2e7d32, 0 0 0 4.5px rgba(143,175,111,.35), 0 3px 8px rgba(46,125,50,.35); }
-      100% { background-color: #e8f5e9; box-shadow: var(--bevel), inset 0 0 0 2.5px #2e7d32, 0 0 0 0 rgba(143,175,111,0), 0 3px 8px rgba(46,125,50,.35); }
+      0%   { background-color: #B7CCA3; box-shadow: var(--bevel), inset 0 0 0 3px #2e7d32, 0 0 0 4.5px rgba(143,175,111,.35), 0 4px 10px rgba(46,125,50,.45), 0 1px 2px rgba(0,0,0,.25); }
+      100% { background-color: #dcefdd; box-shadow: var(--bevel), inset 0 0 0 3px #2e7d32, 0 0 0 0 rgba(143,175,111,0), 0 4px 10px rgba(46,125,50,.45), 0 1px 2px rgba(0,0,0,.25); }
     }
     @keyframes onoff-flash-off {
-      0%   { background-color: #e6a9a3; box-shadow: var(--bevel), inset 0 0 0 2.5px #c62828, 0 0 0 4.5px rgba(198,40,40,.30), 0 3px 8px rgba(198,40,40,.35); }
-      100% { background-color: #fdecea; box-shadow: var(--bevel), inset 0 0 0 2.5px #c62828, 0 0 0 0 rgba(198,40,40,0), 0 3px 8px rgba(198,40,40,.35); }
+      0%   { background-color: #e6a9a3; box-shadow: var(--bevel), inset 0 0 0 3px #c62828, 0 0 0 4.5px rgba(198,40,40,.30), 0 4px 10px rgba(198,40,40,.45), 0 1px 2px rgba(0,0,0,.25); }
+      100% { background-color: #fbe0dd; box-shadow: var(--bevel), inset 0 0 0 3px #c62828, 0 0 0 0 rgba(198,40,40,0), 0 4px 10px rgba(198,40,40,.45), 0 1px 2px rgba(0,0,0,.25); }
     }
     .onoff.flash #onoffThumb { animation: onoff-flash-off .45s ease-out; }
     .onoff.is-on.flash #onoffThumb { animation: onoff-flash-on .45s ease-out; }
