@@ -35,8 +35,8 @@
   // Balance (both kinds netted), Timeline. The direction is shown by the
   // pill's colour (green = first, red = second) and the two dots.
   const MODE_DEFS = {
-    'positive-only':    { label: 'Pure',     title: 'Pure: Postings nur mit Likes (ohne Dislike) zuerst, die meisten Likes oben' },
-    'negative-only':    { label: 'Pure',     title: 'Pure: Postings nur mit Dislikes (ohne Like) zuerst, die meisten Dislikes oben' },
+    'positive-only':    { label: 'Pure',     title: 'Pure: zuerst Postings ohne Dislike, dann mit 1, 2, … Dislikes – jeweils die meisten Likes oben' },
+    'negative-only':    { label: 'Pure',     title: 'Pure: zuerst Postings ohne Like, dann mit 1, 2, … Likes – jeweils die meisten Dislikes oben' },
     'balance-top':      { label: 'Balance',  title: 'Balance: höchste Bilanz aus Plus- und Minus-Stimmen zuerst' },
     'balance-flop':     { label: 'Balance',  title: 'Balance: niedrigste Bilanz aus Plus- und Minus-Stimmen zuerst' },
     'chronological-new':{ label: 'Timeline', title: 'Timeline: neueste Postings zuerst' },
@@ -1809,9 +1809,6 @@
     return 0;
   }
 
-  // 1 when a posting has votes of one kind only (e.g. 12:0), else 0
-  function isPure(mine, other) { return mine > 0 && other === 0 ? 1 : 0; }
-
   function keyOf(group) {
     if (!group.key) group.key = computeSortKey(group);
     return group.key;
@@ -1833,14 +1830,14 @@
       // v3.15.2: same balance (e.g. 5:5 and 2:2) -> more votes in total first
       case 'balance-top':   diff = (kb.net - ka.net) || ((kb.pos + kb.neg) - (ka.pos + ka.neg)); break;
       case 'balance-flop':  diff = (ka.net - kb.net) || ((kb.pos + kb.neg) - (ka.pos + ka.neg)); break;
-      // v3.16.0: "Pure" = purely positive (no dislike) resp. purely negative
-      // (no like) postings first, most votes first; the mixed ones follow,
-      // by likes resp. dislikes (fewer of the other kind first). Nothing is
-      // hidden.
+      // v3.17.0: "Pure", likes direction: first the purely positive postings
+      // (no dislike), then those with exactly 1 dislike, then 2, … — within
+      // each step the most likes first. Postings without any like come last.
+      // The dislikes direction mirrors this. Nothing is hidden.
       case 'positive-only':
-        diff = (isPure(kb.pos, kb.neg) - isPure(ka.pos, ka.neg)) || (kb.pos - ka.pos) || (ka.neg - kb.neg); break;
+        diff = ((ka.pos === 0) - (kb.pos === 0)) || (ka.neg - kb.neg) || (kb.pos - ka.pos); break;
       case 'negative-only':
-        diff = (isPure(kb.neg, kb.pos) - isPure(ka.neg, ka.pos)) || (kb.neg - ka.neg) || (ka.pos - kb.pos); break;
+        diff = ((ka.neg === 0) - (kb.neg === 0)) || (ka.pos - kb.pos) || (kb.neg - ka.neg); break;
       case 'chronological-new': diff = kb.time - ka.time; break;
       case 'chronological':      // legacy alias -> behaves like "Old Timeline"
       case 'chronological-old': diff = ka.time - kb.time; break;
