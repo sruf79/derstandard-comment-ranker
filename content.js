@@ -1600,8 +1600,10 @@
           isDeletedAlone: child.classList.contains('posting-deleted') &&
             !child.classList.contains('posting-with-thread'),
           postingId: postingId,
-          domIndex: groups.length
+          domIndex: groups.length,
+          prevGroup: groups.length ? groups[groups.length - 1] : null
         };
+        if (current.prevGroup) current.prevGroup.nextGroup = current;
         groups.push(current);
 
         if (postingId && !isDuplicate) {
@@ -1772,8 +1774,39 @@
       pos: r.pos,
       neg: r.neg,
       net: r.pos - r.neg,
-      time: needsTime ? getPostingTimestamp(group.posting) : 0
+      time: needsTime ? postingTimeOf(group) : 0
     };
+  }
+
+  // v3.15.1: a deleted posting has no time of its own. If it has replies it
+  // stays visible, so for Timeline it needs an estimate instead of 0 (which
+  // put it at the very top of "oldest first" and the bottom of "newest
+  // first"): the time of its earliest reply minus a minute (replies are not
+  // always in the DOM — collapsed threads), else the time of its nearest
+  // neighbour in derStandard's own (chronological) order. The estimate is
+  // remembered on the element.
+  function postingTimeOf(group) {
+    const el = group.posting;
+    const t = getPostingTimestamp(el);
+    if (t > 0 || !el.classList.contains('posting-deleted')) return t;
+    if (el.dataset.dstTime) return +el.dataset.dstTime;
+    let earliest = 0;
+    group.siblings.forEach(function(sib) {
+      if (!sib.querySelectorAll) return;
+      sib.querySelectorAll('time[data-date]').forEach(function(tEl) {
+        const rt = parseDataDate(tEl.getAttribute('data-date'));
+        if (rt > 0 && (earliest === 0 || rt < earliest)) earliest = rt;
+      });
+    });
+    if (earliest > 0) {
+      el.dataset.dstTime = String(earliest - 60000);
+      return earliest - 60000;
+    }
+    for (let g = group.prevGroup, h = group.nextGroup; g || h; g = g && g.prevGroup, h = h && h.nextGroup) {
+      const n = (g && getPostingTimestamp(g.posting)) || (h && getPostingTimestamp(h.posting));
+      if (n > 0) return n;
+    }
+    return 0;
   }
 
   function keyOf(group) {
