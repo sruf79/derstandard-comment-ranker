@@ -259,20 +259,21 @@
       border-radius: 999px;
       background:
         radial-gradient(120% 90% at 30% 0%, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 55%),
-        linear-gradient(to bottom, rgba(255, 255, 255, .97) 0%, rgba(250, 250, 252, .9) 50%, rgba(232, 236, 240, .92) 51%, rgba(255, 255, 255, .98) 100%);
-      box-shadow: 0 0 0 2px rgba(70, 70, 70, .42), inset 0 0 0 1.5px #fff, inset 0 2px 0 #fff, inset 0 -2px 2px rgba(0, 0, 0, .08), 0 6px 16px rgba(0, 0, 0, .26), 0 2px 3px rgba(0, 0, 0, .3);
+        linear-gradient(to bottom, #fff 0%, #f7f8fa 48%, #e4e8ec 52%, #eef1f4 80%, #fafbfc 100%);
+      /* v3.24.0: light gathers at the lower inner edge, as in thick glass */
+      box-shadow: 0 0 0 2px rgba(70, 70, 70, .42), inset 0 0 0 1.5px #fff, inset 0 2px 0 #fff, inset 0 -2px 2px rgba(0, 0, 0, .08), inset 0 -3px 0 rgba(255, 255, 255, .85), inset 0 -5px 6px rgba(255, 255, 255, .5), 0 6px 16px rgba(0, 0, 0, .26), 0 2px 3px rgba(0, 0, 0, .3);
     }
     /* v3.21.2 (v3.22.1: half as far): the glow of the bar reaches above and below it, so the
        colour still shows around the (larger) glass knob; the knob itself has
        no coloured ring. */
     /* click flash: a short glow ring in the direction's colour */
     @keyframes dst-glass-flash-pos {
-      0%   { box-shadow: 0 0 0 2px rgba(70, 70, 70, .42), inset 0 0 0 1.5px #fff, inset 0 2px 0 #fff, inset 0 -2px 2px rgba(0, 0, 0, .08), 0 6px 16px rgba(0, 0, 0, .26), 0 2px 3px rgba(0, 0, 0, .3), 0 0 0 10px rgba(46, 125, 50, .4); }
-      100% { box-shadow: 0 0 0 2px rgba(70, 70, 70, .42), inset 0 0 0 1.5px #fff, inset 0 2px 0 #fff, inset 0 -2px 2px rgba(0, 0, 0, .08), 0 6px 16px rgba(0, 0, 0, .26), 0 2px 3px rgba(0, 0, 0, .3), 0 0 0 0 rgba(46, 125, 50, 0); }
+      0%   { box-shadow: 0 0 0 2px rgba(70, 70, 70, .42), inset 0 0 0 1.5px #fff, inset 0 2px 0 #fff, inset 0 -2px 2px rgba(0, 0, 0, .08), inset 0 -3px 0 rgba(255, 255, 255, .85), inset 0 -5px 6px rgba(255, 255, 255, .5), 0 6px 16px rgba(0, 0, 0, .26), 0 2px 3px rgba(0, 0, 0, .3), 0 0 0 10px rgba(46, 125, 50, .4); }
+      100% { box-shadow: 0 0 0 2px rgba(70, 70, 70, .42), inset 0 0 0 1.5px #fff, inset 0 2px 0 #fff, inset 0 -2px 2px rgba(0, 0, 0, .08), inset 0 -3px 0 rgba(255, 255, 255, .85), inset 0 -5px 6px rgba(255, 255, 255, .5), 0 6px 16px rgba(0, 0, 0, .26), 0 2px 3px rgba(0, 0, 0, .3), 0 0 0 0 rgba(46, 125, 50, 0); }
     }
     @keyframes dst-glass-flash-neg {
-      0%   { box-shadow: 0 0 0 2px rgba(70, 70, 70, .42), inset 0 0 0 1.5px #fff, inset 0 2px 0 #fff, inset 0 -2px 2px rgba(0, 0, 0, .08), 0 6px 16px rgba(0, 0, 0, .26), 0 2px 3px rgba(0, 0, 0, .3), 0 0 0 10px rgba(198, 40, 40, .4); }
-      100% { box-shadow: 0 0 0 2px rgba(70, 70, 70, .42), inset 0 0 0 1.5px #fff, inset 0 2px 0 #fff, inset 0 -2px 2px rgba(0, 0, 0, .08), 0 6px 16px rgba(0, 0, 0, .26), 0 2px 3px rgba(0, 0, 0, .3), 0 0 0 0 rgba(198, 40, 40, 0); }
+      0%   { box-shadow: 0 0 0 2px rgba(70, 70, 70, .42), inset 0 0 0 1.5px #fff, inset 0 2px 0 #fff, inset 0 -2px 2px rgba(0, 0, 0, .08), inset 0 -3px 0 rgba(255, 255, 255, .85), inset 0 -5px 6px rgba(255, 255, 255, .5), 0 6px 16px rgba(0, 0, 0, .26), 0 2px 3px rgba(0, 0, 0, .3), 0 0 0 10px rgba(198, 40, 40, .4); }
+      100% { box-shadow: 0 0 0 2px rgba(70, 70, 70, .42), inset 0 0 0 1.5px #fff, inset 0 2px 0 #fff, inset 0 -2px 2px rgba(0, 0, 0, .08), inset 0 -3px 0 rgba(255, 255, 255, .85), inset 0 -5px 6px rgba(255, 255, 255, .5), 0 6px 16px rgba(0, 0, 0, .26), 0 2px 3px rgba(0, 0, 0, .3), 0 0 0 0 rgba(198, 40, 40, 0); }
     }
     #dst-seg-thumb.dst-flash[data-tone="pos"]::before { animation: dst-glass-flash-pos .45s ease-out; }
     #dst-seg-thumb.dst-flash[data-tone="neg"]::before { animation: dst-glass-flash-neg .45s ease-out; }
