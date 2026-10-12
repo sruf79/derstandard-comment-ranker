@@ -376,10 +376,18 @@
     /* v3.22.2: hover / reminder pulse in the same style as the green/red
        glow of the sort pill: a fine golden line and a golden glow above
        and below, gently breathing */
-    #dst-seg .dst-badge-btn.dst-coffee-btn:hover,
+    /* v3.23.0: the golden glow is always on (the counterpart of the sort
+       pill's green/red glow); hovering lights the cup up, starts the steam
+       and gives one short golden flash. The 15-day reminder breathes. */
+    #dst-seg .dst-badge-btn.dst-coffee-btn {
+      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -6px 9px 1px rgba(255, 200, 0, .55), 0 6px 9px 1px rgba(255, 200, 0, .55), 0 -11px 15px rgba(255, 200, 0, .35), 0 11px 15px rgba(255, 200, 0, .35);
+    }
+    #dst-seg .dst-badge-btn.dst-coffee-btn:hover {
+      background: #fff8e1;
+      animation: dst-coffee-flash .45s ease-out;
+    }
     #dst-seg .dst-badge-btn.dst-coffee-btn.dst-pulsing {
       background: #fff8e1;
-      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -6px 9px 1px rgba(255, 200, 0, .55), 0 6px 9px 1px rgba(255, 200, 0, .55), 0 -11px 15px rgba(255, 200, 0, .35), 0 11px 15px rgba(255, 200, 0, .35);
       animation: dst-coffee-golden-pulse 1.5s ease-in-out infinite;
     }
     .dst-badge-btn.dst-coffee-btn:hover .dst-coffee-icon,
