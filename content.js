@@ -480,6 +480,14 @@
     /* v3.5.1: the gap above the comment box comes from the bar (see above);
        below pinned postings their thread section already leaves 20px. */
     main.forum--main > dst-posting-box { margin-top: 0 !important; }
+    /* v3.28.0: postings as cards — rounder corners, a fine frame in a darker
+       shade of the article colour, a light top edge and a soft shadow */
+    main.forum--main dst-posting.posting {
+      border-radius: 14px !important;
+      box-shadow: 0 0 0 1px color-mix(in srgb, var(--theme--base, #e6e6e6) 80%, #000),
+        inset 0 1.5px 0 rgba(255, 255, 255, .7),
+        0 3px 10px rgba(0, 0, 0, .12) !important;
+    }
 
     /* Mobile: the segmented control stays in ONE row; just tighter padding. */
     @media (max-width: 768px) {
