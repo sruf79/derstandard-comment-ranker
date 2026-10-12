@@ -358,6 +358,13 @@
     .dst-mode-bar > span:only-child { border-radius: 3px; }
     .dst-mb-fade-new { background: linear-gradient(to right, rgb(75, 120, 43), rgba(75, 120, 43, .12)); }
     .dst-mb-fade-old { background: linear-gradient(to right, rgba(213, 42, 42, .12), rgb(213, 42, 42)); }
+    /* v3.27.0: all rating bars slightly recessed ("stamped" into the raised
+       bar, like iOS 6 slider tracks): a fine inner shadow at the top and a
+       1px light edge below — no gloss, so the bar itself stays calm */
+    .dst-mode-bar > span,
+    .dst-vch-bar {
+      box-shadow: inset 0 1px 1.5px rgba(0, 0, 0, .38), 0 1px 0 rgba(255, 255, 255, .85);
+    }
 
     /* Coffee/Donate button — never active; square, tinted like the track. */
     /* v3.7.0: inside the track as its last, round slot. v3.9.2: it fills
