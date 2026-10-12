@@ -541,40 +541,12 @@
       box-sizing: border-box;
       display: flex;
       flex-direction: column;
-      overflow: visible;               /* v3.25.1: close knob sits on the corner */
+      overflow: hidden;
       font-family: inherit;
       color: hsl(var(--dst-ink));
       animation: dst-voter-pop 0.18s cubic-bezier(0.2, 0.8, 0.3, 1.1);
     }
     @keyframes dst-voter-pop { from { transform: scale(0.94); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-
-    /* v2.0.0: no more central heading — each column owns its own header (see
-       .dst-voter-col-head). v3.1.0: a visible "✕" in the top right corner, in
-       addition to backdrop click and Escape. */
-    #dst-voter-close {
-      position: absolute;
-      top: -12px;
-      right: -12px;
-      z-index: 2;
-      width: 34px;
-      height: 34px;
-      border: 0;
-      border-radius: 50%;
-      /* v3.25.0: a small glass knob, like the active sort segment */
-      background:
-        radial-gradient(120% 90% at 30% 0%, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 55%),
-        linear-gradient(to bottom, #fff 0%, #f7f8fa 48%, #e4e8ec 52%, #eef1f4 80%, #fafbfc 100%);
-      box-shadow: 0 0 0 1.5px rgba(70, 70, 70, .42), inset 0 0 0 1px #fff,
-        inset 0 -2px 0 rgba(255, 255, 255, .85), 0 3px 8px rgba(0, 0, 0, .25);
-      color: hsl(var(--dst-ink) / .75);
-      font: inherit;
-      font-size: 14px;
-      font-weight: 700;
-      line-height: 1;
-      cursor: pointer;
-    }
-    #dst-voter-close:hover { color: hsl(var(--dst-ink)); }
-    #dst-voter-close:focus-visible { outline: 2px solid hsl(var(--dst-ink)); outline-offset: 1px; }
 
     /* Body: two columns */
     #dst-voter-body {
@@ -583,7 +555,6 @@
       overflow: hidden;
       flex: 1 1 auto;
       min-height: 120px;
-      border-radius: 22px 22px 0 0;
     }
     .dst-voter-col {
       flex: 1 1 0;                     /* v3.25.3: two equal halves, whatever the names */
@@ -592,25 +563,36 @@
       min-width: 0;
     }
     .dst-voter-col + .dst-voter-col { border-left: 1px solid hsl(var(--dst-ink) / .1); }
-    /* v3.25.0: column heads like the sort segments: word + count on top, a
-       derStandard rating bar below, and a green/red line with a soft glow */
-    .dst-voter-col-head {
-      padding: 12px 10px 11px;
-      font-size: 15px;
-      position: sticky;
-      top: 0;
+    /* v3.26.0: the head is a copy of the sort bar — one domed pill track
+       (same gradient, frame, highlight and shadow as #dst-seg::before) with
+       two equal segments, each holding its rating pill dead centre */
+    #dst-voter-head {
+      flex: 0 0 auto;
       display: flex;
-      flex-direction: column;
-      align-items: center;             /* v3.25.1: centred like the segments */
-      justify-content: center;         /* v3.25.3: pill alone, centred both ways */
-      height: 40px;
-      box-sizing: border-box;
+      gap: 3px;
+      padding: 3px;
+      margin: 12px 12px 10px;
+      border-radius: 24px;
+      background: linear-gradient(to bottom,
+        color-mix(in srgb, var(--dst-track) 35%, #fff),
+        var(--dst-track) 55%,
+        color-mix(in srgb, var(--dst-track) 94%, #000));
+      box-shadow: 0 0 0 1px var(--dst-track-border),
+        inset 0 1.5px 0 rgba(255, 255, 255, .95),
+        inset 0 -2px 3px rgba(0, 0, 0, .08),
+        0 3px 8px rgba(0, 0, 0, .18);
+    }
+    .dst-voter-col-head {
+      flex: 1 1 0;
+      min-width: 0;
+      min-height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .dst-vch-bar { width: clamp(36px, 45%, 110px); height: 6px; border-radius: 3px; }
     .dst-voter-col-head.pos .dst-vch-bar { background: rgb(75, 120, 43); }
     .dst-voter-col-head.neg .dst-vch-bar { background: rgb(213, 42, 42); }
-    /* v3.25.3: neutral separator — red/green already lives in the pills */
-    .dst-voter-col-head { box-shadow: inset 0 -2px 0 hsl(var(--dst-ink) / .22), 0 5px 8px -4px rgba(0, 0, 0, .25); }
     .dst-voter-list {
       list-style: none;
       margin: 0;
@@ -877,12 +859,14 @@
 
     // v2.0.0: the central "Bewertungen ▲ ▼" heading is gone; each column carries
     // its own header with a coloured triangle, the count, and a descriptive label.
-    // v3.1.0: a visible "✕" again (besides backdrop click and Escape) — on a
-    // phone the card covers nearly the whole screen, little backdrop is left.
 
     // Body with two columns
     const body = document.createElement('div');
     body.id = 'dst-voter-body';
+
+    // v3.26.0: the heads sit together in one pill track above the columns
+    const head = document.createElement('div');
+    head.id = 'dst-voter-head';
 
     function makeColumn(kind, count, labelText) {
       const col = document.createElement('div');
@@ -900,7 +884,7 @@
       const ul = document.createElement('ul');
       ul.className = 'dst-voter-list';
       ul.setAttribute('data-kind', kind);
-      col.appendChild(colHead);
+      head.appendChild(colHead);
       col.appendChild(ul);
       return { col: col, ul: ul };
     }
@@ -913,16 +897,10 @@
     const foot = document.createElement('div');
     foot.id = 'dst-voter-foot';
 
-    const closeBtn = document.createElement('button');
-    closeBtn.id = 'dst-voter-close';
-    closeBtn.type = 'button';
-    closeBtn.setAttribute('aria-label', 'Schließen');
-    closeBtn.textContent = '\u2715';
-    closeBtn.addEventListener('click', function () { closeVoterPopup(shadowRoot); });
-
+    // v3.26.0: no "✕" any more — Escape or a click outside closes the window
+    card.appendChild(head);
     card.appendChild(body);
     card.appendChild(foot);
-    card.appendChild(closeBtn);
     overlay.appendChild(card);
 
     // Close on backdrop click
