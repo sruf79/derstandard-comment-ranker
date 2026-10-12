@@ -662,9 +662,7 @@
     }
     .dst-rail-zone { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
     .dst-rail-top, .dst-rail-bot { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-    /* 96px: below derStandard's navigation bar, which slides in at the top
-       whenever the page is scrolled up */
-    .dst-rail-top { position: sticky; top: 96px; z-index: 1; padding-bottom: 4px; }
+    .dst-rail-top { padding-bottom: 4px; }
     .dst-vk {
       flex: none; width: var(--dst-knob); height: var(--dst-knob);
       border: 0; padding: 0; border-radius: 50%; cursor: pointer;
@@ -1517,9 +1515,7 @@
       c.title = 'Bewertungen anzeigen';
       c.addEventListener('click', function (e) { e.stopPropagation(); openTileVoters(posting); });
     });
-    // ▲ +n follows at the top of the screen while a long posting is read and
-    // docks right above −n ▼ at its end (its sticky range ends there, so the
-    // two groups never overlap)
+    // ▲ +n at the top (level with the user name), −n ▼ at the bottom
     const top = document.createElement('span');
     top.className = 'dst-rail-top';
     top.append(up, cPos);
