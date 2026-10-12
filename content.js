@@ -30,16 +30,17 @@
   // mode for tooltips and screen readers.
   // v3.5.0: back to the three sort groups users know — Likes/Dislikes,
   // Balance (in the middle, the default) and New/Old.
-  // v3.12.0: text only, no ▲ ▼ ⇥ ⇤ icons: the word says what a segment does,
-  // the green resp. red pill and the two dots show the direction (Balance
-  // keeps its one word in both directions).
+  // v3.12.0: text only, no ▲ ▼ ⇥ ⇤ icons.
+  // v3.13.0: one fixed word per segment — Pure (only one kind of vote),
+  // Balance (both kinds netted), Timeline. The direction is shown by the
+  // pill's colour (green = first, red = second) and the two dots.
   const MODE_DEFS = {
-    'positive-only':    { label: 'Likes',    title: 'Likes: meiste Plus-Stimmen zuerst' },
-    'negative-only':    { label: 'Dislikes', title: 'Dislikes: meiste Minus-Stimmen zuerst' },
-    'balance-top':      { label: 'Balance',  title: 'Balance Top: höchste Bilanz aus Plus- und Minus-Stimmen' },
-    'balance-flop':     { label: 'Balance',  title: 'Balance Low: niedrigste Bilanz aus Plus- und Minus-Stimmen' },
-    'chronological-new':{ label: 'New',      title: 'New: neueste Postings zuerst' },
-    'chronological-old':{ label: 'Old',      title: 'Old: älteste Postings zuerst' }
+    'positive-only':    { label: 'Pure',     title: 'Pure: meiste Likes zuerst' },
+    'negative-only':    { label: 'Pure',     title: 'Pure: meiste Dislikes zuerst' },
+    'balance-top':      { label: 'Balance',  title: 'Balance: höchste Bilanz aus Plus- und Minus-Stimmen zuerst' },
+    'balance-flop':     { label: 'Balance',  title: 'Balance: niedrigste Bilanz aus Plus- und Minus-Stimmen zuerst' },
+    'chronological-new':{ label: 'Timeline', title: 'Timeline: neueste Postings zuerst' },
+    'chronological-old':{ label: 'Timeline', title: 'Timeline: älteste Postings zuerst' }
   };
 
   // BUTTON_GROUPS: one badge per entry; each click advances to the next mode.
@@ -2118,7 +2119,8 @@
 
   // v3.6.0: the active pill is green, or red for the "low" modes (as the
   // active badge of the old design), and flashes on every click.
-  const LOW_MODES = ['balance-flop', 'negative-only'];
+  // v3.13.0: also Old (Timeline) — green = first, red = second direction
+  const LOW_MODES = ['balance-flop', 'negative-only', 'chronological-old'];
   function toneOf(mode) { return LOW_MODES.indexOf(mode) !== -1 ? 'neg' : 'pos'; }
   function flashThumb(thumb, mode) {
     thumb.setAttribute('data-tone', toneOf(mode));
