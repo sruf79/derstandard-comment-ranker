@@ -172,7 +172,7 @@
     .coffee-badge:hover,
     .coffee-badge.prompting {
       background: #fff8e1;
-      box-shadow: inset 0 0 0 1px #FFD700, 0 0 0 1px #FFD700, 0 3px 12px rgba(245, 197, 24, 0.35);
+      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -6px 9px 1px rgba(255, 200, 0, .55), 0 6px 9px 1px rgba(255, 200, 0, .55), 0 -11px 15px rgba(255, 200, 0, .35), 0 11px 15px rgba(255, 200, 0, .35);   /* v3.22.2: golden glow like the sort bar */
     }
     
     /* ═══ v2.0.6: Golden pulse — only active after 3 days of usage ═══ */
@@ -181,19 +181,14 @@
        paired with a gentle border-colour shift so it is eye-catching but
        never aggressive. Honours prefers-reduced-motion. */
     .review-badge.pulsing {
+      background: #fff8e1;
+      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -6px 9px 1px rgba(255, 200, 0, .55), 0 6px 9px 1px rgba(255, 200, 0, .55), 0 -11px 15px rgba(255, 200, 0, .35), 0 11px 15px rgba(255, 200, 0, .35);
       animation: review-golden-pulse 2.4s ease-in-out infinite;
     }
     
     @keyframes review-golden-pulse {
-      0% {
-        box-shadow: inset 0 0 0 1px #FFD700, 0 0 0 1px #FFD700, 0 0 0 0 rgba(255, 215, 0, 0.45);
-      }
-      50% {
-        box-shadow: inset 0 0 0 1px #f5c518, 0 0 0 1px #f5c518, 0 0 14px 5px rgba(255, 215, 0, 0.35);
-      }
-      100% {
-        box-shadow: inset 0 0 0 1px #FFD700, 0 0 0 1px #FFD700, 0 0 0 0 rgba(255, 215, 0, 0);
-      }
+      0%, 100% { box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -6px 9px 1px rgba(255, 200, 0, .55), 0 6px 9px 1px rgba(255, 200, 0, .55), 0 -11px 15px rgba(255, 200, 0, .35), 0 11px 15px rgba(255, 200, 0, .35); }
+      50%      { box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -6px 9px 1px rgba(255, 200, 0, .25), 0 6px 9px 1px rgba(255, 200, 0, .25), 0 -11px 15px rgba(255, 200, 0, .12), 0 11px 15px rgba(255, 200, 0, .12); }
     }
     
     /* Pulsing star gets a soft glow + slow shimmer to draw the eye */
@@ -275,15 +270,8 @@
     }
     
     @keyframes golden-pulse {
-      0% {
-        box-shadow: inset 0 0 0 1px #FFD700, 0 0 0 1px #FFD700, 0 0 0 0 rgba(255, 215, 0, 0.7);
-      }
-      50% {
-        box-shadow: inset 0 0 0 1px #FFD700, 0 0 0 1px #FFD700, 0 0 20px 10px rgba(255, 215, 0, 0.4);
-      }
-      100% {
-        box-shadow: inset 0 0 0 1px #FFD700, 0 0 0 1px #FFD700, 0 0 0 0 rgba(255, 215, 0, 0);
-      }
+      0%, 100% { box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -6px 9px 1px rgba(255, 200, 0, .55), 0 6px 9px 1px rgba(255, 200, 0, .55), 0 -11px 15px rgba(255, 200, 0, .35), 0 11px 15px rgba(255, 200, 0, .35); }
+      50%      { box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -6px 9px 1px rgba(255, 200, 0, .25), 0 6px 9px 1px rgba(255, 200, 0, .25), 0 -11px 15px rgba(255, 200, 0, .12), 0 11px 15px rgba(255, 200, 0, .12); }
     }
     
     .coffee-badge:active {
