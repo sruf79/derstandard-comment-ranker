@@ -266,7 +266,7 @@
       gap: 5px;
       border-radius: 20px;        /* pill, like the sliding card */
       font: inherit;
-      font-size: 13px;
+      font-size: 15px;            /* v3.14.1: like the usernames (was 13px) */
       font-weight: 600;
       line-height: 1;
       color: hsl(var(--dst-ink) / .8);
