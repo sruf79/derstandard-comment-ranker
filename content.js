@@ -244,10 +244,10 @@
        (instead of a coloured ring around the active segment). */
     #dst-seg::before { transition: box-shadow .3s ease; }
     #dst-seg:has(#dst-seg-thumb[data-tone="pos"])::before {
-      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), inset 0 -2px 3px rgba(0, 0, 0, .06), 0 0 0 1px var(--dst-track-border), 0 0 0 1.5px rgba(46, 125, 50, .9), 0 -3px 8px rgba(46, 125, 50, .55), 0 3px 8px rgba(46, 125, 50, .55), 0 -6px 18px rgba(46, 125, 50, .3), 0 6px 18px rgba(46, 125, 50, .3);
+      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), inset 0 -2px 3px rgba(0, 0, 0, .06), 0 0 0 1px var(--dst-track-border), 0 0 0 2px rgba(46, 125, 50, .95), 0 0 10px 3px rgba(46, 125, 50, .6), 0 0 24px 8px rgba(46, 125, 50, .35);
     }
     #dst-seg:has(#dst-seg-thumb[data-tone="neg"])::before {
-      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), inset 0 -2px 3px rgba(0, 0, 0, .06), 0 0 0 1px var(--dst-track-border), 0 0 0 1.5px rgba(198, 40, 40, .9), 0 -3px 8px rgba(198, 40, 40, .55), 0 3px 8px rgba(198, 40, 40, .55), 0 -6px 18px rgba(198, 40, 40, .3), 0 6px 18px rgba(198, 40, 40, .3);
+      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), inset 0 -2px 3px rgba(0, 0, 0, .06), 0 0 0 1px var(--dst-track-border), 0 0 0 2px rgba(198, 40, 40, .95), 0 0 10px 3px rgba(198, 40, 40, .6), 0 0 24px 8px rgba(198, 40, 40, .35);
     }
     /* v3.20.0: the active segment is a raised glass knob (iOS-like): white
        glass with a dark rim, a white inner rim, a highlight and a deep
@@ -262,14 +262,18 @@
         linear-gradient(to bottom, rgba(255, 255, 255, .97) 0%, rgba(250, 250, 252, .9) 50%, rgba(232, 236, 240, .92) 51%, rgba(255, 255, 255, .98) 100%);
       box-shadow: 0 0 0 2.5px rgba(40, 40, 40, .65), inset 0 0 0 1.5px #fff, inset 0 2px 0 #fff, inset 0 -2px 2px rgba(0, 0, 0, .1), 0 6px 16px rgba(0, 0, 0, .32), 0 2px 3px rgba(0, 0, 0, .4);
     }
+    /* v3.21.1: the knob carries the glow too, so green resp. red still shows
+       outside its dark rim */
+    #dst-seg-thumb[data-tone="pos"]::before { box-shadow: 0 0 0 2.5px rgba(40, 40, 40, .65), 0 0 0 5px rgba(46, 125, 50, .75), 0 0 14px 6px rgba(46, 125, 50, .45), inset 0 0 0 1.5px #fff, inset 0 2px 0 #fff, inset 0 -2px 2px rgba(0, 0, 0, .1), 0 6px 16px rgba(0, 0, 0, .32), 0 2px 3px rgba(0, 0, 0, .4); }
+    #dst-seg-thumb[data-tone="neg"]::before { box-shadow: 0 0 0 2.5px rgba(40, 40, 40, .65), 0 0 0 5px rgba(198, 40, 40, .75), 0 0 14px 6px rgba(198, 40, 40, .45), inset 0 0 0 1.5px #fff, inset 0 2px 0 #fff, inset 0 -2px 2px rgba(0, 0, 0, .1), 0 6px 16px rgba(0, 0, 0, .32), 0 2px 3px rgba(0, 0, 0, .4); }
     /* click flash: a short glow ring in the direction's colour */
     @keyframes dst-glass-flash-pos {
-      0%   { box-shadow: 0 0 0 2.5px rgba(40, 40, 40, .65), inset 0 0 0 1.5px #fff, inset 0 2px 0 #fff, inset 0 -2px 2px rgba(0, 0, 0, .1), 0 6px 16px rgba(0, 0, 0, .32), 0 2px 3px rgba(0, 0, 0, .4), 0 0 0 7px rgba(46, 125, 50, .4); }
-      100% { box-shadow: 0 0 0 2.5px rgba(40, 40, 40, .65), inset 0 0 0 1.5px #fff, inset 0 2px 0 #fff, inset 0 -2px 2px rgba(0, 0, 0, .1), 0 6px 16px rgba(0, 0, 0, .32), 0 2px 3px rgba(0, 0, 0, .4), 0 0 0 0 rgba(46, 125, 50, 0); }
+      0%   { box-shadow: 0 0 0 2.5px rgba(40, 40, 40, .65), 0 0 0 5px rgba(46, 125, 50, .75), 0 0 14px 6px rgba(46, 125, 50, .45), inset 0 0 0 1.5px #fff, inset 0 2px 0 #fff, inset 0 -2px 2px rgba(0, 0, 0, .1), 0 6px 16px rgba(0, 0, 0, .32), 0 2px 3px rgba(0, 0, 0, .4), 0 0 0 10px rgba(46, 125, 50, .4); }
+      100% { box-shadow: 0 0 0 2.5px rgba(40, 40, 40, .65), 0 0 0 5px rgba(46, 125, 50, .75), 0 0 14px 6px rgba(46, 125, 50, .45), inset 0 0 0 1.5px #fff, inset 0 2px 0 #fff, inset 0 -2px 2px rgba(0, 0, 0, .1), 0 6px 16px rgba(0, 0, 0, .32), 0 2px 3px rgba(0, 0, 0, .4), 0 0 0 0 rgba(46, 125, 50, 0); }
     }
     @keyframes dst-glass-flash-neg {
-      0%   { box-shadow: 0 0 0 2.5px rgba(40, 40, 40, .65), inset 0 0 0 1.5px #fff, inset 0 2px 0 #fff, inset 0 -2px 2px rgba(0, 0, 0, .1), 0 6px 16px rgba(0, 0, 0, .32), 0 2px 3px rgba(0, 0, 0, .4), 0 0 0 7px rgba(198, 40, 40, .4); }
-      100% { box-shadow: 0 0 0 2.5px rgba(40, 40, 40, .65), inset 0 0 0 1.5px #fff, inset 0 2px 0 #fff, inset 0 -2px 2px rgba(0, 0, 0, .1), 0 6px 16px rgba(0, 0, 0, .32), 0 2px 3px rgba(0, 0, 0, .4), 0 0 0 0 rgba(198, 40, 40, 0); }
+      0%   { box-shadow: 0 0 0 2.5px rgba(40, 40, 40, .65), 0 0 0 5px rgba(198, 40, 40, .75), 0 0 14px 6px rgba(198, 40, 40, .45), inset 0 0 0 1.5px #fff, inset 0 2px 0 #fff, inset 0 -2px 2px rgba(0, 0, 0, .1), 0 6px 16px rgba(0, 0, 0, .32), 0 2px 3px rgba(0, 0, 0, .4), 0 0 0 10px rgba(198, 40, 40, .4); }
+      100% { box-shadow: 0 0 0 2.5px rgba(40, 40, 40, .65), 0 0 0 5px rgba(198, 40, 40, .75), 0 0 14px 6px rgba(198, 40, 40, .45), inset 0 0 0 1.5px #fff, inset 0 2px 0 #fff, inset 0 -2px 2px rgba(0, 0, 0, .1), 0 6px 16px rgba(0, 0, 0, .32), 0 2px 3px rgba(0, 0, 0, .4), 0 0 0 0 rgba(198, 40, 40, 0); }
     }
     #dst-seg-thumb.dst-flash[data-tone="pos"]::before { animation: dst-glass-flash-pos .45s ease-out; }
     #dst-seg-thumb.dst-flash[data-tone="neg"]::before { animation: dst-glass-flash-neg .45s ease-out; }
@@ -306,6 +310,16 @@
       background: transparent;
     }
     /* v3.8.5: no hover colour change on the sort segments */
+    /* v3.21.1: the glass knob works like a lens: label and bar of the active
+       segment are shown 1.15x larger */
+    #dst-seg .dst-badge-btn > * { transition: transform .3s ease, opacity .3s ease; }
+    #dst-seg .dst-badge-btn.active > * { transform: scale(1.15); }
+    /* v3.21.1: inactive segments recede (label and bar slightly faded), as
+       the inactive badges did in v2.3.2–2.4.10 (opacity .65) */
+    #dst-seg .dst-badge-btn[data-mode]:not(.active) > * { opacity: .65; }
+    @media (prefers-reduced-motion: reduce) {
+      #dst-seg .dst-badge-btn > * { transition: none; }
+    }
     #dst-seg .dst-badge-btn.active,
     #dst-seg .dst-badge-btn.active:hover {
       background: transparent;    /* the thumb underneath is the card */
