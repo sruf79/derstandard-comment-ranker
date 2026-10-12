@@ -489,22 +489,22 @@
         0 3px 10px rgba(0, 0, 0, .12) !important;
     }
 
-    /* ═══ v4.0.0: POSTING TILES ═════════════════════════════════════════
-       Each posting gets a symmetric frame: on the left a recessed rating
-       stripe (green above red), on the right two glass vote knobs with the
-       plus/minus counts; the footer reads  ⚑ 👁 — Antworten — ⧉ ⤴, with the
-       flag right below the stripe and "share" right below the knobs.
-       Everything is laid out on derStandard's own posting grid: only the
-       column template changes, its named lines (marker, posting, …) stay. */
-    main.forum--main { --dst-rail: 58px; --dst-knob: 42px; --dst-side: calc(var(--dst-rail) + 20px); }
-    @media (max-width: 600px) {
-      main.forum--main { --dst-rail: 44px; --dst-knob: 36px; --dst-side: calc(var(--dst-rail) + 8px); }
-    }
+    /* ═══ v4.3.0: POSTING CARDS ═════════════════════════════════════════
+       derStandard's own arrangement (name, time and rating on top; − Antworten
+       + below the text) in our style. The footer is one symmetric row:
+         ⚑ 👁 ·  − Antworten +  · ⧉ ⤴ 💬
+       All icons are grey; colour only shows state: the rating top right and
+       a vote you gave (derStandard fills − / + red / green itself).
+       Everything is laid out on derStandard's own grids: only the column
+       templates change, their named lines (marker, posting, …) stay. */
+    main.forum--main { --dst-side: 14px; --dst-ic: 34px; --dst-ans: 52px; --dst-gap: 6px; }
+    @media (max-width: 600px) { main.forum--main { --dst-side: 6px; } }
     main.forum--main dst-posting[data-dst-tile] {
       grid-template-columns: [permalink-start marker-start] 0px [marker-end] var(--dst-side)
         [posting-start] minmax(0, 1fr) [posting-end] var(--dst-side) [permalink-end] !important;
       --posting-background: var(--theme--card);
       background-color: var(--theme--card) !important;
+      container-type: inline-size;
     }
     /* replies: a card of their own instead of a ruled line */
     main.forum--main .thread dst-posting[data-dst-tile] {
@@ -553,21 +553,13 @@
       top: -10px; bottom: -12px; width: 0 !important; height: auto !important;
       border-left: 2px solid var(--dst-line);
     }
-    /* … and, inside the reply, on from right of the rating stripe to just
-       before the user name (broken at the frame and at the stripe) */
+    /* … inside the reply it goes on (broken at the frame) to just before the
+       user name */
     .dst-link { display: none; }
     main.forum--main .thread > dst-posting > .dst-link {
       display: block; position: absolute; pointer-events: none;
       top: calc(var(--dst-name-y) - 2px); height: 2px;
-      left: calc(var(--dst-side) / 2 + 12px); width: calc(var(--dst-side) / 2 - 8px);
-      background: var(--dst-line); border-radius: 0 1px 1px 0;
-    }
-    /* pinned: the line starts right of the pin, so it is shorter */
-    main.forum--main dst-posting[data-dst-pinned] > .dst-link {
-      display: block; position: absolute; pointer-events: none;
-      top: calc(var(--dst-name-y) - 2px); height: 2px;
-      left: calc(var(--dst-side) / 2 + 30px);
-      width: max(0px, calc(var(--dst-side) / 2 - 26px));
+      left: 4px; width: calc(var(--dst-side) + 2px);
       background: var(--dst-line); border-radius: 0 1px 1px 0;
     }
     /* … and past a nested thread between two replies */
@@ -576,152 +568,86 @@
       left: calc(var(--dst-ind) / -2) !important; /* a section has no 1px frame */
       border-left: 2px solid var(--dst-line);
     }
-    /* derStandard's own pieces we replace or move */
-    dst-posting[data-dst-tile] dst-posting-head dst-posting--ratinglog,
-    dst-posting[data-dst-tile] dst-posting-footer .rate-up,
-    dst-posting[data-dst-tile] dst-posting-footer .rate-down { display: none !important; }
+    /* long user names are shortened with "…" (full name in the tooltip) */
+    dst-posting[data-dst-tile] dst-posting--user { min-width: 0; max-width: 100%; overflow: hidden; }
+    dst-posting[data-dst-tile] dst-posting--user > button { max-width: 100%; }
+    dst-posting[data-dst-tile] dst-posting--user > button > span > span:first-child {
+      display: inline-block; max-width: 100%; vertical-align: bottom;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    /* the rating top right is derStandard's own; its bar gets our recessed
+       look like the bars in the sort bar */
+    dst-posting[data-dst-tile] dst-posting--ratinglog button > div > div {
+      border: 0 !important;
+      box-shadow: inset 0 1px 1.5px rgba(0, 0, 0, .38), 0 1px 0 rgba(255, 255, 255, .85);
+    }
     /* the "…" menu stays (its share submenu opens from it) but sits invisibly
        under our share icon */
     dst-posting[data-dst-tile] dst-posting-head dst-posting--context {
-      position: absolute; right: var(--dst-side); bottom: 10px;
-      width: 34px; height: 34px;
+      position: absolute; bottom: 10px;
+      right: calc(var(--dst-side) + var(--dst-ans) + var(--dst-gap));
+      width: var(--dst-ic); height: var(--dst-ic);
     }
     dst-posting[data-dst-tile] dst-posting-head dst-posting--context > button { opacity: 0; pointer-events: none; }
-    /* pinned postings: only the pin (tooltip "Angeheftet"), no bold text. It
-       sits between rating stripe and user name, at the name's height, with a
-       short line on to the name (like the thread line of a reply) */
-    dst-posting[data-dst-pinned] dst-posting-head time { position: static !important; }
+    /* pinned: only the pin in front of the time (tooltip "Angeheftet"), in
+       derStandard's own dark colour */
     dst-posting[data-dst-tile] dst-posting-head time strong {
-      font-size: 0 !important; display: flex; cursor: help; padding: 0 !important;
-      position: absolute; z-index: 1;
-      left: calc(var(--dst-side) / 2 + 10px); top: calc(var(--dst-name-y) - 9px);
-      color: hsl(var(--theme--on-secondary--hsl) / .6);
+      font-size: 0 !important; display: inline-flex; align-items: center;
+      margin-right: 0; color: hsl(var(--theme--on-secondary--hsl)) !important;
     }
-    dst-posting[data-dst-tile] dst-posting-head time strong svg {
-      width: 16px !important; height: 16px !important; margin: 0 !important; pointer-events: none;
+    dst-posting[data-dst-tile] dst-posting-head time:has(strong) button { padding-left: 4px !important; }
+    dst-posting[data-dst-tile] dst-posting-head time strong svg { margin: 0 !important; }
+    /* footer: ⚑ 👁 [ ] · − Antworten + · ⧉ ⤴ 💬 — both outer groups are the
+       same width, so "− Antworten +" sits exactly in the middle */
+    dst-posting[data-dst-tile] dst-posting-footer {
+      grid-template-columns: var(--dst-ans) var(--dst-ic) var(--dst-ic) 1fr auto auto auto 1fr var(--dst-ic) var(--dst-ic) var(--dst-ans) !important;
+      column-gap: var(--dst-gap);
+      padding: 0 !important;
+      margin-top: 12px;
     }
-    @container (max-width: 420px) {
-      dst-posting[data-dst-tile] dst-posting-head time strong svg { width: 14px !important; height: 14px !important; }
-      dst-posting[data-dst-tile] dst-posting-head time strong { top: calc(var(--dst-name-y) - 8px); left: calc(var(--dst-side) / 2 + 8px); }
-      main.forum--main dst-posting[data-dst-pinned] > .dst-link { left: calc(var(--dst-side) / 2 + 25px); width: max(0px, calc(var(--dst-side) / 2 - 21px)); }
-    }
-    /* thread toggle ("💬 169"): bottom right, under the vote knobs — the
-       mirror image of the flag. It fills its column, so it stays centred
-       however long the number gets (shortened from 1.000 on, see
-       updateTile) */
+    dst-posting[data-dst-tile] dst-posting-footer > * { grid-row: 1 !important; }
+    dst-posting[data-dst-tile] dst-posting-footer dst-dialog--report { grid-column: 1 !important; justify-self: start; }
+    dst-posting[data-dst-tile] dst-posting-footer .rate-down { grid-column: 5 !important; }
+    dst-posting[data-dst-tile] dst-posting-footer dst-reply-postingbox { grid-column: 6 !important; }
+    dst-posting[data-dst-tile] dst-posting-footer .rate-up { grid-column: 7 !important; }
+    /* thread toggle ("💬 169"): far right, the mirror image of the flag;
+       from 1.000 on shortened to "+1k" (see updateTile) */
     dst-posting[data-dst-tile] dst-posting-footer .answers {
-      grid-column: 5 !important; justify-self: stretch !important; width: auto !important;
-      margin: 0 !important; display: flex !important; align-items: center; justify-content: center !important; gap: 4px;
-      padding: 0 !important; height: 34px;
+      grid-column: 11 !important; justify-self: end !important; width: auto !important;
+      margin: 0 !important; display: flex !important; align-items: center; gap: 4px;
+      padding: 0 4px !important; height: var(--dst-ic);
       color: hsl(var(--theme--on-secondary--hsl) / .7);
       font-variant-numeric: tabular-nums;
     }
     dst-posting[data-dst-tile] dst-posting-footer .answers svg { width: 20px; height: 20px; flex: none; }
     dst-posting[data-dst-tile] dst-posting-footer .answers[data-dst-n] span { display: none; }
     dst-posting[data-dst-tile] dst-posting-footer .answers[data-dst-n]::after { content: attr(data-dst-n); }
-    dst-posting[data-dst-tile] dst-posting-footer {
-      position: static !important;
-      grid-column: marker-end / permalink-end !important;
-      grid-template-columns: var(--dst-side) 1fr auto 1fr var(--dst-side) !important;
-      padding: 0 !important;
-      margin-top: 18px;
-    }
-    dst-posting[data-dst-tile] dst-posting-footer > * { grid-row: 1 !important; }
-    dst-posting[data-dst-tile] dst-posting-footer dst-reply-postingbox { grid-column: 3 !important; }
-    dst-posting[data-dst-tile] dst-posting-footer dst-dialog--report { grid-column: 1 !important; justify-self: center; }
-    dst-posting[data-dst-tile] dst-posting-footer dst-dialog--report button { color: #c62828 !important; }
-    /* rating stripe: recessed, same height as the knob column */
-    /* stripe and knob ring start flush with the top of the user name's
-       letters (measured: 22.5px below the card top; both grid cells start
-       at 16px) */
-    .dst-stripe {
-      grid-column: marker-end / posting-start; grid-row: posting-start / content-end;
-      justify-self: center; align-self: stretch; margin-top: 6.5px;
-      width: 12px; min-height: 60px;
-      display: flex; flex-direction: column; gap: 2px;
-      cursor: pointer;
-    }
-    .dst-stripe > span {
-      flex: 1 1 0; min-height: 0;
-      transition: flex-grow .5s ease;
-      box-shadow: inset 0 1px 1.5px rgba(0, 0, 0, .38), 0 1px 0 rgba(255, 255, 255, .85);
-    }
-    .dst-st-empty { background: hsl(var(--theme--on-secondary--hsl) / .10); }
-    .dst-st-pos { background: rgb(75, 120, 43); }
-    .dst-st-neg { background: rgb(213, 42, 42); }
-    /* every coloured part at least 6px, so even 1 vote against 360 is a
-       visible, rounded cap (derStandard gives its bar parts a minimum too) */
-    .dst-stripe > .dst-st-pos, .dst-stripe > .dst-st-neg { min-height: 6px; }
-    .dst-stripe > .dst-first { border-top-left-radius: 6px; border-top-right-radius: 6px; }
-    .dst-stripe > .dst-last { border-bottom-left-radius: 6px; border-bottom-right-radius: 6px; }
-    /* vote column: ▲ +n … −n ▼ */
-    .dst-rail {
-      grid-column: posting-end / permalink-end; grid-row: posting-start / content-end;
-      justify-self: center; align-self: stretch; margin-top: 8px;
-      display: flex; flex-direction: column; align-items: center; gap: 4px;
-    }
-    .dst-rail-zone { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
-    .dst-rail-top, .dst-rail-bot { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-    .dst-rail-top { padding-bottom: 4px; }
-    .dst-vk {
-      flex: none; width: var(--dst-knob); height: var(--dst-knob);
-      border: 0; padding: 0; border-radius: 50%; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      background:
-        radial-gradient(120% 90% at 30% 0%, #fff 0%, rgba(255, 255, 255, 0) 55%),
-        linear-gradient(to bottom, #fff 0%, #f7f8fa 48%, #e4e8ec 52%, #eef1f4 80%, #fafbfc 100%);
-      box-shadow: 0 0 0 1.5px rgba(70, 70, 70, .35), inset 0 -2px 0 rgba(255, 255, 255, .85), 0 3px 8px rgba(0, 0, 0, .2);
-      transition: box-shadow .25s ease;
-    }
-    .dst-vk svg { width: 55%; height: 55%; }
-    .dst-vk.up { color: #2e7d32; }
-    .dst-vk.dn { color: #c62828; }
-    .dst-vk .fill { display: none; }
-    .dst-vk.on .fill { display: block; }
-    .dst-vk.on .line { display: none; }
-    .dst-vk.up.on { box-shadow: 0 0 0 2px rgba(46, 125, 50, .95), inset 0 -2px 0 rgba(255, 255, 255, .85), 0 3px 8px rgba(0, 0, 0, .2), 0 0 12px rgba(46, 125, 50, .55); }
-    .dst-vk.dn.on { box-shadow: 0 0 0 2px rgba(198, 40, 40, .95), inset 0 -2px 0 rgba(255, 255, 255, .85), 0 3px 8px rgba(0, 0, 0, .2), 0 0 12px rgba(198, 40, 40, .55); }
-    .dst-vk.up.dst-flash { animation: dst-vk-flash-pos .45s ease-out; }
-    .dst-vk.dn.dst-flash { animation: dst-vk-flash-neg .45s ease-out; }
-    @keyframes dst-vk-flash-pos { 40% { box-shadow: 0 0 0 3px rgba(46, 125, 50, 1), 0 0 22px 4px rgba(46, 125, 50, .7); transform: scale(1.08); } }
-    @keyframes dst-vk-flash-neg { 40% { box-shadow: 0 0 0 3px rgba(198, 40, 40, 1), 0 0 22px 4px rgba(198, 40, 40, .7); transform: scale(1.08); } }
-    .dst-cnt {
-      font-size: 13px; font-weight: 800; line-height: 1.2; cursor: pointer;
-      font-variant-numeric: tabular-nums; white-space: nowrap;
-      text-shadow: 0 1px 0 rgba(255, 255, 255, .75);
-    }
-    .dst-cnt.pos { color: #2e7d32; }
-    .dst-cnt.neg { color: #c62828; }
-    /* footer icons that live outside derStandard's footer */
+    /* our footer icons live on the posting grid, in the footer row */
     .dst-fb {
       grid-row: footer-start / footer-end; align-self: center;
-      position: relative; z-index: 1; margin-top: 18px;
-      width: 34px; height: 34px; padding: 0; border: 0; border-radius: 50%;
+      grid-column: posting-start / posting-end;
+      position: relative; z-index: 1; margin-top: 12px;
+      width: var(--dst-ic); height: var(--dst-ic); padding: 0; border: 0; border-radius: 50%;
       background: none; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
       color: hsl(var(--theme--on-secondary--hsl) / .7);
     }
     .dst-fb:hover { background: hsl(var(--theme--on-secondary--hsl) / .06); }
     .dst-fb svg { width: 22px; height: 22px; }
-    .dst-fb.hide { grid-column: posting-start / posting-end; justify-self: start; }
-    /* right side mirrors the left: share opposite "hide", copy next to it */
-    .dst-fb.share { grid-column: posting-start / posting-end; justify-self: end; }
-    .dst-fb.copy { grid-column: posting-start / posting-end; justify-self: end; margin-right: 46px; }
+    .dst-fb.hide { justify-self: start; margin-left: calc(var(--dst-ans) + var(--dst-gap)); }
+    .dst-fb.share { justify-self: end; margin-right: calc(var(--dst-ans) + var(--dst-gap)); }
+    .dst-fb.copy { justify-self: end; margin-right: calc(var(--dst-ans) + var(--dst-ic) + 2 * var(--dst-gap)); }
     .dst-fb.dst-done { color: #2e7d32; }
-    /* narrow cards (phones, deeply indented replies): smaller footer icons
-       and a tighter gap between copy and share; both sides shrink alike, so
-       the footer stays symmetric */
-    main.forum--main dst-posting[data-dst-tile] { container-type: inline-size; }
+    /* narrow cards (phones, deeply indented replies): smaller icons and gaps;
+       both sides shrink alike, so the footer stays symmetric */
+    dst-posting[data-dst-tile] dst-posting-footer dst-reply-postingbox button { white-space: nowrap; }
     @container (max-width: 420px) {
-      .dst-fb { width: 28px; height: 28px; }
+      dst-posting-footer, .dst-fb, dst-posting-head { --dst-ic: 26px; --dst-ans: 40px; --dst-gap: 2px; }
+      dst-posting-footer .rate-down, dst-posting-footer .rate-up { width: 28px !important; }
+      dst-posting-footer dst-reply-postingbox button { padding: 0 6px !important; }
       .dst-fb svg { width: 19px; height: 19px; }
-      .dst-fb.copy { margin-right: 32px; }
       dst-posting-footer dst-dialog--report button svg,
       dst-posting-footer .answers svg { width: 19px !important; height: 19px !important; }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      .dst-stripe > span { transition: none; }
-      .dst-vk.dst-flash { animation: none; }
     }
 
     /* Mobile: the segmented control stays in ONE row; just tighter padding. */
@@ -1414,33 +1340,22 @@
     } catch (e) { /* ignore */ }
   }
 
-  // ── v4.0.0: posting tiles ─────────────────────────────────────
-  // Adds the rating stripe, the vote knobs and three footer icons to every
-  // posting. They only TRIGGER derStandard's own controls (vote buttons, the
-  // "…" menu, the report dialog) — voting, sharing, copying and hiding keep
-  // working exactly as before. The new elements are plain children of
-  // <dst-posting>, placed on its grid by CSS; derStandard's nodes are never
-  // moved, so Lit's rendering is not disturbed.
+  // ── v4.0.0 / v4.3.0: posting cards ───────────────────────────
+  // Adds three footer icons (hide, copy, share) to every posting. They only
+  // TRIGGER derStandard's own "…" menu — sharing, copying and hiding keep
+  // working exactly as before. Rating, − / + and the report flag are
+  // derStandard's own elements, only rearranged by CSS. The new elements are
+  // plain children of <dst-posting>, placed on its grid by CSS;
+  // derStandard's nodes are never moved, so Lit's rendering is not disturbed.
   const TILE_ICONS = {
     share: 'M18,16.08C17.24,16.08 16.56,16.38 16.04,16.85L8.91,12.7C8.96,12.47 9,12.24 9,12C9,11.76 8.96,11.53 8.91,11.3L15.96,7.19C16.5,7.69 17.21,8 18,8A3,3 0 0,0 21,5A3,3 0 0,0 18,2A3,3 0 0,0 15,5C15,5.24 15.04,5.47 15.09,5.7L8.04,9.81C7.5,9.31 6.79,9 6,9A3,3 0 0,0 3,12A3,3 0 0,0 6,15C6.79,15 7.5,14.69 8.04,14.19L15.16,18.34C15.11,18.55 15.08,18.77 15.08,19C15.08,20.61 16.39,21.91 18,21.91C19.61,21.91 20.92,20.61 20.92,19A2.92,2.92 0 0,0 18,16.08Z',
     copy: 'M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z',
     hide: 'M11.83,9L15,12.16C15,12.11 15,12.05 15,12A3,3 0 0,0 12,9C11.94,9 11.89,9 11.83,9M7.53,9.8L9.08,11.35C9.03,11.56 9,11.77 9,12A3,3 0 0,0 12,15C12.22,15 12.44,14.97 12.65,14.92L14.2,16.47C13.53,16.8 12.79,17 12,17A5,5 0 0,1 7,12C7,11.21 7.2,10.47 7.53,9.8M2,4.27L4.28,6.55L4.73,7C3.08,8.3 1.78,10 1,12C2.73,16.39 7,19.5 12,19.5C13.55,19.5 15.03,19.2 16.38,18.66L16.81,19.08L19.73,22L21,20.73L3.27,3M12,7A5,5 0 0,1 17,12C17,12.64 16.87,13.26 16.64,13.82L19.57,16.75C21.07,15.5 22.27,13.86 23,12C21.27,7.61 17,4.5 12,4.5C10.6,4.5 9.26,4.75 8,5.2L10.17,7.35C10.74,7.13 11.35,7 12,7Z',
     check: 'M9,20.42L2.79,14.21L5.62,11.38L9,14.77L18.88,4.88L21.71,7.71L9,20.42Z'
   };
-  const ARROW = 'M12 3.5 20 12.5h-4.6v8h-6.8v-8H4z';
 
   function tileSvg(path) {
     return '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="' + path + '"/></svg>';
-  }
-  function knobSvg(down) {
-    const rot = down ? ' style="transform:rotate(180deg)"' : '';
-    return '<svg viewBox="0 0 24 24" aria-hidden="true"' + rot + '>' +
-      '<path class="line" d="' + ARROW + '" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>' +
-      '<path class="fill" d="' + ARROW + '" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>';
-  }
-  // up to 9.999 written out, from 10.000 on "23k"
-  function fmtVotes(n) {
-    return n >= 10000 ? Math.round(n / 1000) + 'k' : n.toLocaleString('de-AT');
   }
 
   function tileButton(cls, label, html, onClick) {
@@ -1478,55 +1393,7 @@
     });
   }
 
-  function openTileVoters(posting) {
-    const rl = posting.querySelector('dst-posting--ratinglog');
-    const forum = document.querySelector('dst-forum');
-    if (!rl || !forum || !forum.shadowRoot || !rl.getAttribute('postingid')) return;
-    openVoterPopup(forum.shadowRoot, rl.getAttribute('postingid'),
-      rl.getAttribute('positiveratings') || '0', rl.getAttribute('negativeratings') || '0');
-  }
-
   function buildTile(posting) {
-    const stripe = document.createElement('span');
-    stripe.className = 'dst-stripe';
-    stripe.title = 'Bewertungen anzeigen';
-    stripe.innerHTML = '<span class="dst-st-empty"></span><span class="dst-st-pos"></span><span class="dst-st-neg"></span>';
-    stripe.addEventListener('click', function (e) { e.stopPropagation(); openTileVoters(posting); });
-
-    const rail = document.createElement('span');
-    rail.className = 'dst-rail';
-    const vote = function (sel) {
-      return function (btn) {
-        const native = posting.querySelector('dst-posting-footer ' + sel);
-        if (!native) return;
-        btn.classList.remove('dst-flash');
-        void btn.offsetWidth;
-        btn.classList.add('dst-flash');
-        native.click();
-      };
-    };
-    const up = tileButton('dst-vk up', 'Sehr lesenswert', knobSvg(false), vote('.rate-up'));
-    const dn = tileButton('dst-vk dn', 'Nicht lesenswert', knobSvg(true), vote('.rate-down'));
-    const cPos = document.createElement('span');
-    cPos.className = 'dst-cnt pos';
-    const cNeg = document.createElement('span');
-    cNeg.className = 'dst-cnt neg';
-    [cPos, cNeg].forEach(function (c) {
-      c.title = 'Bewertungen anzeigen';
-      c.addEventListener('click', function (e) { e.stopPropagation(); openTileVoters(posting); });
-    });
-    // ▲ +n at the top (level with the user name), −n ▼ at the bottom
-    const top = document.createElement('span');
-    top.className = 'dst-rail-top';
-    top.append(up, cPos);
-    const zone = document.createElement('span');
-    zone.className = 'dst-rail-zone';
-    zone.append(top);
-    const bottom = document.createElement('span');
-    bottom.className = 'dst-rail-bot';
-    bottom.append(cNeg, dn);
-    rail.append(zone, bottom);
-
     const hide = tileButton('dst-fb hide', 'User:in ausblenden', tileSvg(TILE_ICONS.hide), function () {
       runPostingMenu(posting, 'ausblenden');
     });
@@ -1550,36 +1417,12 @@
     // inside a reply: the thread line carries on after the card's frame
     const link = document.createElement('span');
     link.className = 'dst-link';
-    posting.append(stripe, rail, hide, copy, share, link);
+    posting.append(hide, copy, share, link);
     posting.setAttribute('data-dst-tile', '');
   }
 
-  // Brings stripe, counts and knob states in line with derStandard's data.
+  // Keeps our small additions in line with derStandard's data.
   function updateTile(posting) {
-    const stripe = posting.querySelector(':scope > .dst-stripe');
-    const rail = posting.querySelector(':scope > .dst-rail');
-    if (!stripe || !rail) return;
-    const r = readRatings(posting);
-    const cPos = rail.querySelector('.dst-cnt.pos');
-    const cNeg = rail.querySelector('.dst-cnt.neg');
-    cPos.textContent = r.pos ? '+' + fmtVotes(r.pos) : '0';
-    cNeg.textContent = r.neg ? '−' + fmtVotes(r.neg) : '0';
-    // derStandard's own rule: every vote is one tenth of the bar until there
-    // are 10 votes; from then on the full bar is split in proportion. The
-    // filled part sits at the bottom, so red always ends at the flag.
-    const total = r.pos + r.neg;
-    const parts = stripe.children;
-    parts[0].style.flexGrow = String(Math.max(0, 10 - total));
-    parts[1].style.flexGrow = String(r.pos);
-    parts[2].style.flexGrow = String(r.neg);
-    parts[0].style.display = total < 10 ? '' : 'none';
-    parts[1].style.display = r.pos ? '' : 'none';
-    parts[2].style.display = r.neg ? '' : 'none';
-    const shown = Array.prototype.filter.call(parts, function (x) { return x.style.display !== 'none'; });
-    Array.prototype.forEach.call(parts, function (x) {
-      x.classList.toggle('dst-first', x === shown[0]);
-      x.classList.toggle('dst-last', x === shown[shown.length - 1]);
-    });
     // replies: up to 999 written out, from 1.000 on "+1k", "+2k", …
     const ans = posting.querySelector('dst-posting-footer .answers');
     if (ans) {
@@ -1589,11 +1432,10 @@
     }
     const pin = posting.querySelector('dst-posting-head time strong');
     if (pin && pin.title !== 'Angeheftet') pin.title = 'Angeheftet';
-    if (!!pin !== posting.hasAttribute('data-dst-pinned')) posting.toggleAttribute('data-dst-pinned', !!pin);
-    const nUp = posting.querySelector('dst-posting-footer .rate-up');
-    const nDn = posting.querySelector('dst-posting-footer .rate-down');
-    rail.querySelector('.dst-vk.up').classList.toggle('on', !!(nUp && nUp.classList.contains('active')));
-    rail.querySelector('.dst-vk.dn').classList.toggle('on', !!(nDn && nDn.classList.contains('active')));
+    // the full user name as tooltip (long names are shortened with "…")
+    const user = posting.querySelector('dst-posting--user > button');
+    const name = user && user.querySelector('span > span');
+    if (name && !user.title) user.title = name.textContent.trim();
   }
 
   function decorateTiles(shadowRoot) {
@@ -1604,19 +1446,17 @@
   }
 
   function decorateTile(p) {
-    if (!p.querySelector(':scope > .dst-rail')) {
-      // deleted postings keep their look; postings without any vote yet have
-      // no rating element at all, but still get a tile (counts 0)
+    if (!p.querySelector(':scope > .dst-fb')) {
+      // deleted postings keep their look
       if (p.classList.contains('posting-deleted') || !p.querySelector('dst-posting-footer')) return;
       buildTile(p);
     }
     updateTile(p);
   }
 
-  // Watches new postings (they get their tile right away, also while the
-  // rest is still loading in the background), votes (class "active" on
-  // derStandard's buttons) and new rating numbers. Only OUR elements are
-  // updated here — nothing is sorted and
+  // Watches new postings (they get their icons right away, also while the
+  // rest is still loading in the background) and new reply counts. Only OUR
+  // additions are updated here — nothing is sorted and
   // derStandard's DOM is not touched (see the note at observeForum).
   let tileObserver = null;
   let tileObservedMain = null;
@@ -1629,7 +1469,7 @@
     tileObserver = new MutationObserver(function (mutations) {
       mutations.forEach(function (m) {
         const t = m.target;
-        if (!t.closest || t.closest('.dst-rail, .dst-stripe, .dst-fb')) return;
+        if (!t.closest || t.closest('.dst-fb')) return;
         if (m.type === 'childList') {
           m.addedNodes.forEach(function (n) {
             if (n.nodeType !== 1) return;
@@ -1655,9 +1495,7 @@
     });
     tileObserver.observe(main, {
       subtree: true,
-      childList: true,
-      attributes: true,
-      attributeFilter: ['class', 'positiveratings', 'negativeratings']
+      childList: true
     });
   }
 
