@@ -244,10 +244,10 @@
        (instead of a coloured ring around the active segment). */
     #dst-seg::before { transition: box-shadow .3s ease; }
     #dst-seg:has(#dst-seg-thumb[data-tone="pos"])::before {
-      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), inset 0 -2px 3px rgba(0, 0, 0, .06), 0 0 0 1px var(--dst-track-border), 0 0 0 2px rgba(46, 125, 50, .95), 0 -12px 18px 2px rgba(46, 125, 50, .55), 0 12px 18px 2px rgba(46, 125, 50, .55), 0 -22px 30px rgba(46, 125, 50, .35), 0 22px 30px rgba(46, 125, 50, .35);
+      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), inset 0 -2px 3px rgba(0, 0, 0, .06), 0 0 0 1px var(--dst-track-border), 0 0 0 2px rgba(46, 125, 50, .95), 0 -6px 9px 1px rgba(46, 125, 50, .55), 0 6px 9px 1px rgba(46, 125, 50, .55), 0 -11px 15px rgba(46, 125, 50, .35), 0 11px 15px rgba(46, 125, 50, .35);
     }
     #dst-seg:has(#dst-seg-thumb[data-tone="neg"])::before {
-      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), inset 0 -2px 3px rgba(0, 0, 0, .06), 0 0 0 1px var(--dst-track-border), 0 0 0 2px rgba(198, 40, 40, .95), 0 -12px 18px 2px rgba(198, 40, 40, .55), 0 12px 18px 2px rgba(198, 40, 40, .55), 0 -22px 30px rgba(198, 40, 40, .35), 0 22px 30px rgba(198, 40, 40, .35);
+      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), inset 0 -2px 3px rgba(0, 0, 0, .06), 0 0 0 1px var(--dst-track-border), 0 0 0 2px rgba(198, 40, 40, .95), 0 -6px 9px 1px rgba(198, 40, 40, .55), 0 6px 9px 1px rgba(198, 40, 40, .55), 0 -11px 15px rgba(198, 40, 40, .35), 0 11px 15px rgba(198, 40, 40, .35);
     }
     /* v3.20.0: the active segment is a raised glass knob (iOS-like): white
        glass with a dark rim, a white inner rim, a highlight and a deep
@@ -262,7 +262,7 @@
         linear-gradient(to bottom, rgba(255, 255, 255, .97) 0%, rgba(250, 250, 252, .9) 50%, rgba(232, 236, 240, .92) 51%, rgba(255, 255, 255, .98) 100%);
       box-shadow: 0 0 0 2.5px rgba(40, 40, 40, .65), inset 0 0 0 1.5px #fff, inset 0 2px 0 #fff, inset 0 -2px 2px rgba(0, 0, 0, .1), 0 6px 16px rgba(0, 0, 0, .32), 0 2px 3px rgba(0, 0, 0, .4);
     }
-    /* v3.21.2: the glow of the bar reaches far above and below it, so the
+    /* v3.21.2 (v3.22.1: half as far): the glow of the bar reaches above and below it, so the
        colour still shows around the (larger) glass knob; the knob itself has
        no coloured ring. */
     /* click flash: a short glow ring in the direction's colour */
