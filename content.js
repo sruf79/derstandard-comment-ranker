@@ -641,6 +641,14 @@
       text-overflow: ellipsis;
     }
     .dst-voter-list a:hover { background: hsl(var(--dst-ink) / .06); }
+    /* v3.25.2: schwarzer Aufzählungspunkt, Tab-Abstand, dann der Name */
+    .dst-voter-list a::before {
+      content: '•';
+      display: inline-block;
+      width: 2em;
+      color: #000;
+      font-weight: 700;
+    }
 
     /* Footer / pagination */
     #dst-voter-foot {
