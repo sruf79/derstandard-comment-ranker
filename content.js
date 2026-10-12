@@ -646,6 +646,9 @@
     .dst-st-empty { background: hsl(var(--theme--on-secondary--hsl) / .10); }
     .dst-st-pos { background: rgb(75, 120, 43); }
     .dst-st-neg { background: rgb(213, 42, 42); }
+    /* every coloured part at least 6px, so even 1 vote against 360 is a
+       visible, rounded cap (derStandard gives its bar parts a minimum too) */
+    .dst-st-pos, .dst-st-neg { min-height: 6px; }
     .dst-stripe > .dst-first { border-top-left-radius: 6px; border-top-right-radius: 6px; }
     .dst-stripe > .dst-last { border-bottom-left-radius: 6px; border-bottom-right-radius: 6px; }
     /* vote column: ▲ +n … −n ▼ */
