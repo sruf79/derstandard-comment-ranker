@@ -1827,8 +1827,9 @@
     const kb = keyOf(b);
     let diff = 0;
     switch (sortMode) {
-      case 'balance-top':   diff = kb.net - ka.net; break;
-      case 'balance-flop':  diff = ka.net - kb.net; break;
+      // v3.15.2: same balance (e.g. 5:5 and 2:2) -> more votes in total first
+      case 'balance-top':   diff = (kb.net - ka.net) || ((kb.pos + kb.neg) - (ka.pos + ka.neg)); break;
+      case 'balance-flop':  diff = (ka.net - kb.net) || ((kb.pos + kb.neg) - (ka.pos + ka.neg)); break;
       case 'positive-only': diff = kb.pos - ka.pos; break;
       case 'negative-only': diff = kb.neg - ka.neg; break;
       case 'chronological-new': diff = kb.time - ka.time; break;
