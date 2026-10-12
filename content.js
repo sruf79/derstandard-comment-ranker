@@ -694,8 +694,6 @@
     }
     .dst-cnt.pos { color: #2e7d32; }
     .dst-cnt.neg { color: #c62828; }
-    .dst-cnt.dst-roll { animation: dst-roll .35s ease-out; }
-    @keyframes dst-roll { from { transform: translateY(-7px); opacity: 0; } }
     /* footer icons that live outside derStandard's footer */
     .dst-fb {
       grid-row: footer-start / footer-end; align-self: center;
@@ -725,7 +723,7 @@
     }
     @media (prefers-reduced-motion: reduce) {
       .dst-stripe > span { transition: none; }
-      .dst-vk.dst-flash, .dst-cnt.dst-roll { animation: none; }
+      .dst-vk.dst-flash { animation: none; }
     }
 
     /* Mobile: the segmented control stays in ONE row; just tighter padding. */
@@ -1566,20 +1564,10 @@
     const rail = posting.querySelector(':scope > .dst-rail');
     if (!stripe || !rail) return;
     const r = readRatings(posting);
-    const prev = posting._dstVotes;
-    posting._dstVotes = r;
     const cPos = rail.querySelector('.dst-cnt.pos');
     const cNeg = rail.querySelector('.dst-cnt.neg');
     cPos.textContent = r.pos ? '+' + fmtVotes(r.pos) : '0';
     cNeg.textContent = r.neg ? '−' + fmtVotes(r.neg) : '0';
-    if (prev) {
-      [[cPos, prev.pos !== r.pos], [cNeg, prev.neg !== r.neg]].forEach(function (x) {
-        if (!x[1]) return;
-        x[0].classList.remove('dst-roll');
-        void x[0].offsetWidth;
-        x[0].classList.add('dst-roll');
-      });
-    }
     // derStandard's own rule: every vote is one tenth of the bar until there
     // are 10 votes; from then on the full bar is split in proportion. The
     // filled part sits at the bottom, so red always ends at the flag.
