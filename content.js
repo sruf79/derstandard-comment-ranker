@@ -581,6 +581,15 @@
       border: 0 !important;
       box-shadow: inset 0 1px 1.5px rgba(0, 0, 0, .38), 0 1px 0 rgba(255, 255, 255, .85);
     }
+    /* … level with the user name and larger: derStandard draws it 4px high
+       and at most 50px wide; zoom keeps its own proportions (→ 6px / 80px) */
+    dst-posting[data-dst-tile] dst-posting-head dst-posting--user { grid-column: 2 / 3 !important; }
+    dst-posting[data-dst-tile] dst-posting-head dst-posting--ratinglog {
+      grid-row: 1 !important; grid-column: 3 / 5 !important;
+      align-self: center; justify-self: end; position: relative; top: 2px;
+    }
+    dst-posting[data-dst-tile] dst-posting--ratinglog button { font-size: 13px !important; padding: 2px 0 2px 10px !important; }
+    dst-posting[data-dst-tile] dst-posting--ratinglog button > div { zoom: 1.6; margin: 0 4px !important; }
     /* the "…" menu stays (its share submenu opens from it) but sits invisibly
        under our share icon */
     dst-posting[data-dst-tile] dst-posting-head dst-posting--context {
@@ -619,7 +628,8 @@
       color: hsl(var(--theme--on-secondary--hsl) / .7);
       font-variant-numeric: tabular-nums;
     }
-    dst-posting[data-dst-tile] dst-posting-footer .answers svg { width: 20px; height: 20px; flex: none; }
+    /* every footer icon the same size (derStandard's are 24px, ours 22px) */
+    dst-posting[data-dst-tile] dst-posting-footer svg { width: 22px !important; height: 22px !important; flex: none; }
     dst-posting[data-dst-tile] dst-posting-footer .answers[data-dst-n] span { display: none; }
     dst-posting[data-dst-tile] dst-posting-footer .answers[data-dst-n]::after { content: attr(data-dst-n); }
     /* our footer icons live on the posting grid, in the footer row */
@@ -646,8 +656,7 @@
       dst-posting-footer .rate-down, dst-posting-footer .rate-up { width: 28px !important; }
       dst-posting-footer dst-reply-postingbox button { padding: 0 6px !important; }
       .dst-fb svg { width: 19px; height: 19px; }
-      dst-posting-footer dst-dialog--report button svg,
-      dst-posting-footer .answers svg { width: 19px !important; height: 19px !important; }
+      dst-posting[data-dst-tile] dst-posting-footer svg { width: 19px !important; height: 19px !important; }
     }
 
     /* Mobile: the segmented control stays in ONE row; just tighter padding. */
