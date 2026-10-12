@@ -380,7 +380,7 @@
        pill's green/red glow); hovering lights the cup up, starts the steam
        and gives one short golden flash. The 15-day reminder breathes. */
     #dst-seg .dst-badge-btn.dst-coffee-btn {
-      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -6px 9px 1px rgba(255, 200, 0, .55), 0 6px 9px 1px rgba(255, 200, 0, .55), 0 -11px 15px rgba(255, 200, 0, .35), 0 11px 15px rgba(255, 200, 0, .35);
+      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -6px 9px 1px rgba(240, 165, 0, .8), 0 6px 9px 1px rgba(240, 165, 0, .8), 0 -11px 15px rgba(240, 165, 0, .5), 0 11px 15px rgba(240, 165, 0, .5);
     }
     #dst-seg .dst-badge-btn.dst-coffee-btn:hover {
       background: #fff8e1;
@@ -404,15 +404,15 @@
 
     /* v3.7.0: golden click flash of the coffee button (like the sort flash) */
     @keyframes dst-coffee-flash {
-      0%   { background-color: #FFE27A; box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -6px 9px 1px rgba(255, 200, 0, .55), 0 6px 9px 1px rgba(255, 200, 0, .55), 0 -11px 15px rgba(255, 200, 0, .35), 0 11px 15px rgba(255, 200, 0, .35), 0 0 0 10px rgba(255, 200, 0, .45); }
-      100% { background-color: #fff8e1; box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -6px 9px 1px rgba(255, 200, 0, .55), 0 6px 9px 1px rgba(255, 200, 0, .55), 0 -11px 15px rgba(255, 200, 0, .35), 0 11px 15px rgba(255, 200, 0, .35), 0 0 0 0 rgba(255, 200, 0, 0); }
+      0%   { background-color: #FFE27A; box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -6px 9px 1px rgba(240, 165, 0, .8), 0 6px 9px 1px rgba(240, 165, 0, .8), 0 -11px 15px rgba(240, 165, 0, .5), 0 11px 15px rgba(240, 165, 0, .5), 0 0 0 10px rgba(255, 200, 0, .45); }
+      100% { background-color: #fff8e1; box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -6px 9px 1px rgba(240, 165, 0, .8), 0 6px 9px 1px rgba(240, 165, 0, .8), 0 -11px 15px rgba(240, 165, 0, .5), 0 11px 15px rgba(240, 165, 0, .5), 0 0 0 0 rgba(255, 200, 0, 0); }
     }
     #dst-seg .dst-badge-btn.dst-coffee-btn.dst-flash { animation: dst-coffee-flash .45s ease-out; }
 
     /* Golden Pulse animation for Coffee badge (v3.22.2: breathing glow) */
     @keyframes dst-coffee-golden-pulse {
-      0%, 100% { box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -6px 9px 1px rgba(255, 200, 0, .55), 0 6px 9px 1px rgba(255, 200, 0, .55), 0 -11px 15px rgba(255, 200, 0, .35), 0 11px 15px rgba(255, 200, 0, .35); }
-      50%      { box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -6px 9px 1px rgba(255, 200, 0, .25), 0 6px 9px 1px rgba(255, 200, 0, .25), 0 -11px 15px rgba(255, 200, 0, .12), 0 11px 15px rgba(255, 200, 0, .12); }
+      0%, 100% { box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -6px 9px 1px rgba(240, 165, 0, .8), 0 6px 9px 1px rgba(240, 165, 0, .8), 0 -11px 15px rgba(240, 165, 0, .5), 0 11px 15px rgba(240, 165, 0, .5); }
+      50%      { box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -6px 9px 1px rgba(240, 165, 0, .4), 0 6px 9px 1px rgba(240, 165, 0, .4), 0 -11px 15px rgba(240, 165, 0, .2), 0 11px 15px rgba(240, 165, 0, .2); }
     }
 
     /* V14 Coffee Steam Container */
