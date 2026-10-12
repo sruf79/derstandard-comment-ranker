@@ -519,7 +519,7 @@
        draws its own bend (::before) and, if more replies follow on its level,
        the straight line further down (::after); a nested thread in between
        carries the line on (section ::before). */
-    main.forum--main { --dst-ind: 32px; --dst-line: hsl(var(--theme--on-secondary--hsl) / .38); --dst-name-y: 28px; }
+    main.forum--main { --dst-ind: 32px; --dst-line: color-mix(in srgb, hsl(var(--theme--on-secondary--hsl)) 32%, var(--theme--base, #e6e6e6)); --dst-name-y: 28px; }
     @media (max-width: 600px) { main.forum--main { --dst-ind: 18px; } }
     main.forum--main .thread {
       background: none !important; border: 0 !important; border-radius: 0 !important;
@@ -537,31 +537,48 @@
       background: none !important; border-radius: 0 !important;
       pointer-events: none;
     }
-    /* the bend into the reply */
+    /* the bend into the reply: it starts 2px below the card above and runs
+       into a punched hole in this card's frame — like a thread stitched
+       through fabric (it comes out again right of the rating stripe) */
     main.forum--main .thread > dst-posting::before {
       content: '' !important;
-      top: -13px; height: calc(13px + var(--dst-name-y)) !important; width: calc(var(--dst-ind) / 2) !important;
+      top: -10px; height: calc(10px + var(--dst-name-y)) !important; width: calc(var(--dst-ind) / 2 + 1px) !important;
       border-left: 2px solid var(--dst-line); border-bottom: 2px solid var(--dst-line);
       border-bottom-left-radius: 14px !important;
+      filter: drop-shadow(0 1px .6px rgba(0, 0, 0, .22));
     }
-    /* the line goes on past this reply when more replies follow */
+    /* when more replies follow, one straight trunk runs on past this reply
+       (the bend branches off it, like on Reddit); the line colour is opaque,
+       so the overlapping pieces join seamlessly */
     main.forum--main .thread > dst-posting:has(~ dst-posting)::after {
       content: '' !important;
-      top: var(--dst-name-y); bottom: -1px; width: 0 !important; height: auto !important;
+      top: -10px; bottom: -12px; width: 0 !important; height: auto !important;
       border-left: 2px solid var(--dst-line);
     }
     /* … and, inside the reply, on from right of the rating stripe to just
        before the user name (broken at the frame and at the stripe) */
     .dst-link { display: none; }
     main.forum--main .thread > dst-posting > .dst-link {
-      display: block; position: absolute; pointer-events: none;
+      display: block; position: absolute; pointer-events: none; z-index: 2;
       top: calc(var(--dst-name-y) - 2px); height: 2px;
       left: calc(var(--dst-side) / 2 + 12px); width: calc(var(--dst-side) / 2 - 8px);
       background: var(--dst-line); border-radius: 0 1px 1px 0;
+      box-shadow: 0 1px .6px rgba(0, 0, 0, .22);
     }
+    /* the two holes: where the thread goes in (frame) and comes out again */
+    main.forum--main .thread > dst-posting > .dst-link::before,
+    main.forum--main .thread > dst-posting > .dst-link::after {
+      content: ''; position: absolute; top: -2.5px;
+      width: 5px; height: 7px; border-radius: 50%;
+      background: radial-gradient(ellipse at 50% 40%, rgba(0, 0, 0, .6), rgba(0, 0, 0, .35) 75%);
+      box-shadow: inset 0 1px 1px rgba(0, 0, 0, .5), 0 1px 0 rgba(255, 255, 255, .8);
+    }
+    main.forum--main .thread > dst-posting > .dst-link::before { left: -2.5px; }
+    main.forum--main .thread > dst-posting > .dst-link::after { left: calc(-1 * (var(--dst-side) / 2 + 12px) - 3.5px); }
     /* … and past a nested thread between two replies */
     main.forum--main .thread > .thread:has(~ dst-posting)::before {
       content: ''; top: 0; bottom: 0; width: 0;
+      left: calc(var(--dst-ind) / -2) !important; /* a section has no 1px frame */
       border-left: 2px solid var(--dst-line);
     }
     /* derStandard's own pieces we replace or move */
