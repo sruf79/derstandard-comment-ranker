@@ -101,9 +101,18 @@
   let pendingMode = null;
   let pendingClick = 0;
 
+  // v3.19.0: the direction (green = first, red = second mode of a group) is
+  // shared by all segments: switching to another segment keeps it, only a
+  // click on the active segment flips it. Every segment shows that direction.
+  function setDirectionAll(mode) {
+    const g = getGroupForMode(mode);
+    if (!g) return;
+    const dir = g.modes.indexOf(mode);
+    BUTTON_GROUPS.forEach(function(grp) { groupSelection[grp.id] = grp.modes[dir] || grp.modes[0]; });
+  }
+
   function syncGroupSelection() {
-    const g = getGroupForMode(sortMode);
-    if (g) groupSelection[g.id] = sortMode;
+    setDirectionAll(sortMode);
   }
 
   // CSS injected into shadow DOM: icon hierarchy, badge bar, animation, hide old buttons
@@ -2184,10 +2193,7 @@
   // and groupSelection updated to match it.
   function syncShownSelection() {
     syncGroupSelection();
-    if (pendingMode) {
-      const g = getGroupForMode(pendingMode);
-      if (g) groupSelection[g.id] = pendingMode;
-    }
+    if (pendingMode) setDirectionAll(pendingMode);
     return pendingMode || sortMode;
   }
 
@@ -2311,11 +2317,12 @@
           const idx = group.modes.indexOf(current);
           targetMode = group.modes[(idx + 1) % group.modes.length];
         } else {
-          // Switching to a different group → activate its remembered sub-mode.
+          // v3.19.0: switching to a different group keeps the direction
+          // (green stays green, red stays red).
           targetMode = groupSelection[group.id];
         }
         const slides = group.modes.indexOf(current) === -1;
-        groupSelection[group.id] = targetMode;
+        setDirectionAll(targetMode);
 
         // v3.1.2: show the new state at once — the active card slides over
         // (0.3s) or the segment flips its direction — and only re-sort
@@ -2325,7 +2332,9 @@
           b.classList.toggle('active', i === groupIdx);
           b.setAttribute('aria-pressed', i === groupIdx ? 'true' : 'false');
         });
-        fillSegment(btn, group, targetMode);
+        seg.querySelectorAll('.dst-badge-btn[data-mode]').forEach((b, i) => {
+          if (BUTTON_GROUPS[i]) fillSegment(b, BUTTON_GROUPS[i], groupSelection[BUTTON_GROUPS[i].id]);
+        });
         thumb.style.display = '';
         thumb.style.setProperty('--dst-i', String(groupIdx));
 
