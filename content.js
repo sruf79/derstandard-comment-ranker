@@ -35,8 +35,8 @@
   // Balance (both kinds netted), Timeline. The direction is shown by the
   // pill's colour (green = first, red = second) and the two dots.
   const MODE_DEFS = {
-    'positive-only':    { label: 'Pure',     title: 'Pure: zuerst überwiegend positive Postings – ohne Dislike, dann mit 1, 2, … Dislikes, jeweils die meisten Likes oben; danach alle übrigen nach Likes' },
-    'negative-only':    { label: 'Pure',     title: 'Pure: zuerst überwiegend negative Postings – ohne Like, dann mit 1, 2, … Likes, jeweils die meisten Dislikes oben; danach alle übrigen nach Dislikes' },
+    'positive-only':    { label: 'Pure',     title: 'Pure: Likes mit möglichst wenigen Gegenstimmen zuerst' },
+    'negative-only':    { label: 'Pure',     title: 'Pure: Dislikes mit möglichst wenigen Gegenstimmen zuerst' },
     'balance-top':      { label: 'Balance',  title: 'Balance: höchste Bilanz aus Plus- und Minus-Stimmen zuerst' },
     'balance-flop':     { label: 'Balance',  title: 'Balance: niedrigste Bilanz aus Plus- und Minus-Stimmen zuerst' },
     'chronological-new':{ label: 'Timeline', title: 'Timeline: neueste Postings zuerst' },
