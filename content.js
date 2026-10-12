@@ -579,6 +579,16 @@
       width: 34px; height: 34px;
     }
     dst-posting[data-dst-tile] dst-posting-head dst-posting--context > button { opacity: 0; pointer-events: none; }
+    /* pinned postings: only the pin (tooltip "Angeheftet"), no bold text */
+    dst-posting[data-dst-tile] dst-posting-head time strong {
+      font-size: 0 !important; display: inline-flex; vertical-align: -2px;
+      margin: 0 0 0 2px; cursor: help;
+      color: hsl(var(--theme--on-secondary--hsl) / .6);
+    }
+    dst-posting[data-dst-tile] dst-posting-head time:has(strong) button { padding-left: 5px !important; }
+    dst-posting[data-dst-tile] dst-posting-head time strong svg {
+      width: 15px !important; height: 15px !important; margin: 0 !important; pointer-events: none;
+    }
     /* thread toggle ("💬 169"): bottom right, under the vote knobs — the
        mirror image of the flag. It fills its column, so it stays centred
        however long the number gets (shortened from 1.000 on, see
@@ -1571,6 +1581,8 @@
       const label = n > 999 ? '+' + Math.floor(n / 1000) + 'k' : String(n);
       if (ans.getAttribute('data-dst-n') !== label) ans.setAttribute('data-dst-n', label);
     }
+    const pin = posting.querySelector('dst-posting-head time strong');
+    if (pin && pin.title !== 'Angeheftet') pin.title = 'Angeheftet';
     const nUp = posting.querySelector('dst-posting-footer .rate-up');
     const nDn = posting.querySelector('dst-posting-footer .rate-down');
     rail.querySelector('.dst-vk.up').classList.toggle('on', !!(nUp && nUp.classList.contains('active')));
@@ -1586,8 +1598,9 @@
 
   function decorateTile(p) {
     if (!p.querySelector(':scope > .dst-rail')) {
-      // deleted postings have no rating and no footer: leave them as they are
-      if (!p.querySelector('dst-posting--ratinglog') || !p.querySelector('dst-posting-footer')) return;
+      // deleted postings keep their look; postings without any vote yet have
+      // no rating element at all, but still get a tile (counts 0)
+      if (p.classList.contains('posting-deleted') || !p.querySelector('dst-posting-footer')) return;
       buildTile(p);
     }
     updateTile(p);
