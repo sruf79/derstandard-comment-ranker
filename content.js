@@ -501,7 +501,7 @@
       main.forum--main { --dst-rail: 44px; --dst-knob: 36px; --dst-side: calc(var(--dst-rail) + 8px); }
     }
     main.forum--main dst-posting[data-dst-tile] {
-      grid-template-columns: [permalink-start marker-start] var(--marker-width, 0px) [marker-end] var(--dst-side)
+      grid-template-columns: [permalink-start marker-start] 0px [marker-end] var(--dst-side)
         [posting-start] minmax(0, 1fr) [posting-end] var(--dst-side) [permalink-end] !important;
       --posting-background: var(--theme--card);
       background-color: var(--theme--card) !important;
@@ -510,6 +510,50 @@
     main.forum--main .thread dst-posting[data-dst-tile] {
       border: 1px solid hsl(var(--theme--on-secondary--hsl) / .15) !important;
       margin-top: 12px;
+    }
+    /* v4.1.0: threads like Reddit — each reply is indented and joined to the
+       posting it answers by a line that comes down from above and bends into
+       the reply at the height of the user name. derStandard's grey side bars
+       and triangles are replaced. Every level is its own <section class=
+       "thread"> right after its parent posting, so this is pure CSS: a reply
+       draws its own bend (::before) and, if more replies follow on its level,
+       the straight line further down (::after); a nested thread in between
+       carries the line on (section ::before). */
+    main.forum--main { --dst-ind: 32px; --dst-line: hsl(var(--theme--on-secondary--hsl) / .38); --dst-name-y: 28px; }
+    @media (max-width: 600px) { main.forum--main { --dst-ind: 18px; } }
+    main.forum--main .thread {
+      background: none !important; border: 0 !important; border-radius: 0 !important;
+      padding-left: var(--dst-ind); position: relative;
+    }
+    main.forum--main > .thread:not(.collapsed) { margin-bottom: 20px; }
+    main.forum--main .thread > dst-posting { position: relative; }
+    main.forum--main .thread > dst-posting::before,
+    main.forum--main .thread > dst-posting::after,
+    main.forum--main .thread > .thread::before {
+      content: none; position: absolute !important;
+      left: calc(var(--dst-ind) / -2 - 1px) !important;
+      grid-area: auto !important; place-self: auto !important;
+      margin: 0 !important; opacity: 1 !important;
+      background: none !important; border-radius: 0 !important;
+      pointer-events: none;
+    }
+    /* the bend into the reply */
+    main.forum--main .thread > dst-posting::before {
+      content: '' !important;
+      top: -13px; height: calc(13px + var(--dst-name-y)) !important; width: calc(var(--dst-ind) / 2) !important;
+      border-left: 2px solid var(--dst-line); border-bottom: 2px solid var(--dst-line);
+      border-bottom-left-radius: 14px !important;
+    }
+    /* the line goes on past this reply when more replies follow */
+    main.forum--main .thread > dst-posting:has(~ dst-posting)::after {
+      content: '' !important;
+      top: var(--dst-name-y); bottom: -1px; width: 0 !important; height: auto !important;
+      border-left: 2px solid var(--dst-line);
+    }
+    /* … and past a nested thread between two replies */
+    main.forum--main .thread > .thread:has(~ dst-posting)::before {
+      content: ''; top: 0; bottom: 0; width: 0;
+      border-left: 2px solid var(--dst-line);
     }
     /* derStandard's own pieces we replace or move */
     dst-posting[data-dst-tile] dst-posting-head dst-posting--ratinglog,
@@ -573,7 +617,9 @@
     }
     .dst-rail-zone { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
     .dst-rail-top, .dst-rail-bot { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-    .dst-rail-top { position: sticky; top: 12px; z-index: 1; padding-bottom: 4px; }
+    /* 96px: below derStandard's navigation bar, which slides in at the top
+       whenever the page is scrolled up */
+    .dst-rail-top { position: sticky; top: 96px; z-index: 1; padding-bottom: 4px; }
     .dst-vk {
       flex: none; width: var(--dst-knob); height: var(--dst-knob);
       border: 0; padding: 0; border-radius: 50%; cursor: pointer;
