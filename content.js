@@ -244,10 +244,10 @@
        (instead of a coloured ring around the active segment). */
     #dst-seg::before { transition: box-shadow .3s ease; }
     #dst-seg:has(#dst-seg-thumb[data-tone="pos"])::before {
-      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), inset 0 -2px 3px rgba(0, 0, 0, .06), 0 0 0 1px var(--dst-track-border), 0 0 0 2px rgba(46, 125, 50, .95), 0 -3.83px 5.74px 0.64px rgba(46, 125, 50, .55), 0 3.83px 5.74px 0.64px rgba(46, 125, 50, .55), 0 -7.01px 9.56px rgba(46, 125, 50, .35), 0 7.01px 9.56px rgba(46, 125, 50, .35);
+      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), inset 0 -2px 3px rgba(0, 0, 0, .06), 0 0 0 1px var(--dst-track-border), 0 0 0 2px rgba(46, 125, 50, .95), 0 2px 6px rgba(0, 0, 0, .12);
     }
     #dst-seg:has(#dst-seg-thumb[data-tone="neg"])::before {
-      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), inset 0 -2px 3px rgba(0, 0, 0, .06), 0 0 0 1px var(--dst-track-border), 0 0 0 2px rgba(198, 40, 40, .95), 0 -3.83px 5.74px 0.64px rgba(198, 40, 40, .55), 0 3.83px 5.74px 0.64px rgba(198, 40, 40, .55), 0 -7.01px 9.56px rgba(198, 40, 40, .35), 0 7.01px 9.56px rgba(198, 40, 40, .35);
+      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), inset 0 -2px 3px rgba(0, 0, 0, .06), 0 0 0 1px var(--dst-track-border), 0 0 0 2px rgba(198, 40, 40, .95), 0 2px 6px rgba(0, 0, 0, .12);
     }
     /* v3.20.0: the active segment is a raised glass knob (iOS-like): white
        glass with a dark rim, a white inner rim, a highlight and a deep
@@ -258,22 +258,21 @@
       inset: -1px;
       border-radius: 999px;
       background:
-        radial-gradient(120% 90% at 30% 0%, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 55%),
-        linear-gradient(to bottom, #fff 0%, #f7f8fa 48%, #e4e8ec 52%, #eef1f4 80%, #fafbfc 100%);
+        linear-gradient(to bottom, #fff, #f4f5f7);  /* v4.4.0: calm, no gloss */
       /* v3.24.0: light gathers at the lower inner edge, as in thick glass */
-      box-shadow: 0 0 0 2px rgba(70, 70, 70, .42), inset 0 0 0 1.5px #fff, inset 0 2px 0 #fff, inset 0 -2px 2px rgba(0, 0, 0, .08), inset 0 -3px 0 rgba(255, 255, 255, .85), inset 0 -5px 6px rgba(255, 255, 255, .5), 0 6px 16px rgba(0, 0, 0, .26), 0 2px 3px rgba(0, 0, 0, .3);
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, .14), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12);
     }
     /* v3.21.2 (v3.22.1: half as far): the glow of the bar reaches above and below it, so the
        colour still shows around the (larger) glass knob; the knob itself has
        no coloured ring. */
     /* click flash: a short glow ring in the direction's colour */
     @keyframes dst-glass-flash-pos {
-      0%   { box-shadow: 0 0 0 2px rgba(70, 70, 70, .42), inset 0 0 0 1.5px #fff, inset 0 2px 0 #fff, inset 0 -2px 2px rgba(0, 0, 0, .08), inset 0 -3px 0 rgba(255, 255, 255, .85), inset 0 -5px 6px rgba(255, 255, 255, .5), 0 6px 16px rgba(0, 0, 0, .26), 0 2px 3px rgba(0, 0, 0, .3), 0 0 0 10px rgba(46, 125, 50, .4); }
-      100% { box-shadow: 0 0 0 2px rgba(70, 70, 70, .42), inset 0 0 0 1.5px #fff, inset 0 2px 0 #fff, inset 0 -2px 2px rgba(0, 0, 0, .08), inset 0 -3px 0 rgba(255, 255, 255, .85), inset 0 -5px 6px rgba(255, 255, 255, .5), 0 6px 16px rgba(0, 0, 0, .26), 0 2px 3px rgba(0, 0, 0, .3), 0 0 0 0 rgba(46, 125, 50, 0); }
+      0%   { box-shadow: 0 0 0 1px rgba(0, 0, 0, .14), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12), 0 0 0 10px rgba(46, 125, 50, .4); }
+      100% { box-shadow: 0 0 0 1px rgba(0, 0, 0, .14), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12), 0 0 0 0 rgba(46, 125, 50, 0); }
     }
     @keyframes dst-glass-flash-neg {
-      0%   { box-shadow: 0 0 0 2px rgba(70, 70, 70, .42), inset 0 0 0 1.5px #fff, inset 0 2px 0 #fff, inset 0 -2px 2px rgba(0, 0, 0, .08), inset 0 -3px 0 rgba(255, 255, 255, .85), inset 0 -5px 6px rgba(255, 255, 255, .5), 0 6px 16px rgba(0, 0, 0, .26), 0 2px 3px rgba(0, 0, 0, .3), 0 0 0 10px rgba(198, 40, 40, .4); }
-      100% { box-shadow: 0 0 0 2px rgba(70, 70, 70, .42), inset 0 0 0 1.5px #fff, inset 0 2px 0 #fff, inset 0 -2px 2px rgba(0, 0, 0, .08), inset 0 -3px 0 rgba(255, 255, 255, .85), inset 0 -5px 6px rgba(255, 255, 255, .5), 0 6px 16px rgba(0, 0, 0, .26), 0 2px 3px rgba(0, 0, 0, .3), 0 0 0 0 rgba(198, 40, 40, 0); }
+      0%   { box-shadow: 0 0 0 1px rgba(0, 0, 0, .14), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12), 0 0 0 10px rgba(198, 40, 40, .4); }
+      100% { box-shadow: 0 0 0 1px rgba(0, 0, 0, .14), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12), 0 0 0 0 rgba(198, 40, 40, 0); }
     }
     #dst-seg-thumb.dst-flash[data-tone="pos"]::before { animation: dst-glass-flash-pos .45s ease-out; }
     #dst-seg-thumb.dst-flash[data-tone="neg"]::before { animation: dst-glass-flash-neg .45s ease-out; }
@@ -388,7 +387,7 @@
        pill's green/red glow); hovering lights the cup up, starts the steam
        and gives one short golden flash. The 15-day reminder breathes. */
     #dst-seg .dst-badge-btn.dst-coffee-btn {
-      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -3.83px 5.74px 0.64px rgba(240, 165, 0, .8), 0 3.83px 5.74px 0.64px rgba(240, 165, 0, .8), 0 -7.01px 9.56px rgba(240, 165, 0, .5), 0 7.01px 9.56px rgba(240, 165, 0, .5);
+      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 2px 6px rgba(0, 0, 0, .12);
     }
     #dst-seg .dst-badge-btn.dst-coffee-btn:hover {
       background: #fff8e1;
@@ -412,15 +411,15 @@
 
     /* v3.7.0: golden click flash of the coffee button (like the sort flash) */
     @keyframes dst-coffee-flash {
-      0%   { background-color: #FFE27A; box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -3.83px 5.74px 0.64px rgba(240, 165, 0, .8), 0 3.83px 5.74px 0.64px rgba(240, 165, 0, .8), 0 -7.01px 9.56px rgba(240, 165, 0, .5), 0 7.01px 9.56px rgba(240, 165, 0, .5), 0 0 0 10px rgba(255, 200, 0, .45); }
-      100% { background-color: #fff8e1; box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -3.83px 5.74px 0.64px rgba(240, 165, 0, .8), 0 3.83px 5.74px 0.64px rgba(240, 165, 0, .8), 0 -7.01px 9.56px rgba(240, 165, 0, .5), 0 7.01px 9.56px rgba(240, 165, 0, .5), 0 0 0 0 rgba(255, 200, 0, 0); }
+      0%   { background-color: #FFE27A; box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 2px 6px rgba(0, 0, 0, .12), 0 0 0 10px rgba(255, 200, 0, .45); }
+      100% { background-color: #fff8e1; box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 2px 6px rgba(0, 0, 0, .12), 0 0 0 0 rgba(255, 200, 0, 0); }
     }
     #dst-seg .dst-badge-btn.dst-coffee-btn.dst-flash { animation: dst-coffee-flash .45s ease-out; }
 
     /* Golden Pulse animation for Coffee badge (v3.22.2: breathing glow) */
     @keyframes dst-coffee-golden-pulse {
-      0%, 100% { box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -3.83px 5.74px 0.64px rgba(240, 165, 0, .8), 0 3.83px 5.74px 0.64px rgba(240, 165, 0, .8), 0 -7.01px 9.56px rgba(240, 165, 0, .5), 0 7.01px 9.56px rgba(240, 165, 0, .5); }
-      50%      { box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -3.83px 5.74px 0.64px rgba(240, 165, 0, .4), 0 3.83px 5.74px 0.64px rgba(240, 165, 0, .4), 0 -7.01px 9.56px rgba(240, 165, 0, .2), 0 7.01px 9.56px rgba(240, 165, 0, .2); }
+      0%, 100% { box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 2px 6px rgba(0, 0, 0, .12); }
+      50%      { box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 2px 6px rgba(0, 0, 0, .12); }
     }
 
     /* V14 Coffee Steam Container */
