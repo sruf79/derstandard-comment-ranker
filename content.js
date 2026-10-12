@@ -524,9 +524,15 @@
     /* The badge-styled card */
     #dst-voter-card {
       position: relative;
-      background: var(--dst-card);
-      border-radius: 8px;
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+      /* v3.25.0: same domed look as the sort bar */
+      background: linear-gradient(to bottom,
+        color-mix(in srgb, var(--dst-track) 35%, #fff),
+        var(--dst-track) 40%,
+        color-mix(in srgb, var(--dst-track) 96%, #000));
+      border-radius: 22px;
+      box-shadow: 0 0 0 1px var(--dst-track-border),
+        inset 0 1.5px 0 rgba(255, 255, 255, .95),
+        0 16px 44px rgba(0, 0, 0, .32), 0 3px 8px rgba(0, 0, 0, .18);
       width: 100%;
       max-width: 540px;
       max-height: 80vh;
@@ -544,21 +550,27 @@
        addition to backdrop click and Escape. */
     #dst-voter-close {
       position: absolute;
-      top: 6px;
-      right: 6px;
+      top: 9px;
+      right: 10px;
       z-index: 2;
-      width: 32px;
-      height: 32px;
+      width: 30px;
+      height: 30px;
       border: 0;
-      border-radius: 6px;
-      background: transparent;
-      color: hsl(var(--dst-ink) / .6);
+      border-radius: 50%;
+      /* v3.25.0: a small glass knob, like the active sort segment */
+      background:
+        radial-gradient(120% 90% at 30% 0%, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 55%),
+        linear-gradient(to bottom, #fff 0%, #f7f8fa 48%, #e4e8ec 52%, #eef1f4 80%, #fafbfc 100%);
+      box-shadow: 0 0 0 1.5px rgba(70, 70, 70, .42), inset 0 0 0 1px #fff,
+        inset 0 -2px 0 rgba(255, 255, 255, .85), 0 3px 8px rgba(0, 0, 0, .25);
+      color: hsl(var(--dst-ink) / .75);
       font: inherit;
-      font-size: 16px;
+      font-size: 14px;
+      font-weight: 700;
       line-height: 1;
       cursor: pointer;
     }
-    #dst-voter-close:hover { background: hsl(var(--dst-ink) / .08); color: hsl(var(--dst-ink)); }
+    #dst-voter-close:hover { color: hsl(var(--dst-ink)); }
     #dst-voter-close:focus-visible { outline: 2px solid hsl(var(--dst-ink)); outline-offset: 1px; }
 
     /* Body: two columns */
@@ -575,27 +587,33 @@
       flex-direction: column;
       min-width: 0;
     }
-    .dst-voter-col + .dst-voter-col { border-left: 1px solid hsl(var(--dst-ink) / .12); }
+    .dst-voter-col + .dst-voter-col { border-left: 1px solid hsl(var(--dst-ink) / .1); }
+    /* v3.25.0: column heads like the sort segments: word + count on top, a
+       derStandard rating bar below, and a green/red line with a soft glow */
     .dst-voter-col-head {
-      padding: 13px 14px 11px 14px;
-      font-size: 13px;
+      padding: 14px 14px 12px 16px;
+      font-size: 15px;
       position: sticky;
       top: 0;
-      background: var(--dst-card);
       display: flex;
-      align-items: center;
+      flex-direction: column;
+      align-items: flex-start;
       gap: 6px;
     }
+    .dst-vch-top { display: flex; align-items: baseline; gap: 6px; }
+    .dst-vch-bar { width: 44px; height: 6px; border-radius: 3px; }
+    .dst-voter-col-head.pos .dst-vch-bar { background: rgb(75, 120, 43); }
+    .dst-voter-col-head.neg .dst-vch-bar { background: rgb(213, 42, 42); }
     /* v2.0.1 Fix 2: triangle keeps the SAME size ratio to the text as in the
        badge bar (.ico-pri 17px / .dst-badge-btn 11.5px = 1.478). With 13px text
        that means 13 * 1.478 = 19.2px. */
-    .dst-voter-col-head .dst-vch-tri { font-size: 19.2px; line-height: 1; }
+    
     /* v2.0.1 Fix 1: count and label share the SAME size & weight — no longer
        does the number look bigger/bolder than the text next to it. */
-    .dst-voter-col-head .dst-vch-count { font-weight: 600; font-size: 13px; }
-    .dst-voter-col-head .dst-vch-label { font-weight: 600; font-size: 13px; }
-    .dst-voter-col-head.pos { color: #2e7d32; border-bottom: 2px solid #2e7d32; }
-    .dst-voter-col-head.neg { color: #c62828; border-bottom: 2px solid #c62828; padding-right: 44px; }
+    .dst-voter-col-head .dst-vch-count { font-weight: 700; font-size: 15px; }
+    .dst-voter-col-head .dst-vch-label { font-weight: 700; font-size: 15px; }
+    .dst-voter-col-head.pos { color: #2e7d32; box-shadow: inset 0 -2px 0 rgba(46, 125, 50, .9), 0 5px 8px -4px rgba(46, 125, 50, .55); }
+    .dst-voter-col-head.neg { color: #c62828; box-shadow: inset 0 -2px 0 rgba(198, 40, 40, .9), 0 5px 8px -4px rgba(198, 40, 40, .55); padding-right: 48px; }
     .dst-voter-list {
       list-style: none;
       margin: 0;
@@ -607,7 +625,7 @@
     .dst-voter-list a {
       display: block;
       padding: 7px 14px;
-      font-size: 13px;
+      font-size: 14px;
       color: inherit;
       text-decoration: none;
       white-space: nowrap;
@@ -621,8 +639,8 @@
     /* Footer / pagination */
     #dst-voter-foot {
       flex: 0 0 auto;
-      padding: 10px 14px;
-      border-top: 1px solid hsl(var(--dst-ink) / .12);
+      padding: 10px 14px 12px;
+      border-top: 1px solid hsl(var(--dst-ink) / .1);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -658,7 +676,8 @@
       width: 100%;
       height: 28px;
       background: hsl(var(--dst-ink) / .08);
-      border-radius: 6px;
+      border-radius: 14px;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, .1);
       position: relative;
       overflow: hidden;
     }
@@ -669,7 +688,7 @@
       height: 100%;
       width: 0%;
       background: hsl(var(--dst-ink) / .18);
-      border-radius: 6px;
+      border-radius: 14px;
       transition: width 0.4s ease;
     }
     .dst-voter-progress-fill--loading {
@@ -862,18 +881,22 @@
       col.className = 'dst-voter-col';
       const colHead = document.createElement('div');
       colHead.className = 'dst-voter-col-head ' + kind;
-      const tri = document.createElement('span');
-      tri.className = 'dst-vch-tri';
-      tri.textContent = kind === 'pos' ? '\u25B2' : '\u25BC';
+      // v3.25.0: "16 Likes" / "1 Dislike" with a rating bar below (no ▲▼)
+      const top = document.createElement('span');
+      top.className = 'dst-vch-top';
       const cnt = document.createElement('span');
       cnt.className = 'dst-vch-count';
       cnt.textContent = count;
       const t = document.createElement('span');
       t.className = 'dst-vch-label';
-      t.textContent = labelText;
-      colHead.appendChild(tri);
-      colHead.appendChild(cnt);
-      colHead.appendChild(t);
+      t.textContent = labelText + (Number(count) === 1 ? '' : 's');
+      top.appendChild(cnt);
+      top.appendChild(t);
+      const bar = document.createElement('span');
+      bar.className = 'dst-vch-bar';
+      bar.setAttribute('aria-hidden', 'true');
+      colHead.appendChild(top);
+      colHead.appendChild(bar);
       const ul = document.createElement('ul');
       ul.className = 'dst-voter-list';
       ul.setAttribute('data-kind', kind);
@@ -881,8 +904,8 @@
       col.appendChild(ul);
       return { col: col, ul: ul };
     }
-    const posCol = makeColumn('pos', posCount, 'Positive Bewertungen');
-    const negCol = makeColumn('neg', negCount, 'Negative Bewertungen');
+    const posCol = makeColumn('pos', posCount, 'Like');
+    const negCol = makeColumn('neg', negCount, 'Dislike');
     body.appendChild(posCol.col);
     body.appendChild(negCol.col);
 
