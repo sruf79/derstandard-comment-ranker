@@ -571,8 +571,12 @@
       display: flex;
       gap: 3px;
       padding: 3px;
-      margin: 12px 12px 10px;
-      border-radius: 24px;
+      /* v3.26.1: no margin — the bar IS the top of the window; its 22px
+         rounding equals the card's corners (44px high = a full pill) */
+      margin: 0;
+      border-radius: 22px;
+      position: relative;
+      z-index: 1;
       background: linear-gradient(to bottom,
         color-mix(in srgb, var(--dst-track) 35%, #fff),
         var(--dst-track) 55%,
