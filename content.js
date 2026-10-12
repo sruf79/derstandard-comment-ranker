@@ -530,15 +530,17 @@
         var(--dst-track) 40%,
         color-mix(in srgb, var(--dst-track) 96%, #000));
       border-radius: 22px;
+      /* v3.25.1: more depth — bevelled edge and a deep, layered shadow */
       box-shadow: 0 0 0 1px var(--dst-track-border),
         inset 0 1.5px 0 rgba(255, 255, 255, .95),
-        0 16px 44px rgba(0, 0, 0, .32), 0 3px 8px rgba(0, 0, 0, .18);
+        inset 0 -3px 4px rgba(0, 0, 0, .08),
+        0 28px 60px rgba(0, 0, 0, .38), 0 10px 20px rgba(0, 0, 0, .22), 0 2px 4px rgba(0, 0, 0, .2);
       width: 100%;
       max-width: 540px;
       max-height: 80vh;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
+      overflow: visible;               /* v3.25.1: close knob sits on the corner */
       font-family: inherit;
       color: hsl(var(--dst-ink));
       animation: dst-voter-pop 0.18s cubic-bezier(0.2, 0.8, 0.3, 1.1);
@@ -550,11 +552,11 @@
        addition to backdrop click and Escape. */
     #dst-voter-close {
       position: absolute;
-      top: 9px;
-      right: 10px;
+      top: -12px;
+      right: -12px;
       z-index: 2;
-      width: 30px;
-      height: 30px;
+      width: 34px;
+      height: 34px;
       border: 0;
       border-radius: 50%;
       /* v3.25.0: a small glass knob, like the active sort segment */
@@ -580,6 +582,7 @@
       overflow: hidden;
       flex: 1 1 auto;
       min-height: 120px;
+      border-radius: 22px 22px 0 0;
     }
     .dst-voter-col {
       flex: 1 1 50%;
@@ -591,17 +594,17 @@
     /* v3.25.0: column heads like the sort segments: word + count on top, a
        derStandard rating bar below, and a green/red line with a soft glow */
     .dst-voter-col-head {
-      padding: 14px 14px 12px 16px;
+      padding: 12px 10px 11px;
       font-size: 15px;
       position: sticky;
       top: 0;
       display: flex;
       flex-direction: column;
-      align-items: flex-start;
-      gap: 6px;
+      align-items: center;             /* v3.25.1: centred like the segments */
+      gap: 5px;
     }
-    .dst-vch-top { display: flex; align-items: baseline; gap: 6px; }
-    .dst-vch-bar { width: 44px; height: 6px; border-radius: 3px; }
+    .dst-vch-top { display: flex; align-items: baseline; justify-content: center; gap: 5px; }
+    .dst-vch-bar { width: clamp(36px, 45%, 110px); height: 6px; border-radius: 3px; }
     .dst-voter-col-head.pos .dst-vch-bar { background: rgb(75, 120, 43); }
     .dst-voter-col-head.neg .dst-vch-bar { background: rgb(213, 42, 42); }
     /* v2.0.1 Fix 2: triangle keeps the SAME size ratio to the text as in the
@@ -610,18 +613,23 @@
     
     /* v2.0.1 Fix 1: count and label share the SAME size & weight — no longer
        does the number look bigger/bolder than the text next to it. */
-    .dst-voter-col-head .dst-vch-count { font-weight: 700; font-size: 15px; }
-    .dst-voter-col-head .dst-vch-label { font-weight: 700; font-size: 15px; }
+    .dst-voter-col-head .dst-vch-count,
+    .dst-voter-col-head .dst-vch-label { font-weight: 600; font-size: 15px; line-height: 1; }
     .dst-voter-col-head.pos { color: #2e7d32; box-shadow: inset 0 -2px 0 rgba(46, 125, 50, .9), 0 5px 8px -4px rgba(46, 125, 50, .55); }
-    .dst-voter-col-head.neg { color: #c62828; box-shadow: inset 0 -2px 0 rgba(198, 40, 40, .9), 0 5px 8px -4px rgba(198, 40, 40, .55); padding-right: 48px; }
+    .dst-voter-col-head.neg { color: #c62828; box-shadow: inset 0 -2px 0 rgba(198, 40, 40, .9), 0 5px 8px -4px rgba(198, 40, 40, .55); }
     .dst-voter-list {
       list-style: none;
       margin: 0;
-      padding: 4px 0 8px 0;
+      padding: 0 0 8px 0;
       overflow-y: auto;
       flex: 1 1 auto;
+      /* v3.25.1: the list sits a little lower than the head (soft inner shadow) */
+      box-shadow: inset 0 8px 8px -8px rgba(0, 0, 0, .18);
     }
     .dst-voter-list li { margin: 0; padding: 0; }
+    /* v3.25.1: a grid — fine lines and every other row shaded */
+    .dst-voter-list li + li { border-top: 1px solid hsl(var(--dst-ink) / .08); }
+    .dst-voter-list li:nth-child(even) { background: hsl(var(--dst-ink) / .045); }
     .dst-voter-list a {
       display: block;
       padding: 7px 14px;
@@ -631,8 +639,6 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      border-radius: 8px;
-      margin: 1px 6px;
     }
     .dst-voter-list a:hover { background: hsl(var(--dst-ink) / .06); }
 
