@@ -550,6 +550,15 @@
       top: var(--dst-name-y); bottom: -1px; width: 0 !important; height: auto !important;
       border-left: 2px solid var(--dst-line);
     }
+    /* … and, inside the reply, on from right of the rating stripe to just
+       before the user name (broken at the frame and at the stripe) */
+    .dst-link { display: none; }
+    main.forum--main .thread > dst-posting > .dst-link {
+      display: block; position: absolute; pointer-events: none;
+      top: calc(var(--dst-name-y) - 2px); height: 2px;
+      left: calc(var(--dst-side) / 2 + 12px); width: calc(var(--dst-side) / 2 - 8px);
+      background: var(--dst-line); border-radius: 0 1px 1px 0;
+    }
     /* … and past a nested thread between two replies */
     main.forum--main .thread > .thread:has(~ dst-posting)::before {
       content: ''; top: 0; bottom: 0; width: 0;
@@ -1497,7 +1506,10 @@
       runPostingMenu(posting, 'Posting teilen');
     });
 
-    posting.append(stripe, rail, hide, copy, share);
+    // inside a reply: the thread line carries on after the card's frame
+    const link = document.createElement('span');
+    link.className = 'dst-link';
+    posting.append(stripe, rail, hide, copy, share, link);
     posting.setAttribute('data-dst-tile', '');
   }
 
