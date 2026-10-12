@@ -537,15 +537,13 @@
       background: none !important; border-radius: 0 !important;
       pointer-events: none;
     }
-    /* the bend into the reply: it starts 2px below the card above and runs
-       into a punched hole in this card's frame — like a thread stitched
-       through fabric (it comes out again right of the rating stripe) */
+    /* the bend into the reply: it starts 2px below the card above and stops
+       3px before this card's frame, so no frame is ever crossed */
     main.forum--main .thread > dst-posting::before {
       content: '' !important;
-      top: -10px; height: calc(10px + var(--dst-name-y)) !important; width: calc(var(--dst-ind) / 2 + 1px) !important;
+      top: -10px; height: calc(10px + var(--dst-name-y)) !important; width: calc(var(--dst-ind) / 2 - 3px) !important;
       border-left: 2px solid var(--dst-line); border-bottom: 2px solid var(--dst-line);
       border-bottom-left-radius: 14px !important;
-      filter: drop-shadow(0 1px .6px rgba(0, 0, 0, .22));
     }
     /* when more replies follow, one straight trunk runs on past this reply
        (the bend branches off it, like on Reddit); the line colour is opaque,
@@ -559,22 +557,11 @@
        before the user name (broken at the frame and at the stripe) */
     .dst-link { display: none; }
     main.forum--main .thread > dst-posting > .dst-link {
-      display: block; position: absolute; pointer-events: none; z-index: 2;
+      display: block; position: absolute; pointer-events: none;
       top: calc(var(--dst-name-y) - 2px); height: 2px;
       left: calc(var(--dst-side) / 2 + 12px); width: calc(var(--dst-side) / 2 - 8px);
       background: var(--dst-line); border-radius: 0 1px 1px 0;
-      box-shadow: 0 1px .6px rgba(0, 0, 0, .22);
     }
-    /* the two holes: where the thread goes in (frame) and comes out again */
-    main.forum--main .thread > dst-posting > .dst-link::before,
-    main.forum--main .thread > dst-posting > .dst-link::after {
-      content: ''; position: absolute; top: -2.5px;
-      width: 5px; height: 7px; border-radius: 50%;
-      background: radial-gradient(ellipse at 50% 40%, rgba(0, 0, 0, .6), rgba(0, 0, 0, .35) 75%);
-      box-shadow: inset 0 1px 1px rgba(0, 0, 0, .5), 0 1px 0 rgba(255, 255, 255, .8);
-    }
-    main.forum--main .thread > dst-posting > .dst-link::before { left: -2.5px; }
-    main.forum--main .thread > dst-posting > .dst-link::after { left: calc(-1 * (var(--dst-side) / 2 + 12px) - 3.5px); }
     /* … and past a nested thread between two replies */
     main.forum--main .thread > .thread:has(~ dst-posting)::before {
       content: ''; top: 0; bottom: 0; width: 0;
@@ -693,6 +680,17 @@
     .dst-fb.share { grid-column: posting-start / posting-end; justify-self: end; }
     .dst-fb.copy { grid-column: posting-start / posting-end; justify-self: end; margin-right: 46px; }
     .dst-fb.dst-done { color: #2e7d32; }
+    /* narrow cards (phones, deeply indented replies): smaller footer icons
+       and a tighter gap between copy and share; both sides shrink alike, so
+       the footer stays symmetric */
+    main.forum--main dst-posting[data-dst-tile] { container-type: inline-size; }
+    @container (max-width: 420px) {
+      .dst-fb { width: 28px; height: 28px; }
+      .dst-fb svg { width: 19px; height: 19px; }
+      .dst-fb.copy { margin-right: 32px; }
+      dst-posting-footer dst-dialog--report button svg,
+      dst-posting-footer .answers svg { width: 19px !important; height: 19px !important; }
+    }
     @media (prefers-reduced-motion: reduce) {
       .dst-stripe > span { transition: none; }
       .dst-vk.dst-flash, .dst-cnt.dst-roll { animation: none; }
