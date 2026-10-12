@@ -244,10 +244,10 @@
        (instead of a coloured ring around the active segment). */
     #dst-seg::before { transition: box-shadow .3s ease; }
     #dst-seg:has(#dst-seg-thumb[data-tone="pos"])::before {
-      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), inset 0 -2px 3px rgba(0, 0, 0, .06), 0 0 0 1px var(--dst-track-border), 0 0 0 2px rgba(46, 125, 50, .95), 0 -5.1px 7.65px 0.85px rgba(46, 125, 50, .55), 0 5.1px 7.65px 0.85px rgba(46, 125, 50, .55), 0 -9.35px 12.75px rgba(46, 125, 50, .35), 0 9.35px 12.75px rgba(46, 125, 50, .35);
+      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), inset 0 -2px 3px rgba(0, 0, 0, .06), 0 0 0 1px var(--dst-track-border), 0 0 0 2px rgba(46, 125, 50, .95), 0 -3.83px 5.74px 0.64px rgba(46, 125, 50, .55), 0 3.83px 5.74px 0.64px rgba(46, 125, 50, .55), 0 -7.01px 9.56px rgba(46, 125, 50, .35), 0 7.01px 9.56px rgba(46, 125, 50, .35);
     }
     #dst-seg:has(#dst-seg-thumb[data-tone="neg"])::before {
-      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), inset 0 -2px 3px rgba(0, 0, 0, .06), 0 0 0 1px var(--dst-track-border), 0 0 0 2px rgba(198, 40, 40, .95), 0 -5.1px 7.65px 0.85px rgba(198, 40, 40, .55), 0 5.1px 7.65px 0.85px rgba(198, 40, 40, .55), 0 -9.35px 12.75px rgba(198, 40, 40, .35), 0 9.35px 12.75px rgba(198, 40, 40, .35);
+      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), inset 0 -2px 3px rgba(0, 0, 0, .06), 0 0 0 1px var(--dst-track-border), 0 0 0 2px rgba(198, 40, 40, .95), 0 -3.83px 5.74px 0.64px rgba(198, 40, 40, .55), 0 3.83px 5.74px 0.64px rgba(198, 40, 40, .55), 0 -7.01px 9.56px rgba(198, 40, 40, .35), 0 7.01px 9.56px rgba(198, 40, 40, .35);
     }
     /* v3.20.0: the active segment is a raised glass knob (iOS-like): white
        glass with a dark rim, a white inner rim, a highlight and a deep
@@ -388,7 +388,7 @@
        pill's green/red glow); hovering lights the cup up, starts the steam
        and gives one short golden flash. The 15-day reminder breathes. */
     #dst-seg .dst-badge-btn.dst-coffee-btn {
-      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -5.1px 7.65px 0.85px rgba(240, 165, 0, .8), 0 5.1px 7.65px 0.85px rgba(240, 165, 0, .8), 0 -9.35px 12.75px rgba(240, 165, 0, .5), 0 9.35px 12.75px rgba(240, 165, 0, .5);
+      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -3.83px 5.74px 0.64px rgba(240, 165, 0, .8), 0 3.83px 5.74px 0.64px rgba(240, 165, 0, .8), 0 -7.01px 9.56px rgba(240, 165, 0, .5), 0 7.01px 9.56px rgba(240, 165, 0, .5);
     }
     #dst-seg .dst-badge-btn.dst-coffee-btn:hover {
       background: #fff8e1;
@@ -412,15 +412,15 @@
 
     /* v3.7.0: golden click flash of the coffee button (like the sort flash) */
     @keyframes dst-coffee-flash {
-      0%   { background-color: #FFE27A; box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -5.1px 7.65px 0.85px rgba(240, 165, 0, .8), 0 5.1px 7.65px 0.85px rgba(240, 165, 0, .8), 0 -9.35px 12.75px rgba(240, 165, 0, .5), 0 9.35px 12.75px rgba(240, 165, 0, .5), 0 0 0 10px rgba(255, 200, 0, .45); }
-      100% { background-color: #fff8e1; box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -5.1px 7.65px 0.85px rgba(240, 165, 0, .8), 0 5.1px 7.65px 0.85px rgba(240, 165, 0, .8), 0 -9.35px 12.75px rgba(240, 165, 0, .5), 0 9.35px 12.75px rgba(240, 165, 0, .5), 0 0 0 0 rgba(255, 200, 0, 0); }
+      0%   { background-color: #FFE27A; box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -3.83px 5.74px 0.64px rgba(240, 165, 0, .8), 0 3.83px 5.74px 0.64px rgba(240, 165, 0, .8), 0 -7.01px 9.56px rgba(240, 165, 0, .5), 0 7.01px 9.56px rgba(240, 165, 0, .5), 0 0 0 10px rgba(255, 200, 0, .45); }
+      100% { background-color: #fff8e1; box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -3.83px 5.74px 0.64px rgba(240, 165, 0, .8), 0 3.83px 5.74px 0.64px rgba(240, 165, 0, .8), 0 -7.01px 9.56px rgba(240, 165, 0, .5), 0 7.01px 9.56px rgba(240, 165, 0, .5), 0 0 0 0 rgba(255, 200, 0, 0); }
     }
     #dst-seg .dst-badge-btn.dst-coffee-btn.dst-flash { animation: dst-coffee-flash .45s ease-out; }
 
     /* Golden Pulse animation for Coffee badge (v3.22.2: breathing glow) */
     @keyframes dst-coffee-golden-pulse {
-      0%, 100% { box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -5.1px 7.65px 0.85px rgba(240, 165, 0, .8), 0 5.1px 7.65px 0.85px rgba(240, 165, 0, .8), 0 -9.35px 12.75px rgba(240, 165, 0, .5), 0 9.35px 12.75px rgba(240, 165, 0, .5); }
-      50%      { box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -5.1px 7.65px 0.85px rgba(240, 165, 0, .4), 0 5.1px 7.65px 0.85px rgba(240, 165, 0, .4), 0 -9.35px 12.75px rgba(240, 165, 0, .2), 0 9.35px 12.75px rgba(240, 165, 0, .2); }
+      0%, 100% { box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -3.83px 5.74px 0.64px rgba(240, 165, 0, .8), 0 3.83px 5.74px 0.64px rgba(240, 165, 0, .8), 0 -7.01px 9.56px rgba(240, 165, 0, .5), 0 7.01px 9.56px rgba(240, 165, 0, .5); }
+      50%      { box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -3.83px 5.74px 0.64px rgba(240, 165, 0, .4), 0 3.83px 5.74px 0.64px rgba(240, 165, 0, .4), 0 -7.01px 9.56px rgba(240, 165, 0, .2), 0 7.01px 9.56px rgba(240, 165, 0, .2); }
     }
 
     /* V14 Coffee Steam Container */
@@ -631,9 +631,12 @@
     dst-posting[data-dst-tile] dst-posting-footer dst-dialog--report { grid-column: 1 !important; justify-self: center; }
     dst-posting[data-dst-tile] dst-posting-footer dst-dialog--report button { color: #c62828 !important; }
     /* rating stripe: recessed, same height as the knob column */
+    /* stripe and knob ring start flush with the top of the user name's
+       letters (measured: 22.5px below the card top; both grid cells start
+       at 16px) */
     .dst-stripe {
       grid-column: marker-end / posting-start; grid-row: posting-start / content-end;
-      justify-self: center; align-self: stretch;
+      justify-self: center; align-self: stretch; margin-top: 6.5px;
       width: 12px; min-height: 60px;
       display: flex; flex-direction: column; gap: 2px;
       cursor: pointer;
@@ -654,7 +657,7 @@
     /* vote column: ▲ +n … −n ▼ */
     .dst-rail {
       grid-column: posting-end / permalink-end; grid-row: posting-start / content-end;
-      justify-self: center; align-self: stretch;
+      justify-self: center; align-self: stretch; margin-top: 8px;
       display: flex; flex-direction: column; align-items: center; gap: 4px;
     }
     .dst-rail-zone { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }

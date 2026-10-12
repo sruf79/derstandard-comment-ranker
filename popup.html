@@ -98,10 +98,10 @@
       z-index: -1;
       border-radius: 999px;
       background: var(--pill-bg);
-      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), inset 0 -2px 3px rgba(0, 0, 0, .06), 0 0 0 1px var(--track-border), 0 0 0 2px rgba(198, 40, 40, .95), 0 -5.1px 7.65px 0.85px rgba(198, 40, 40, .55), 0 5.1px 7.65px 0.85px rgba(198, 40, 40, .55), 0 -9.35px 12.75px rgba(198, 40, 40, .35), 0 9.35px 12.75px rgba(198, 40, 40, .35);
+      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), inset 0 -2px 3px rgba(0, 0, 0, .06), 0 0 0 1px var(--track-border), 0 0 0 2px rgba(198, 40, 40, .95), 0 -3.83px 5.74px 0.64px rgba(198, 40, 40, .55), 0 3.83px 5.74px 0.64px rgba(198, 40, 40, .55), 0 -7.01px 9.56px rgba(198, 40, 40, .35), 0 7.01px 9.56px rgba(198, 40, 40, .35);
       transition: box-shadow .3s ease;
     }
-    .onoff.is-on::before { box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), inset 0 -2px 3px rgba(0, 0, 0, .06), 0 0 0 1px var(--track-border), 0 0 0 2px rgba(46, 125, 50, .95), 0 -5.1px 7.65px 0.85px rgba(46, 125, 50, .55), 0 5.1px 7.65px 0.85px rgba(46, 125, 50, .55), 0 -9.35px 12.75px rgba(46, 125, 50, .35), 0 9.35px 12.75px rgba(46, 125, 50, .35); }
+    .onoff.is-on::before { box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), inset 0 -2px 3px rgba(0, 0, 0, .06), 0 0 0 1px var(--track-border), 0 0 0 2px rgba(46, 125, 50, .95), 0 -3.83px 5.74px 0.64px rgba(46, 125, 50, .55), 0 3.83px 5.74px 0.64px rgba(46, 125, 50, .55), 0 -7.01px 9.56px rgba(46, 125, 50, .35), 0 7.01px 9.56px rgba(46, 125, 50, .35); }
     .onoff button {
       position: relative;
       flex: 1 1 0;
@@ -173,7 +173,7 @@
     .coffee-badge:hover,
     .coffee-badge.prompting {
       background: #fff8e1;
-      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -5.1px 7.65px 0.85px rgba(240, 165, 0, .8), 0 5.1px 7.65px 0.85px rgba(240, 165, 0, .8), 0 -9.35px 12.75px rgba(240, 165, 0, .5), 0 9.35px 12.75px rgba(240, 165, 0, .5);   /* v3.22.2: golden glow like the sort bar */
+      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -3.83px 5.74px 0.64px rgba(240, 165, 0, .8), 0 3.83px 5.74px 0.64px rgba(240, 165, 0, .8), 0 -7.01px 9.56px rgba(240, 165, 0, .5), 0 7.01px 9.56px rgba(240, 165, 0, .5);   /* v3.22.2: golden glow like the sort bar */
     }
     
     /* ═══ v2.0.6: Golden pulse — only active after 3 days of usage ═══ */
@@ -183,13 +183,13 @@
        never aggressive. Honours prefers-reduced-motion. */
     .review-badge.pulsing {
       background: #fff8e1;
-      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -5.1px 7.65px 0.85px rgba(240, 165, 0, .8), 0 5.1px 7.65px 0.85px rgba(240, 165, 0, .8), 0 -9.35px 12.75px rgba(240, 165, 0, .5), 0 9.35px 12.75px rgba(240, 165, 0, .5);
+      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -3.83px 5.74px 0.64px rgba(240, 165, 0, .8), 0 3.83px 5.74px 0.64px rgba(240, 165, 0, .8), 0 -7.01px 9.56px rgba(240, 165, 0, .5), 0 7.01px 9.56px rgba(240, 165, 0, .5);
       animation: review-golden-pulse 2.4s ease-in-out infinite;
     }
     
     @keyframes review-golden-pulse {
-      0%, 100% { box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -5.1px 7.65px 0.85px rgba(240, 165, 0, .8), 0 5.1px 7.65px 0.85px rgba(240, 165, 0, .8), 0 -9.35px 12.75px rgba(240, 165, 0, .5), 0 9.35px 12.75px rgba(240, 165, 0, .5); }
-      50%      { box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -5.1px 7.65px 0.85px rgba(240, 165, 0, .4), 0 5.1px 7.65px 0.85px rgba(240, 165, 0, .4), 0 -9.35px 12.75px rgba(240, 165, 0, .2), 0 9.35px 12.75px rgba(240, 165, 0, .2); }
+      0%, 100% { box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -3.83px 5.74px 0.64px rgba(240, 165, 0, .8), 0 3.83px 5.74px 0.64px rgba(240, 165, 0, .8), 0 -7.01px 9.56px rgba(240, 165, 0, .5), 0 7.01px 9.56px rgba(240, 165, 0, .5); }
+      50%      { box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -3.83px 5.74px 0.64px rgba(240, 165, 0, .4), 0 3.83px 5.74px 0.64px rgba(240, 165, 0, .4), 0 -7.01px 9.56px rgba(240, 165, 0, .2), 0 7.01px 9.56px rgba(240, 165, 0, .2); }
     }
     
     /* Pulsing star gets a soft glow + slow shimmer to draw the eye */
@@ -267,17 +267,17 @@
     
     /* v3.23.0: golden glow always on, like the coffee button on the site;
        hovering gives one short golden flash, the reminder breathes */
-    .coffee-badge { margin-top: 18px; box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -5.1px 7.65px 0.85px rgba(240, 165, 0, .8), 0 5.1px 7.65px 0.85px rgba(240, 165, 0, .8), 0 -9.35px 12.75px rgba(240, 165, 0, .5), 0 9.35px 12.75px rgba(240, 165, 0, .5); }
+    .coffee-badge { margin-top: 18px; box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -3.83px 5.74px 0.64px rgba(240, 165, 0, .8), 0 3.83px 5.74px 0.64px rgba(240, 165, 0, .8), 0 -7.01px 9.56px rgba(240, 165, 0, .5), 0 7.01px 9.56px rgba(240, 165, 0, .5); }
     .coffee-badge:hover { animation: coffee-hover-flash .45s ease-out; }
     .coffee-badge.prompting { animation: golden-pulse 1.5s ease-in-out infinite; }
     @keyframes coffee-hover-flash {
-      0%   { background-color: #FFE27A; box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -5.1px 7.65px 0.85px rgba(240, 165, 0, .8), 0 5.1px 7.65px 0.85px rgba(240, 165, 0, .8), 0 -9.35px 12.75px rgba(240, 165, 0, .5), 0 9.35px 12.75px rgba(240, 165, 0, .5), 0 0 0 10px rgba(255, 200, 0, .45); }
-      100% { background-color: #fff8e1; box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -5.1px 7.65px 0.85px rgba(240, 165, 0, .8), 0 5.1px 7.65px 0.85px rgba(240, 165, 0, .8), 0 -9.35px 12.75px rgba(240, 165, 0, .5), 0 9.35px 12.75px rgba(240, 165, 0, .5), 0 0 0 0 rgba(255, 200, 0, 0); }
+      0%   { background-color: #FFE27A; box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -3.83px 5.74px 0.64px rgba(240, 165, 0, .8), 0 3.83px 5.74px 0.64px rgba(240, 165, 0, .8), 0 -7.01px 9.56px rgba(240, 165, 0, .5), 0 7.01px 9.56px rgba(240, 165, 0, .5), 0 0 0 10px rgba(255, 200, 0, .45); }
+      100% { background-color: #fff8e1; box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -3.83px 5.74px 0.64px rgba(240, 165, 0, .8), 0 3.83px 5.74px 0.64px rgba(240, 165, 0, .8), 0 -7.01px 9.56px rgba(240, 165, 0, .5), 0 7.01px 9.56px rgba(240, 165, 0, .5), 0 0 0 0 rgba(255, 200, 0, 0); }
     }
     
     @keyframes golden-pulse {
-      0%, 100% { box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -5.1px 7.65px 0.85px rgba(240, 165, 0, .8), 0 5.1px 7.65px 0.85px rgba(240, 165, 0, .8), 0 -9.35px 12.75px rgba(240, 165, 0, .5), 0 9.35px 12.75px rgba(240, 165, 0, .5); }
-      50%      { box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -5.1px 7.65px 0.85px rgba(240, 165, 0, .4), 0 5.1px 7.65px 0.85px rgba(240, 165, 0, .4), 0 -9.35px 12.75px rgba(240, 165, 0, .2), 0 9.35px 12.75px rgba(240, 165, 0, .2); }
+      0%, 100% { box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -3.83px 5.74px 0.64px rgba(240, 165, 0, .8), 0 3.83px 5.74px 0.64px rgba(240, 165, 0, .8), 0 -7.01px 9.56px rgba(240, 165, 0, .5), 0 7.01px 9.56px rgba(240, 165, 0, .5); }
+      50%      { box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 -3.83px 5.74px 0.64px rgba(240, 165, 0, .4), 0 3.83px 5.74px 0.64px rgba(240, 165, 0, .4), 0 -7.01px 9.56px rgba(240, 165, 0, .2), 0 7.01px 9.56px rgba(240, 165, 0, .2); }
     }
     
     .coffee-badge:active {
