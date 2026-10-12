@@ -35,8 +35,8 @@
   // Balance (both kinds netted), Timeline. The direction is shown by the
   // pill's colour (green = first, red = second) and the two dots.
   const MODE_DEFS = {
-    'positive-only':    { label: 'Pure',     title: 'Pure: zuerst Postings ohne Dislike, dann mit 1, 2, … Dislikes – jeweils die meisten Likes oben' },
-    'negative-only':    { label: 'Pure',     title: 'Pure: zuerst Postings ohne Like, dann mit 1, 2, … Likes – jeweils die meisten Dislikes oben' },
+    'positive-only':    { label: 'Pure',     title: 'Pure: überwiegend positive Postings – zuerst ohne Dislike, dann mit 1, 2, … Dislikes, jeweils die meisten Likes oben' },
+    'negative-only':    { label: 'Pure',     title: 'Pure: überwiegend negative Postings – zuerst ohne Like, dann mit 1, 2, … Likes, jeweils die meisten Dislikes oben' },
     'balance-top':      { label: 'Balance',  title: 'Balance: höchste Bilanz aus Plus- und Minus-Stimmen zuerst' },
     'balance-flop':     { label: 'Balance',  title: 'Balance: niedrigste Bilanz aus Plus- und Minus-Stimmen zuerst' },
     'chronological-new':{ label: 'Timeline', title: 'Timeline: neueste Postings zuerst' },
@@ -1860,10 +1860,13 @@
       // (no dislike), then those with exactly 1 dislike, then 2, … — within
       // each step the most likes first. Postings without any like come last.
       // The dislikes direction mirrors this. Nothing is hidden.
+      // v3.22.0: the steps only apply to postings where the chosen side
+      // outweighs the other (likes > dislikes resp. dislikes > likes); all
+      // other postings follow in the same order.
       case 'positive-only':
-        diff = ((ka.pos === 0) - (kb.pos === 0)) || (ka.neg - kb.neg) || (kb.pos - ka.pos); break;
+        diff = ((kb.pos > kb.neg) - (ka.pos > ka.neg)) || ((ka.pos === 0) - (kb.pos === 0)) || (ka.neg - kb.neg) || (kb.pos - ka.pos); break;
       case 'negative-only':
-        diff = ((ka.neg === 0) - (kb.neg === 0)) || (ka.pos - kb.pos) || (kb.neg - ka.neg); break;
+        diff = ((kb.neg > kb.pos) - (ka.neg > ka.pos)) || ((ka.neg === 0) - (kb.neg === 0)) || (ka.pos - kb.pos) || (kb.neg - ka.neg); break;
       case 'chronological-new': diff = kb.time - ka.time; break;
       case 'chronological':      // legacy alias -> behaves like "Old Timeline"
       case 'chronological-old': diff = ka.time - kb.time; break;
