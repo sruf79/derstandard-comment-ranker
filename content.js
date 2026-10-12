@@ -518,13 +518,24 @@
     /* the "…" menu stays (its share submenu opens from it) but sits invisibly
        under our share icon */
     dst-posting[data-dst-tile] dst-posting-head dst-posting--context {
-      position: absolute; right: calc((var(--dst-side) - 34px) / 2); bottom: 10px;
+      position: absolute; right: var(--dst-side); bottom: 10px;
       width: 34px; height: 34px;
     }
     dst-posting[data-dst-tile] dst-posting-head dst-posting--context > button { opacity: 0; pointer-events: none; }
-    dst-posting[data-dst-tile] dst-posting-head { padding-right: 52px; }
-    /* thread toggle ("💬 169") moves to the top right of the text area */
-    dst-posting[data-dst-tile] dst-posting-footer .answers { position: absolute; top: 12px; right: var(--dst-side); }
+    /* thread toggle ("💬 169"): bottom right, under the vote knobs — the
+       mirror image of the flag. It fills its column, so it stays centred
+       however long the number gets (shortened from 1.000 on, see
+       updateTile) */
+    dst-posting[data-dst-tile] dst-posting-footer .answers {
+      grid-column: 5 !important; justify-self: stretch !important; width: auto !important;
+      margin: 0 !important; display: flex !important; align-items: center; justify-content: center !important; gap: 4px;
+      padding: 0 !important; height: 34px;
+      color: hsl(var(--theme--on-secondary--hsl) / .7);
+      font-variant-numeric: tabular-nums;
+    }
+    dst-posting[data-dst-tile] dst-posting-footer .answers svg { width: 20px; height: 20px; flex: none; }
+    dst-posting[data-dst-tile] dst-posting-footer .answers[data-dst-n] span { display: none; }
+    dst-posting[data-dst-tile] dst-posting-footer .answers[data-dst-n]::after { content: attr(data-dst-n); }
     dst-posting[data-dst-tile] dst-posting-footer {
       position: static !important;
       grid-column: marker-end / permalink-end !important;
@@ -606,8 +617,9 @@
     .dst-fb:hover { background: hsl(var(--theme--on-secondary--hsl) / .06); }
     .dst-fb svg { width: 22px; height: 22px; }
     .dst-fb.hide { grid-column: posting-start / posting-end; justify-self: start; }
-    .dst-fb.copy { grid-column: posting-start / posting-end; justify-self: end; }
-    .dst-fb.share { grid-column: posting-end / permalink-end; justify-self: center; }
+    /* right side mirrors the left: share opposite "hide", copy next to it */
+    .dst-fb.share { grid-column: posting-start / posting-end; justify-self: end; }
+    .dst-fb.copy { grid-column: posting-start / posting-end; justify-self: end; margin-right: 46px; }
     .dst-fb.dst-done { color: #2e7d32; }
     @media (prefers-reduced-motion: reduce) {
       .dst-stripe > span { transition: none; }
@@ -1479,6 +1491,13 @@
       x.classList.toggle('dst-first', x === shown[0]);
       x.classList.toggle('dst-last', x === shown[shown.length - 1]);
     });
+    // replies: up to 999 written out, from 1.000 on "+1k", "+2k", …
+    const ans = posting.querySelector('dst-posting-footer .answers');
+    if (ans) {
+      const n = parseInt((ans.textContent || '').replace(/\D/g, ''), 10) || 0;
+      const label = n > 999 ? '+' + Math.floor(n / 1000) + 'k' : String(n);
+      if (ans.getAttribute('data-dst-n') !== label) ans.setAttribute('data-dst-n', label);
+    }
     const nUp = posting.querySelector('dst-posting-footer .rate-up');
     const nDn = posting.querySelector('dst-posting-footer .rate-down');
     rail.querySelector('.dst-vk.up').classList.toggle('on', !!(nUp && nUp.classList.contains('active')));
