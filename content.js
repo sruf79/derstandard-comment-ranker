@@ -50,21 +50,32 @@
     { id: 'timeline', modes: ['chronological-new', 'chronological-old'] }
   ];
 
-  // v2.2.2 (back in v3.1.1): two small dots under every segment, in the style
-  // of Material Design's page indicators — they show that the segment has two
-  // sort modes, and the filled dot which one is selected (also on inactive
-  // segments). Real CSS circles, crisp on high-density screens.
-  function buildDotsIndicator(group, currentMode) {
-    const span = document.createElement('span');
-    span.className = 'dots-indicator';
-    span.setAttribute('aria-hidden', 'true');
-    const currentIndex = group.modes.indexOf(currentMode);
-    for (let i = 0; i < group.modes.length; i++) {
-      const dot = document.createElement('span');
-      dot.className = 'dst-dot' + (i === currentIndex ? ' filled' : '');
-      span.appendChild(dot);
-    }
-    return span;
+  // v3.15.0: under every label a small bar in the look of derStandard's own
+  // rating bars (red left, green right): it replaces the two dots and shows
+  // the direction of the segment's current mode — also on inactive segments.
+  //   Pure     : all green (most likes) / all red (most dislikes)
+  //   Balance  : split, mostly green (highest) / mostly red (lowest)
+  //   Timeline : fading green (newest first) / fading red (oldest first)
+  // Every bar has the same size; its width follows the segment width.
+  const MODE_BARS = {
+    'positive-only':     [['pos', 1]],
+    'negative-only':     [['neg', 1]],
+    'balance-top':       [['neg', 1], ['pos', 3]],
+    'balance-flop':      [['neg', 3], ['pos', 1]],
+    'chronological-new': [['fade-new', 1]],
+    'chronological-old': [['fade-old', 1]]
+  };
+  function buildModeBar(mode) {
+    const bar = document.createElement('span');
+    bar.className = 'dst-mode-bar';
+    bar.setAttribute('aria-hidden', 'true');
+    MODE_BARS[mode].forEach(function(part) {
+      const seg = document.createElement('span');
+      seg.className = 'dst-mb-' + part[0];
+      seg.style.flexGrow = String(part[1]);
+      bar.appendChild(seg);
+    });
+    return bar;
   }
 
   const ALL_MODES = Object.keys(MODE_DEFS);
@@ -305,25 +316,21 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    /* Two dots: segment has two modes; the filled one is selected */
-    .dots-indicator {
+    /* v3.15.0: mode bar in derStandard's rating-bar look (same colours,
+       6px high, 2px gap, round outer ends); same size in every segment,
+       its width follows the segment (i.e. the display) width */
+    .dst-mode-bar {
       display: flex;
-      justify-content: center;
-      gap: 4px;
-      line-height: 1;
+      gap: 2px;
+      width: clamp(36px, 45%, 110px);
+      height: 6px;
     }
-    .dst-dot {
-      width: 4px;
-      height: 4px;
-      border-radius: 50%;
-      box-sizing: border-box;
-      border: 1px solid currentColor;
-      opacity: .55;
-    }
-    .dst-dot.filled {
-      background: currentColor;
-      opacity: .9;
-    }
+    .dst-mode-bar > span { flex: 1 1 0; min-width: 4px; height: 100%; }
+    .dst-mb-neg { background: rgb(213, 42, 42); border-radius: 3px 0 0 3px; }
+    .dst-mb-pos { background: rgb(75, 120, 43); border-radius: 0 3px 3px 0; }
+    .dst-mode-bar > span:only-child { border-radius: 3px; }
+    .dst-mb-fade-new { background: linear-gradient(to right, rgb(75, 120, 43), rgba(75, 120, 43, .12)); }
+    .dst-mb-fade-old { background: linear-gradient(to right, rgba(213, 42, 42, .12), rgb(213, 42, 42)); }
 
     /* Coffee/Donate button — never active; square, tinted like the track. */
     /* v3.7.0: inside the track as its last, round slot. v3.9.2: it fills
@@ -2115,7 +2122,7 @@
     labelSpan.textContent = m.label;
     topRow.appendChild(labelSpan);
     btn.appendChild(topRow);
-    btn.appendChild(buildDotsIndicator(group, mode));
+    btn.appendChild(buildModeBar(mode));
   }
 
   // v3.6.0: the active pill is green, or red for the "low" modes (as the
