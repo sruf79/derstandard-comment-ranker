@@ -535,9 +535,10 @@
         inset 0 1.5px 0 rgba(255, 255, 255, .95),
         inset 0 -3px 4px rgba(0, 0, 0, .08),
         0 28px 60px rgba(0, 0, 0, .38), 0 10px 20px rgba(0, 0, 0, .22), 0 2px 4px rgba(0, 0, 0, .2);
-      width: 100%;
-      max-width: 540px;
+      width: 540px;                    /* v3.25.3: fixed width, names never stretch it */
+      max-width: 100%;
       max-height: 80vh;
+      box-sizing: border-box;
       display: flex;
       flex-direction: column;
       overflow: visible;               /* v3.25.1: close knob sits on the corner */
@@ -585,7 +586,7 @@
       border-radius: 22px 22px 0 0;
     }
     .dst-voter-col {
-      flex: 1 1 50%;
+      flex: 1 1 0;                     /* v3.25.3: two equal halves, whatever the names */
       display: flex;
       flex-direction: column;
       min-width: 0;
@@ -601,22 +602,15 @@
       display: flex;
       flex-direction: column;
       align-items: center;             /* v3.25.1: centred like the segments */
-      gap: 5px;
+      justify-content: center;         /* v3.25.3: pill alone, centred both ways */
+      height: 40px;
+      box-sizing: border-box;
     }
-    .dst-vch-top { display: flex; align-items: baseline; justify-content: center; gap: 5px; }
     .dst-vch-bar { width: clamp(36px, 45%, 110px); height: 6px; border-radius: 3px; }
     .dst-voter-col-head.pos .dst-vch-bar { background: rgb(75, 120, 43); }
     .dst-voter-col-head.neg .dst-vch-bar { background: rgb(213, 42, 42); }
-    /* v2.0.1 Fix 2: triangle keeps the SAME size ratio to the text as in the
-       badge bar (.ico-pri 17px / .dst-badge-btn 11.5px = 1.478). With 13px text
-       that means 13 * 1.478 = 19.2px. */
-    
-    /* v2.0.1 Fix 1: count and label share the SAME size & weight — no longer
-       does the number look bigger/bolder than the text next to it. */
-    .dst-voter-col-head .dst-vch-count,
-    .dst-voter-col-head .dst-vch-label { font-weight: 600; font-size: 15px; line-height: 1; }
-    .dst-voter-col-head.pos { color: #2e7d32; box-shadow: inset 0 -2px 0 rgba(46, 125, 50, .9), 0 5px 8px -4px rgba(46, 125, 50, .55); }
-    .dst-voter-col-head.neg { color: #c62828; box-shadow: inset 0 -2px 0 rgba(198, 40, 40, .9), 0 5px 8px -4px rgba(198, 40, 40, .55); }
+    /* v3.25.3: neutral separator — red/green already lives in the pills */
+    .dst-voter-col-head { box-shadow: inset 0 -2px 0 hsl(var(--dst-ink) / .22), 0 5px 8px -4px rgba(0, 0, 0, .25); }
     .dst-voter-list {
       list-style: none;
       margin: 0;
@@ -626,7 +620,7 @@
       /* v3.25.1: the list sits a little lower than the head (soft inner shadow) */
       box-shadow: inset 0 8px 8px -8px rgba(0, 0, 0, .18);
     }
-    .dst-voter-list li { margin: 0; padding: 0; }
+    .dst-voter-list li { margin: 0; padding: 0; min-width: 0; }
     /* v3.25.1: a grid — fine lines and every other row shaded */
     .dst-voter-list li + li { border-top: 1px solid hsl(var(--dst-ink) / .08); }
     .dst-voter-list li:nth-child(even) { background: hsl(var(--dst-ink) / .045); }
@@ -895,21 +889,13 @@
       col.className = 'dst-voter-col';
       const colHead = document.createElement('div');
       colHead.className = 'dst-voter-col-head ' + kind;
-      // v3.25.0: "16 Likes" / "1 Dislike" with a rating bar below (no ▲▼)
-      const top = document.createElement('span');
-      top.className = 'dst-vch-top';
-      const cnt = document.createElement('span');
-      cnt.className = 'dst-vch-count';
-      cnt.textContent = count;
-      const t = document.createElement('span');
-      t.className = 'dst-vch-label';
-      t.textContent = labelText + (Number(count) === 1 ? '' : 's');
-      top.appendChild(cnt);
-      top.appendChild(t);
+      // v3.25.3: only the rating pill, the text lives in title/aria-label
+      const label = count + ' ' + labelText + (Number(count) === 1 ? '' : 's');
+      colHead.title = label;
+      colHead.setAttribute('aria-label', label);
       const bar = document.createElement('span');
       bar.className = 'dst-vch-bar';
       bar.setAttribute('aria-hidden', 'true');
-      colHead.appendChild(top);
       colHead.appendChild(bar);
       const ul = document.createElement('ul');
       ul.className = 'dst-voter-list';
