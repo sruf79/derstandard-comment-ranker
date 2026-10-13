@@ -201,10 +201,9 @@
       background: none;
       cursor: pointer;
       color: hsl(var(--dst-ink) / .25);
-      transition: color .12s ease, transform .12s ease;
+      transition: color .12s ease;
       user-select: none;
     }
-    #dst-feedback-bar .dst-fdbk-star:hover { transform: scale(1.15); }
     #dst-feedback-bar .dst-fdbk-star.active,
     #dst-feedback-bar .dst-fdbk-star.hover-preview { color: #f5c518; }
     #dst-feedback-bar .dst-fdbk-dismiss {

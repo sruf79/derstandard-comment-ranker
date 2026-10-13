@@ -143,15 +143,15 @@
     .badge-box:focus-visible { outline: none; }
     
     /* v4.10.3: no extra star in front — the five stars are the symbol
-       (18px). Pulsing: a soft glow + slow shimmer to draw the eye */
+       (18px). Pulsing: a soft glow to draw the eye. v4.12.3: no scaling
+       (on hover or pulsing) — it made the stars shift by a pixel */
     .review-badge.pulsing .review-stars {
       animation: review-star-shimmer 2.4s ease-in-out infinite;
-      text-shadow: 0 0 6px rgba(245, 197, 24, 0.6);
     }
     
     @keyframes review-star-shimmer {
-      0%, 100% { transform: scale(1); }
-      50%      { transform: scale(1.18); }
+      0%, 100% { text-shadow: 0 0 2px rgba(245, 197, 24, 0); }
+      50%      { text-shadow: 0 0 8px rgba(245, 197, 24, .8); }
     }
     
     @media (prefers-reduced-motion: reduce) {
@@ -163,11 +163,6 @@
       line-height: 1;
       color: #f5c518;
       flex-shrink: 0;
-      transition: transform 0.3s;
-    }
-    
-    .review-badge:hover .review-stars {
-      transform: scale(1.1);
     }
     
     .review-text {
