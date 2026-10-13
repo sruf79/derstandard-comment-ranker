@@ -97,18 +97,20 @@
       height: 50px;
       border: 0;
       border-radius: 999px;
-      background: var(--pill-bg);
       font: inherit;
       font-size: 14px;
-      font-weight: 700;
-      color: rgba(51, 51, 51, .7);
+      font-weight: 600;
+      color: #333;
       cursor: pointer;
-      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), inset 0 -2px 3px rgba(0, 0, 0, .06), 0 0 0 1px var(--track-border), 0 0 0 2px rgba(198, 40, 40, .95), 0 2px 6px rgba(0, 0, 0, .12);
-      transition: box-shadow .3s ease, color .3s ease, opacity .3s ease;
+      /* v4.10.2: the same ring as the active segment of the sort bar on the
+         site — 3px, its colour seeping softly into a lightly tinted knob */
+      background: linear-gradient(to bottom, #fdf1f0, #f8dcda);
+      box-shadow: 0 0 0 3px rgba(198, 40, 40, .95), inset 0 0 9px 2px rgba(198, 40, 40, .3), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12);
+      transition: box-shadow .3s ease;
     }
     .toggle[aria-pressed="true"] {
-      color: #222;
-      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), inset 0 -2px 3px rgba(0, 0, 0, .06), 0 0 0 1px var(--track-border), 0 0 0 2px rgba(46, 125, 50, .95), 0 2px 6px rgba(0, 0, 0, .12);
+      background: linear-gradient(to bottom, #f3faef, #e2f0da);
+      box-shadow: 0 0 0 3px rgba(46, 125, 50, .95), inset 0 0 9px 2px rgba(46, 125, 50, .3), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12);
     }
     .toggle:focus-visible { outline: 2px solid #333; outline-offset: 3px; }
     /* hidden until the saved state is read, so it never flashes the wrong one */
@@ -164,7 +166,7 @@
     }
     
     .review-text {
-      font-size: 13px;
+      font-size: 14px;
       font-weight: 600;
       color: #b8860b;
     }
@@ -188,9 +190,9 @@
     }
     
     .coffee-text {
-      font-size: 12px;
+      font-size: 14px;
       color: #555;
-      font-weight: 500;
+      font-weight: 600;
       transition: color 0.3s;
     }
     
