@@ -1,20 +1,19 @@
-// popup.js — derStandard Comment Ranker v4.10.0
-// 4-box popup: Header (icon + title), Toggle (enable/disable), Review
-// (browser-aware store link with a delayed golden pulse), and Coffee (donate).
+// popup.js — derStandard Comment Ranker v4.10.1
+// Popup: header (logo + title), on/off switch, review (browser-aware store
+// link with a delayed golden ring) and coffee (donate).
 //
 // v2.0.8 UNIFIED review logic (privacy-respecting, no analytics):
 //   • Install timestamp: chrome.storage.local (device-only, not synced)
 //   • Review status: chrome.storage.sync with SHARED key 'dstRanker_ratingGiven'
 //     (same as rating.js) → clicking review in popup OR on-page stops prompts everywhere
 //   • After 3 days of usage the review badge starts a subtle golden pulse.
-//   • Clicking the badge stores the flag, permanently stops the pulse, and shows
-//     a brief "Danke!" confirmation.
+//   • Clicking the badge stores the flag and permanently stops the pulse.
 //
 // v2.4.5 recurring donation pulse (privacy-respecting, no analytics):
 //   • The coffee badge auto-pulses (same look as hover) after 15 days of usage,
 //     then again at exponentially growing intervals (see dstNextPulseDay below).
-//   • Clicking the badge opens the donation page and "acknowledges" the current
-//     15-day window, so the pulse only returns at the next +15-day boundary.
+//   • Clicking the badge opens the donation page and counts as acknowledged,
+//     so the pulse only returns at the next calculated day.
 //   • This runs regardless of whether the user donated → even past donors get a
 //     gentle nudge again after a while (we can't detect actual donations).
 
@@ -42,7 +41,6 @@ chrome.storage.sync.get([SORT_KEY], function(data) {
   showEnabled((data || {})[SORT_KEY] !== false);
   requestAnimationFrame(function() { toggles.classList.remove('no-anim'); });
 });
-chrome.storage.sync.remove('dstTintEdge'); // setting of the removed option
 
 btnExt.addEventListener('click', function() {
   var on = btnExt.getAttribute('aria-pressed') !== 'true';
@@ -81,7 +79,7 @@ var REVIEW_URL = detectIsFirefox() ? AMO_REVIEW_URL : CHROME_STORE_REVIEW_URL;
 // Storage keys:
 //   • dstInstallTimestamp: chrome.storage.local (device-local, not synced)
 //   • dstRanker_ratingGiven: chrome.storage.sync (shared with rating.js — unified flag)
-var INSTALL_TS_KEY = 'dstInstallTimestamp'; // ms epoch of first popup open (local)
+var INSTALL_TS_KEY = 'dstInstallTimestamp'; // ms epoch of first use (popup or forum page; local)
 var REVIEWED_KEY   = 'dstRanker_ratingGiven'; // boolean: user clicked review (SYNC, unified)
 var PULSE_DELAY_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
 
@@ -97,7 +95,6 @@ var PULSE_DELAY_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
 
   function markReviewed() {
     reviewBtn.classList.remove('pulsing'); // stop pulse immediately + permanently
-    reviewBtn.classList.add('thanked');    // show "Danke!" confirmation overlay
     // UNIFIED: write to sync storage (same key as rating.js)
     if (syncStore) { try { syncStore.set({ [REVIEWED_KEY]: true }); } catch (e) { /* noop */ } }
   }
@@ -142,7 +139,7 @@ var PULSE_DELAY_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
 // Storage keys:
 //   • dstInstallTimestamp : chrome.storage.local (device-local; shared w/ review logic)
 //   • dstDonateAckN       : chrome.storage.sync  (how many times acknowledged, counter n)
-// Pulse formula: Tag(n) = 30 · (1.5^n - 1)
+// Pulse formula: day(n) = 30 · (1.5^(n+1) - 1), n = clicks so far
 //   → 1st pulse: day 15; 2nd: day 37.5; 3rd: day 71.25; 4th: day 121.875; …
 // A click increments n, so the pulse only returns at the next calculated day.
 var DONATE_URL    = 'https://buymeacoffee.com/diversion';
@@ -163,17 +160,20 @@ function dstNextPulseDay(n) {
   try { if (chrome && chrome.storage && chrome.storage.local) localStore = chrome.storage.local; } catch (e) { /* noop */ }
   try { if (chrome && chrome.storage && chrome.storage.sync) syncStore = chrome.storage.sync; } catch (e) { /* noop */ }
 
-  donateBtn.addEventListener('click', function() {
+  donateBtn.href = DONATE_URL;
+  donateBtn.addEventListener('click', function(e) {
+    e.preventDefault();
     // Acknowledge by incrementing n, so pulse returns only at the next calculated day.
     donateBtn.classList.remove('prompting');
-    if (syncStore) {
-      syncStore.get([DONATE_ACK_N_KEY], function(res) {
-        res = res || {}; // v2.4.10: res is undefined on storage errors
-        var n = (typeof res[DONATE_ACK_N_KEY] === 'number') ? res[DONATE_ACK_N_KEY] : 0;
-        try { syncStore.set({ [DONATE_ACK_N_KEY]: n + 1 }); } catch (e) { /* noop */ }
-      });
-    }
-    chrome.tabs.create({ url: DONATE_URL });
+    if (!syncStore) { chrome.tabs.create({ url: DONATE_URL }); return; }
+    // v4.10.1: the new tab closes the popup — open it only after the counter
+    // is written, otherwise the write was often lost
+    syncStore.get([DONATE_ACK_N_KEY], function(res) {
+      res = res || {}; // v2.4.10: res is undefined on storage errors
+      var n = (typeof res[DONATE_ACK_N_KEY] === 'number') ? res[DONATE_ACK_N_KEY] : 0;
+      try { syncStore.set({ [DONATE_ACK_N_KEY]: n + 1 }); } catch (e2) { /* noop */ }
+      chrome.tabs.create({ url: DONATE_URL });
+    });
   });
 
   if (!localStore || !syncStore) return; // can't track → never pulse (safe default)

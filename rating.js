@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════════════
-//  rating.js — derStandard Comment Ranker v2.1.0
-//  Smart review prompt for the Chrome Web Store / AMO
+//  rating.js — derStandard Comment Ranker
+//  Review prompt for the Chrome Web Store / AMO, shown below the sort bar
 //
 //  v3.1.0 DISMISSALS:
 //  - Bar appears after 3 days
@@ -14,10 +14,9 @@
 //  - CSS classes renamed from "rating"/"rate" to "feedback"/"fdbk" to avoid
 //    common adblocker filters (e.g., EasyList blocks elements with "rating")
 //
-//  ISOLATION GUARANTEE:
-//  - This file has ZERO dependencies on content.js
-//  - content.js is NOT modified — sorting logic is 100% untouched
-//  - If this file is removed, the extension works exactly as before
+//  ISOLATION:
+//  - Only reads content.js's sort bar (#dst-badge-bar) to know where to show
+//    the prompt; the sorting itself never depends on this file
 //
 //  CROSS-BROWSER:
 //  - Uses chrome.storage.sync (works in Chrome + Firefox MV3)
@@ -39,11 +38,6 @@
     INSTALL_DATE:    'dstRanker_installDate',
     RATING_GIVEN:    'dstRanker_ratingGiven',
     LAST_DISMISSED:  'dstRanker_lastDismissed',
-    DISMISS_COUNT:   'dstRanker_dismissCount',
-    // One-time reset marker for v1.9.15 — see runV1915Reset()
-    V1915_RESET:     'dstRanker_v1915Reset',
-    // One-time reset marker for v1.9.16 — see runV1916Reset()
-    V1916_RESET:     'dstRanker_v1916Reset',
   };
 
   const DELAY_FIRST_PROMPT  = 3 * 24 * 60 * 60 * 1000;  // 3 days in ms
@@ -134,111 +128,6 @@
     });
   }
 
-  function storageRemove(keys) {
-    return new Promise((resolve) => {
-      try {
-        chrome.storage.sync.remove(keys, () => resolve());
-      } catch (e) {
-        resolve();
-      }
-    });
-  }
-
-  // ── One-time reset for v1.9.15 ──────────────────────────────────
-  // BACKGROUND: Until v1.9.13 the Chrome Web Store review URL was broken
-  // (missing extension ID → 404). Existing users therefore COULD NOT rate,
-  // even if they wanted to. v1.9.14 fixed the link. To give every existing
-  // user a fresh chance to rate, this migration runs EXACTLY ONCE:
-  //   • clears ratingGiven + lastDismissed (so the prompt is eligible again)
-  //   • resets installDate to "now" (fresh 3-day countdown)
-  //   • sets the v1915Reset flag so it never runs again
-  //
-  // RETURNS: true if storage is in a usable state and main() may continue;
-  //          false if storage could not be read (→ main() should abort and
-  //          touch nothing, exactly like a transient read failure).
-  async function runV1915Reset() {
-    let state;
-    try {
-      state = await storageGet([KEYS.V1915_RESET, KEYS.INSTALL_DATE]);
-    } catch (e) {
-      // Storage unreadable → signal main() to abort without writing anything.
-      return false;
-    }
-
-    // Already migrated → nothing to do, continue normally.
-    if (state[KEYS.V1915_RESET]) return true;
-
-    if (!state[KEYS.INSTALL_DATE]) {
-      // No installDate yet = brand-new install (NOT an update from an older
-      // version). Nothing to reset; just mark the flag so this migration is
-      // considered done and never fires later. main() will set installDate.
-      await storageSet({ [KEYS.V1915_RESET]: true });
-      return true;
-    }
-
-    // installDate exists but flag is absent = update from an older version
-    // (<= v1.9.14). Perform the one-time reset.
-    await storageRemove([KEYS.RATING_GIVEN, KEYS.LAST_DISMISSED]);
-    await storageSet({
-      [KEYS.INSTALL_DATE]: Date.now(),
-      [KEYS.V1915_RESET]:  true,
-    });
-    return true;
-  }
-
-  // ── One-time reset for v1.9.16 ──────────────────────────────────
-  // PROBLEM with v1.9.15: it reset installDate to Date.now(), which RE-STARTED
-  // the 3-day countdown for EVERY existing user. Because Chrome rolls out
-  // auto-updates gradually over several days, almost no Chrome user had crossed
-  // the fresh 3-day threshold within the first days after release — so the
-  // prompt barely appeared and ratings stalled.
-  //
-  // FIX: back-date installDate so that existing, not-yet-rated users become
-  // eligible for the prompt IMMEDIATELY on their next forum visit (no second
-  // 3-day wait). They are long-time users — they don't need another grace
-  // period. Brand-new installs and users who already rated are left untouched.
-  //
-  // Runs EXACTLY ONCE (guarded by V1916_RESET). Same robustness contract as
-  // runV1915Reset(): returns false only if storage is unreadable.
-  async function runV1916Reset() {
-    let state;
-    try {
-      state = await storageGet([
-        KEYS.V1916_RESET,
-        KEYS.INSTALL_DATE,
-        KEYS.RATING_GIVEN,
-      ]);
-    } catch (e) {
-      return false; // Storage unreadable → abort, write nothing.
-    }
-
-    // Already migrated → nothing to do.
-    if (state[KEYS.V1916_RESET]) return true;
-
-    // No installDate = brand-new install → don't back-date, just mark done.
-    // main() will set installDate and the normal 3-day grace applies.
-    if (!state[KEYS.INSTALL_DATE]) {
-      await storageSet({ [KEYS.V1916_RESET]: true });
-      return true;
-    }
-
-    // Already rated → never disturb; just mark the flag.
-    if (state[KEYS.RATING_GIVEN]) {
-      await storageSet({ [KEYS.V1916_RESET]: true });
-      return true;
-    }
-
-    // Existing, not-yet-rated user → back-date installDate so the 3-day gate
-    // is already satisfied, and clear any active "Maybe later" snooze so the
-    // prompt can show on the very next forum page.
-    await storageRemove([KEYS.LAST_DISMISSED]);
-    await storageSet({
-      [KEYS.INSTALL_DATE]: Date.now() - DELAY_FIRST_PROMPT - (24 * 60 * 60 * 1000), // ~4 days ago
-      [KEYS.V1916_RESET]:  true,
-    });
-    return true;
-  }
-
   // ── Wait for the badge bar to exist (proves extension is active) ──
   function waitForBadgeBar(maxWait = 15000) {
     return new Promise((resolve) => {
@@ -312,7 +201,11 @@
       align-items: center;
     }
     #dst-feedback-bar .dst-fdbk-star {
+      font: inherit;
       font-size: 22px;
+      padding: 0;
+      border: 0;
+      background: none;
       cursor: pointer;
       color: hsl(var(--dst-ink) / .25);
       transition: color 0.12s ease, transform 0.12s ease;
@@ -360,7 +253,7 @@
       0% {
         transform: scale(1);
         box-shadow:
-          0 2px 8px rgba(183,204,163,0.2),
+          0 2px 8px rgba(0,0,0,0.08),
           0 0 0 0px rgba(255,215,0,0),
           0 0 0px rgba(255,215,0,0),
           0 0 0px rgba(255,193,7,0);
@@ -368,7 +261,7 @@
       12% {
         transform: scale(1.04);
         box-shadow:
-          0 2px 8px rgba(183,204,163,0.2),
+          0 2px 8px rgba(0,0,0,0.08),
           0 0 0 3px rgba(255,215,0,0.7),
           0 0 18px rgba(255,215,0,0.45),
           0 0 35px rgba(255,193,7,0.22),
@@ -377,7 +270,7 @@
       24% {
         transform: scale(1);
         box-shadow:
-          0 2px 8px rgba(183,204,163,0.2),
+          0 2px 8px rgba(0,0,0,0.08),
           0 0 0 2px rgba(255,215,0,0.4),
           0 0 12px rgba(255,215,0,0.25),
           0 0 24px rgba(255,193,7,0.1),
@@ -386,7 +279,7 @@
       38% {
         transform: scale(1.03);
         box-shadow:
-          0 2px 8px rgba(183,204,163,0.2),
+          0 2px 8px rgba(0,0,0,0.08),
           0 0 0 2.5px rgba(255,215,0,0.55),
           0 0 14px rgba(255,215,0,0.32),
           0 0 28px rgba(255,193,7,0.14),
@@ -395,7 +288,7 @@
       52% {
         transform: scale(1);
         box-shadow:
-          0 2px 8px rgba(183,204,163,0.2),
+          0 2px 8px rgba(0,0,0,0.08),
           0 0 0 1.5px rgba(255,215,0,0.3),
           0 0 8px rgba(255,215,0,0.18),
           0 0 18px rgba(255,193,7,0.07),
@@ -404,7 +297,7 @@
       68% {
         transform: scale(1.02);
         box-shadow:
-          0 2px 8px rgba(183,204,163,0.2),
+          0 2px 8px rgba(0,0,0,0.08),
           0 0 0 2px rgba(255,215,0,0.38),
           0 0 10px rgba(255,215,0,0.22),
           0 0 22px rgba(255,193,7,0.08),
@@ -413,7 +306,7 @@
       82% {
         transform: scale(1);
         box-shadow:
-          0 2px 8px rgba(183,204,163,0.2),
+          0 2px 8px rgba(0,0,0,0.08),
           0 0 0 1.5px rgba(255,215,0,0.22),
           0 0 6px rgba(255,215,0,0.1),
           0 0 14px rgba(255,193,7,0.04);
@@ -421,7 +314,7 @@
       100% {
         transform: scale(1);
         box-shadow:
-          0 2px 8px rgba(183,204,163,0.2),
+          0 2px 8px rgba(0,0,0,0.08),
           0 0 0 1px rgba(255,215,0,0.15),
           0 0 5px rgba(255,215,0,0.08),
           0 0 10px rgba(255,193,7,0.03);
@@ -441,7 +334,7 @@
         margin: 8px 0 4px;
         padding: 10px 14px;
         box-shadow:
-          0 2px 8px rgba(183,204,163,0.2),
+          0 2px 8px rgba(0,0,0,0.08),
           0 0 0 1px rgba(255,215,0,0.15),
           0 0 5px rgba(255,215,0,0.08);
       }
@@ -497,9 +390,12 @@
     const starsWrap = document.createElement('div');
     starsWrap.className = 'dst-fdbk-stars';
     for (let i = 1; i <= 5; i++) {
-      const star = document.createElement('span');
+      // v4.10.1: real buttons, so the stars work with the keyboard too
+      const star = document.createElement('button');
+      star.type = 'button';
       star.className = 'dst-fdbk-star';
       star.setAttribute('data-value', String(i));
+      star.setAttribute('aria-label', i + (i === 1 ? ' Stern' : ' Sterne'));
       star.textContent = '\u2605';
       starsWrap.appendChild(star);
     }
@@ -604,18 +500,13 @@
       });
     });
 
-    // Dismiss → increment dismissCount → re-prompt after 3 days
+    // Dismiss → re-prompt after 3 days
     if (dismissBtn) {
       dismissBtn.addEventListener('click', async () => {
         if (rated) return;
         rated = true;
 
-        // Increment dismiss counter
-        const currentCount = (await storageGet([KEYS.DISMISS_COUNT]))[KEYS.DISMISS_COUNT] || 0;
-        await storageSet({
-          [KEYS.LAST_DISMISSED]: Date.now(),
-          [KEYS.DISMISS_COUNT]: currentCount + 1,
-        });
+        await storageSet({ [KEYS.LAST_DISMISSED]: Date.now() });
 
         bar.classList.add('dst-golden-fading');
         setTimeout(() => {
@@ -632,28 +523,16 @@
     const host = location.hostname;
     if (!host.includes('derstandard.at') && !host.includes('derstandard.de')) return;
 
-    // 0. One-time v1.9.15 reset (runs at most once, before anything else).
-    //    If it returns false the storage was unreadable → abort and touch
-    //    nothing, so existing data can never be clobbered by a read glitch.
-    const resetOk = await runV1915Reset();
-    if (!resetOk) return;
-
-    // 0b. One-time v1.9.16 reset — removes the accidental second 3-day delay
-    //     introduced by v1.9.15 so existing users are prompted right away.
-    const reset16Ok = await runV1916Reset();
-    if (!reset16Ok) return;
-
     // 1. Read storage
     //    If the read FAILS (sync disabled, runtime error, etc.) we abort
     //    completely and write NOTHING — this guarantees installDate /
-    //    ratingGiven / dismissCount / lastDismissed can never be clobbered
+    //    ratingGiven / lastDismissed can never be clobbered
     //    by a transient read error that looks like a "fresh install".
     let data;
     try {
       data = await storageGet([
         KEYS.INSTALL_DATE,
         KEYS.RATING_GIVEN,
-        KEYS.DISMISS_COUNT,
         KEYS.LAST_DISMISSED,
       ]);
     } catch (e) {
@@ -721,12 +600,7 @@
     badgeBar.insertAdjacentElement('afterend', feedbackBar);
   }
 
-  // ── Run when DOM is ready ───────────────────────────────────────
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', main);
-  } else {
-    // Small delay to let content.js inject the badge bar first
-    setTimeout(main, 1000);
-  }
+  // ── Run (document_idle) — a small delay lets content.js inject the bar ──
+  setTimeout(main, 1000);
 
 })();

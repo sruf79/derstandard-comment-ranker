@@ -15,7 +15,6 @@
 
   const SORT_KEY = 'dstSorterEnabled';
   const MODE_KEY = 'dstSorterMode';
-  const AUTOLOAD_KEY = 'dstSorterAutoLoad';
 
   // ── v2.2.0: grouped toggle buttons ─────────────────────────────
   // Instead of 5 separate sort badges we now render only 3 sort buttons
@@ -81,7 +80,7 @@
   const ALL_MODES = Object.keys(MODE_DEFS);
 
   // Remembers the last-selected sub-mode per button group so a button keeps
-  // showing a sensible label/icon even while another button is the active one.
+  // showing a sensible label even while another button is the active one.
   const groupSelection = {
     likes:    'positive-only',
     balance:  'balance-top',
@@ -134,9 +133,10 @@
        visibility natively via the "collapsed" CSS class. */
 
     /* ═══ v3.1.0 SORT BAR: one segmented control in derStandard's own look ═══
-       All colours come from derStandard's theme variables, which change with
-       the Ressort (and dark mode); the fallbacks are the default light theme.
-       Green and red appear ONLY in the triangles — they stand for ratings. */
+       Track and text colours come from derStandard's theme variables, which
+       change with the Ressort; the fallbacks are the default light theme.
+       Green and red stand for ratings only: the rating bars and the ring of
+       the active segment (the direction). */
     #dst-badge-bar, #dst-voter-overlay {
       --dst-ink: var(--theme--on-secondary--hsl, 0 0% 13%);
       --dst-card: var(--theme--card, #fff);
@@ -182,9 +182,8 @@
        width is set from JS (depends on the number of segments). On a click
        it slides first; the re-sort only starts afterwards. */
     /* v3.9.0: the active pill reaches the track's outer frame (incl. its 1px
-       line), so its coloured ring and the frame are one line. It is 8px
-       wider than a segment (3px padding + 1px frame on each side); one step
-       is still segment + 3px gap = 100% - 5px. */
+       line). It is 8px wider than a segment (3px padding + 1px frame on each
+       side); one step is still segment + 3px gap = 100% - 5px. */
     #dst-seg-thumb {
       position: absolute;
       top: -1px;
@@ -243,22 +242,16 @@
       pointer-events: none;
     }
     #dst-seg::after { right: 0; width: calc(3px + 38px + 3px); }
-    /* v3.20.0: the active segment is a raised glass knob (iOS-like): white
-       glass with a dark rim, a white inner rim, a highlight and a deep
-       shadow; it reaches over the edge of the pill. Text stays sharp. */
+    /* v3.20.0: the active segment is a raised knob reaching over the edge of
+       the pill. v4.8.0: the track stays neutral; only the knob shows the
+       direction (data-tone, always set): a 3px green resp. red ring whose
+       colour seeps softly inwards into a lightly tinted knob. */
     #dst-seg-thumb::before {
       content: '';
       position: absolute;
       inset: -1px;
       border-radius: 999px;
-      background:
-        linear-gradient(to bottom, #fff, #f4f5f7);  /* v4.4.0: calm, no gloss */
-      /* v3.24.0: light gathers at the lower inner edge, as in thick glass */
-      box-shadow: 0 0 0 1px rgba(0, 0, 0, .14), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12);
     }
-    /* v4.8.0: the track stays neutral; only the active knob shows the
-       direction: a 3px green resp. red ring whose colour seeps softly
-       inwards into a lightly tinted knob. */
     #dst-seg-thumb[data-tone="pos"]::before {
       background: linear-gradient(to bottom, #f3faef, #e2f0da);
       box-shadow: 0 0 0 3px rgba(46, 125, 50, .95), inset 0 0 9px 2px rgba(46, 125, 50, .3), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12);
@@ -289,11 +282,11 @@
       padding: 0 8px;
       box-sizing: border-box;
       display: flex;
-      flex-direction: column;     /* label row on top, dots below */
+      flex-direction: column;     /* label row on top, mode bar below */
       align-items: center;
       justify-content: center;
       gap: 5px;
-      border-radius: 20px;        /* pill, like the sliding card */
+      border-radius: 20px;
       font: inherit;
       font-size: 15px;            /* v3.14.1: like the usernames (was 13px) */
       font-weight: 600;
@@ -321,8 +314,7 @@
     @media (prefers-reduced-motion: reduce) {
       #dst-seg .dst-badge-btn > * { transition: none; }
     }
-    #dst-seg .dst-badge-btn.active,
-    #dst-seg .dst-badge-btn.active:hover {
+    #dst-seg .dst-badge-btn.active {
       background: transparent;    /* the thumb underneath is the card */
       color: hsl(var(--dst-ink));
       font-weight: 700;
@@ -335,7 +327,6 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 5px;
       min-width: 0;
       max-width: 100%;
     }
@@ -367,10 +358,12 @@
       box-shadow: inset 0 1px 1.5px rgba(0, 0, 0, .38), 0 1px 0 rgba(255, 255, 255, .85);
     }
 
-    /* Coffee/Donate button — never active; square, tinted like the track. */
-    /* v3.7.0: inside the track as its last, round slot. v3.9.2: it fills
-       its whole pill (44px, over the track padding), so hover ring, glow and
-       click flash sit on the pill's edge. Takes the same room as before. */
+    /* Coffee/Donate button — never active, round, with a golden ring.
+       v3.7.0: inside the track as its last slot. v3.9.2: it fills its whole
+       pill (44px, over the track padding), so the ring and the click flash
+       sit on the pill's edge. Hovering lights the cup up, starts the steam
+       and gives one short golden flash; the reminder (dst-pulsing) keeps the
+       light background and the steam. */
     #dst-seg .dst-badge-btn.dst-coffee-btn {
       flex: 0 0 44px;
       width: 44px;
@@ -379,16 +372,7 @@
       padding: 0;
       border-radius: 50%;
       background: transparent;
-      color: #6d4c41;
       position: relative;
-    }
-    /* v3.22.2: hover / reminder pulse in the same style as the green/red
-       glow of the sort pill: a fine golden line and a golden glow above
-       and below, gently breathing */
-    /* v3.23.0: the golden glow is always on (the counterpart of the sort
-       pill's green/red glow); hovering lights the cup up, starts the steam
-       and gives one short golden flash. The 15-day reminder breathes. */
-    #dst-seg .dst-badge-btn.dst-coffee-btn {
       box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 2px 6px rgba(0, 0, 0, .12);
     }
     #dst-seg .dst-badge-btn.dst-coffee-btn:hover {
@@ -397,18 +381,13 @@
     }
     #dst-seg .dst-badge-btn.dst-coffee-btn.dst-pulsing {
       background: #fff8e1;
-      animation: dst-coffee-golden-pulse 1.5s ease-in-out infinite;
     }
     .dst-badge-btn.dst-coffee-btn:hover .dst-coffee-icon,
     .dst-badge-btn.dst-coffee-btn.dst-pulsing .dst-coffee-icon {
       transform: scale(1.1);
     }
-    /* v2.4.5: Auto-Puls alle 15 Tage — respektiert reduzierte Bewegung */
     @media (prefers-reduced-motion: reduce) {
-      #dst-seg .dst-badge-btn.dst-coffee-btn:hover,
-      #dst-seg .dst-badge-btn.dst-coffee-btn.dst-pulsing {
-        animation: none;
-      }
+      #dst-seg .dst-badge-btn.dst-coffee-btn:hover { animation: none; }
     }
 
     /* v3.7.0: golden click flash of the coffee button (like the sort flash) */
@@ -417,12 +396,6 @@
       100% { background-color: #fff8e1; box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 2px 6px rgba(0, 0, 0, .12), 0 0 0 0 rgba(255, 200, 0, 0); }
     }
     #dst-seg .dst-badge-btn.dst-coffee-btn.dst-flash { animation: dst-coffee-flash .45s ease-out; }
-
-    /* Golden Pulse animation for Coffee badge (v3.22.2: breathing glow) */
-    @keyframes dst-coffee-golden-pulse {
-      0%, 100% { box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 2px 6px rgba(0, 0, 0, .12); }
-      50%      { box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 2px 6px rgba(0, 0, 0, .12); }
-    }
 
     /* V14 Coffee Steam Container */
     .dst-steam-container {
@@ -687,12 +660,8 @@
     dst-posting--ratinglog button.u-interactive {
       cursor: pointer !important;
     }
-    /* v1.9.20 — Fix 2: on hover, frame the whole rating area in gold — exactly
-       like the coffee icon (2px solid #FFD700 + warm #fff8e1 background) instead
-       of underlining the numbers. The default border is transparent so the
-       layout never jumps when the gold frame appears. */
     /* v4.4.1: hover like derStandard's user-name button (a light grey
-       background) instead of the gold frame */
+       background); no underlined numbers */
     dst-posting--ratinglog.dst-votable button {
       border: 0 !important;
       border-radius: 11px !important;
@@ -703,6 +672,11 @@
     }
     dst-posting--ratinglog.dst-votable button:active {
       background: hsl(var(--theme--on-base--hsl) / 8%) !important;
+    }
+    dst-posting--ratinglog.dst-votable button:focus-visible,
+    .dst-fb:focus-visible {
+      outline: 2px solid hsl(var(--theme--on-secondary--hsl)) !important;
+      outline-offset: 2px;
     }
     dst-posting--ratinglog.dst-votable button:hover span.pos,
     dst-posting--ratinglog.dst-votable button:hover span.neg {
@@ -766,24 +740,12 @@
       min-width: 0;
     }
     .dst-voter-col + .dst-voter-col { border-left: 1px solid hsl(var(--dst-ink) / .1); }
-    /* v3.26.0: the head is a copy of the sort bar — one domed pill track
-       (same gradient, frame, highlight and shadow as #dst-seg::before) with
-       two equal segments, each holding its rating pill dead centre */
+    /* v4.5.0: the white top of the window, with a straight edge to the list
+       below; two equal halves (v4.7.0: one shared bar, see below) */
     #dst-voter-head {
       flex: 0 0 auto;
       display: flex;
-      gap: 3px;
-      padding: 3px;
-      /* v3.26.1: no margin — the bar IS the top of the window; its 22px
-         rounding equals the card's corners (44px high = a full pill) */
-      margin: 0;
-      /* v4.5.0: the white top of the window (the colour of the selected
-         sort segment), with a straight edge to the list below */
-      /* v4.5.2: no total line any more — count + bar sit exactly in the
-         middle of their half, both ways */
       height: 56px;
-      padding: 0;
-      gap: 0;
       align-items: stretch;
       position: relative;
       z-index: 1;
@@ -798,7 +760,6 @@
     .dst-voter-col-head {
       flex: 1 1 50%;
       min-width: 0;
-      min-height: 38px;
       position: relative;
       --dst-vmax: min(160px, 100% - 70px);
     }
@@ -806,7 +767,6 @@
     .dst-vch-bar {
       position: absolute; top: 50%; height: 8px; margin-top: -4px;
       width: max(6px, calc(var(--f, 0) * var(--dst-vmax)));
-      box-shadow: inset 0 1px 1.5px rgba(0, 0, 0, .38), 0 1px 0 rgba(255, 255, 255, .85);
     }
     .dst-voter-col-head.neg .dst-vch-bar { right: 2px; background: rgb(213, 42, 42); border-radius: 4px 0 0 4px; }
     .dst-voter-col-head.pos .dst-vch-bar { left: 1px; background: rgb(75, 120, 43); border-radius: 0 4px 4px 0; }
@@ -815,8 +775,8 @@
       position: absolute; top: 50%; transform: translateY(-50%);
       font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1;
     }
-    .dst-voter-col-head.neg .dst-vch-n { right: calc(var(--dst-vmax) + 12px); color: #c62828; }
-    .dst-voter-col-head.pos .dst-vch-n { left: calc(var(--dst-vmax) + 12px); color: #2e7d32; }
+    .dst-voter-col-head.neg .dst-vch-n { right: calc(var(--dst-vmax) + 12px); color: rgb(213, 42, 42); }
+    .dst-voter-col-head.pos .dst-vch-n { left: calc(var(--dst-vmax) + 12px); color: rgb(75, 120, 43); }
     .dst-voter-col-head.zero .dst-vch-n { color: hsl(var(--dst-ink) / .4); }
     /* an empty column is greyed out */
     .dst-voter-list.dst-empty { background: hsl(var(--dst-ink) / .07); }
@@ -844,12 +804,13 @@
       text-overflow: ellipsis;
     }
     .dst-voter-list a:hover { background: hsl(var(--dst-ink) / .06); }
+    .dst-voter-list a:focus-visible { outline: 2px solid hsl(var(--dst-ink)); outline-offset: -2px; }
     /* v3.25.2: schwarzer Aufzählungspunkt, Tab-Abstand, dann der Name */
     .dst-voter-list a::before {
       content: '•';
       display: inline-block;
       width: 2em;
-      color: #000;
+      color: hsl(var(--dst-ink));
       font-weight: 700;
     }
 
@@ -887,9 +848,9 @@
     }
     @keyframes dst-voter-spin { to { transform: rotate(360deg); } }
 
-    /* v2.0.4: footer progress bar — replicates derStandard's posting-load bar
-       (the green "Lade alle Postings …" bar) for a consistent look. */
-    .dst-voter-progress {
+    /* v2.0.4: progress bar — v4.10.1: one look for loading the postings
+       (below the sort bar), its "all loaded" notice and the voter window */
+    .dst-progress {
       width: 100%;
       height: 28px;
       background: hsl(var(--dst-ink) / .08);
@@ -898,7 +859,7 @@
       position: relative;
       overflow: hidden;
     }
-    .dst-voter-progress-fill {
+    .dst-progress-fill {
       position: absolute;
       left: 0;
       top: 0;
@@ -908,10 +869,10 @@
       border-radius: 14px;
       transition: width 0.4s ease;
     }
-    .dst-voter-progress-fill--loading {
-      animation: dst-voter-progress-pulse 1.5s ease-in-out infinite;
+    .dst-progress-fill--loading {
+      animation: dst-progress-pulse 1.5s ease-in-out infinite;
     }
-    .dst-voter-progress-text {
+    .dst-progress-text {
       position: absolute;
       left: 0;
       top: 0;
@@ -925,7 +886,7 @@
       font-size: 12px;
       z-index: 1;
     }
-    @keyframes dst-voter-progress-pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+    @keyframes dst-progress-pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
     .dst-voter-error {
       padding: 24px 20px;
       text-align: center;
@@ -935,19 +896,23 @@
     }
 
     @media (max-width: 768px) {
-      #dst-voter-card { max-width: 100%; max-height: 86vh; }
-      .dst-voter-list a { padding: 9px 14px; font-size: 14px; }
+      #dst-voter-card { max-height: 86vh; }
+      .dst-voter-list a { padding: 9px 14px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #dst-voter-overlay, #dst-voter-card, .dst-progress-fill--loading,
+      .dst-steam-wisp { animation: none; }
     }
   `;
 
   let sortEnabled = true;
   let sortMode = 'balance-top'; // default
-  let autoLoadEnabled = true;
   let observer = null;
   let sortTimeout = null;
   let isSorting = false;
   let lastSortSignature = '';
   let isLoadingAllPostings = false; // v1.7.3: Guard for loadAllPostings
+  let allLoadDone = false;          // v4.10.1: loadAllPostings ran to its end once
   // v1.6.10: Removed ratingChangeDebounce — we no longer observe rating attribute changes
   // This prevents the extension from interfering with derStandard.at's vote processing
 
@@ -1084,8 +1049,7 @@
     const card = document.createElement('div');
     card.id = 'dst-voter-card';
 
-    // v2.0.0: the central "Bewertungen ▲ ▼" heading is gone; each column carries
-    // its own header with a coloured triangle, the count, and a descriptive label.
+    // v4.7.0: one head for both columns: red bar + count left, green right.
 
     // Body with two columns
     const body = document.createElement('div');
@@ -1119,7 +1083,6 @@
       colHead.append(bar, n);
       const ul = document.createElement('ul');
       ul.className = 'dst-voter-list';
-      ul.setAttribute('data-kind', kind);
       if (!c) ul.classList.add('dst-empty');
       head.appendChild(colHead);
       col.appendChild(ul);
@@ -1243,27 +1206,25 @@
     const MAX_PAGES = 400;       // safety cap against infinite loops
     const PAGE_DELAY_MS = 120;   // be polite to the server between requests
 
-    // v2.0.4: the footer shows the same green progress bar derStandard's forum
-    // uses while loading postings (grey track + green gradient fill + pulse +
-    // centred text overlay), instead of the small circular spinner.
+    // v2.0.4: the footer shows a progress bar (track, fill, pulse, centred
+    // text) while loading, instead of a small circular spinner.
     function ensureProgressBar() {
-      let bar = refs.foot.querySelector('#dst-voter-progress');
+      let bar = refs.foot.querySelector('.dst-progress');
       if (!bar) {
         bar = document.createElement('div');
-        bar.id = 'dst-voter-progress';
-        bar.className = 'dst-voter-progress';
+        bar.className = 'dst-progress';
         const fill = document.createElement('div');
-        fill.className = 'dst-voter-progress-fill';
+        fill.className = 'dst-progress-fill';
         const txt = document.createElement('span');
-        txt.className = 'dst-voter-progress-text';
+        txt.className = 'dst-progress-text';
         bar.appendChild(fill);
         bar.appendChild(txt);
         refs.foot.appendChild(bar);
       }
       return {
         bar: bar,
-        fill: bar.querySelector('.dst-voter-progress-fill'),
-        txt: bar.querySelector('.dst-voter-progress-text')
+        fill: bar.querySelector('.dst-progress-fill'),
+        txt: bar.querySelector('.dst-progress-text')
       };
     }
 
@@ -1273,15 +1234,14 @@
       const loaded = loadedPos + loadedNeg;
       if (done) {
         pb.fill.style.width = '100%';
-        pb.fill.classList.remove('dst-voter-progress-fill--loading');
-        pb.bar.classList.add('dst-voter-progress--done');
+        pb.fill.classList.remove('dst-progress-fill--loading');
         pb.txt.textContent = loaded + ' Bewertungen geladen';
         // v4.5.0: the footer only shows while loading; the total is on top
         refs.foot.style.display = 'none';
       } else {
         const pct = total > 0 ? Math.min(100, Math.round((loaded / total) * 100)) : 0;
         pb.fill.style.width = pct + '%';
-        pb.fill.classList.add('dst-voter-progress-fill--loading');
+        pb.fill.classList.add('dst-progress-fill--loading');
         pb.txt.textContent = 'L\u00E4dt \u2026 ' + loaded + ' von ' + total + ' geladen';
       }
     }
@@ -1309,14 +1269,14 @@
             showError('Fehler beim Laden der Bewertungsdaten: ' + err.message);
             return;
           }
-          // We already have some data — stop gracefully and report partial state.
-          done = true;
+          // We already have some data — stop and say that the list is
+          // incomplete (v4.10.1: the footer stays visible for this note).
           const pb = ensureProgressBar();
           pb.fill.style.width = '100%';
-          pb.fill.classList.remove('dst-voter-progress-fill--loading');
-          pb.bar.classList.add('dst-voter-progress--done');
+          pb.fill.classList.remove('dst-progress-fill--loading');
           pb.txt.textContent = (loadedPos + loadedNeg) + ' geladen \u2013 weitere Daten konnten nicht geladen werden.';
-          break;
+          revealBodyOnce();
+          return;
         }
 
         if (isStale()) return;
@@ -1386,18 +1346,12 @@
     openVoterPopup(shadowRoot, encodedId, pos, neg);
   }
 
-  function attachVoterListener(shadowRoot) {
+  function attachVoterListener() {
     if (voterListenerAttached) return;
     voterListenerAttached = true;
     // Capture on document: fires before any of the page's own click handlers,
     // including the "STANDARD Smart" paywall trigger inside the rating element.
     document.addEventListener('click', handleRatingClick, true);
-    // Mark rating elements as votable for the hover style hint.
-    try {
-      shadowRoot.querySelectorAll('dst-posting--ratinglog').forEach(function (el) {
-        el.classList.add('dst-votable');
-      });
-    } catch (e) { /* ignore */ }
   }
 
   // ── v4.0.0 / v4.3.0: posting cards ───────────────────────────
@@ -1483,12 +1437,17 @@
 
   // Keeps our small additions in line with derStandard's data.
   function updateTile(posting) {
-    // replies: up to 999 written out, from 1.000 on "+1k", "+2k", …
+    // replies: up to 999 derStandard's own number (stays live), from 1.000
+    // on "+1k", "+2k", …
     const ans = posting.querySelector('dst-posting-footer .answers');
     if (ans) {
       const n = parseInt((ans.textContent || '').replace(/\D/g, ''), 10) || 0;
-      const label = n > 999 ? '+' + Math.floor(n / 1000) + 'k' : String(n);
-      if (ans.getAttribute('data-dst-n') !== label) ans.setAttribute('data-dst-n', label);
+      if (n > 999) {
+        const label = '+' + Math.floor(n / 1000) + 'k';
+        if (ans.getAttribute('data-dst-n') !== label) ans.setAttribute('data-dst-n', label);
+      } else if (ans.hasAttribute('data-dst-n')) {
+        ans.removeAttribute('data-dst-n');
+      }
     }
     const pin = posting.querySelector('dst-posting-head time strong');
     if (pin && pin.title !== 'Angeheftet') pin.title = 'Angeheftet';
@@ -1515,7 +1474,7 @@
   }
 
   // Watches new postings (they get their icons right away, also while the
-  // rest is still loading in the background) and new reply counts. Only OUR
+  // rest is still loading in the background). Only OUR
   // additions are updated here — nothing is sorted and
   // derStandard's DOM is not touched (see the note at observeForum).
   let tileObserver = null;
@@ -1538,10 +1497,7 @@
           });
           const host = t.closest('dst-posting');
           if (host) pending.add(host);
-          return;
         }
-        const p = t.closest('dst-posting[data-dst-tile]');
-        if (p) pending.add(p);
       });
       if (!pending.size || scheduled) return;
       scheduled = true;
@@ -1553,12 +1509,7 @@
         pending.clear();
       });
     });
-    tileObserver.observe(main, {
-      subtree: true,
-      childList: true,
-      attributes: true,
-      attributeFilter: ['positiveratings', 'negativeratings']
-    });
+    tileObserver.observe(main, { subtree: true, childList: true });
   }
 
   // ── Utility: read ratings from a posting ───────────────────────
@@ -1583,10 +1534,6 @@
 
   function getNegativeRatings(posting) {
     return readRatings(posting).neg;
-  }
-
-  function getNetRatings(posting) {
-    return getPositiveRatings(posting) - getNegativeRatings(posting);
   }
 
   // ── Parse relative time strings like "vor 5 Stunden" ──────────
@@ -2255,8 +2202,8 @@
   // v2.4.10 – sort definitions:
   //   Balance: Top  -> (positive - negative), highest first
   //   Balance: Low  -> (negative - positive), highest first  (= exact mirror)
-  //   Likes         -> positive ratings only, highest first
-  //   Dislikes      -> negative ratings only, highest first
+  //   Pure (likes)  -> fewest dislikes first, then most likes (v4.5.0, see below)
+  //   Pure (dislikes) -> the exact mirror
   // Ties always fall back to the original forum order (domIndex), so equal
   // scores never get shuffled by an unrelated secondary criterion.
   function sortComparator(a, b) {
@@ -2280,7 +2227,6 @@
         diff = ((ka.neg === 0) - (kb.neg === 0)) || (ka.pos - kb.pos) || (kb.neg - ka.neg);
         break;
       case 'chronological-new': diff = kb.time - ka.time; break;
-      case 'chronological':      // legacy alias -> behaves like "Old Timeline"
       case 'chronological-old': diff = ka.time - kb.time; break;
       default: diff = 0;
     }
@@ -2292,8 +2238,8 @@
   function hasRatingData(main) {
     const postings = main.querySelectorAll('dst-posting[data-level="0"]');
     if (postings.length === 0) return false;
-    // For timeline / no-timeline modes we don't need ratings at all
-    if (sortMode.indexOf('chronological') === 0 || sortMode === 'no-timeline') return true;
+    // For the timeline modes we don't need ratings at all
+    if (sortMode.indexOf('chronological') === 0) return true;
     let withRatings = 0;
     postings.forEach((p) => {
       if (p.querySelector('dst-posting--ratinglog')) withRatings++;
@@ -2473,7 +2419,7 @@
           seenFirstHandled = true;
           continue;
         }
-        // Skip the badge bar — it gets its order separately after injection
+        // The badge bar always stays in front of the postings
         if (child.id === 'dst-badge-bar') {
           preElements.push(child);
           continue;
@@ -2546,7 +2492,8 @@
       expandPinnedThreads(main);
     } finally {
       isSorting = false;
-      observeForum(shadowRoot);
+      // while loading in the background, loadAllPostings reconnects at its end
+      if (!isLoadingAllPostings) observeForum(shadowRoot);
     }
   }
 
@@ -2556,16 +2503,14 @@
     sortMode = newMode;
     syncGroupSelection();
 
-    if (chrome?.storage?.sync) {
-      chrome.storage.sync.set({ [MODE_KEY]: sortMode });
-    } else {
-      localStorage.setItem(MODE_KEY, sortMode);
-    }
+    chrome.storage.sync.set({ [MODE_KEY]: sortMode });
 
     lastSortSignature = '';
 
-    // v1.7.4: Load all postings before re-sorting (if not yet loaded)
-    if (autoLoadEnabled) {
+    // v1.7.4: Load all postings before re-sorting (if not yet loaded).
+    // v4.10.1: only while that never ran to its end, or when the forum offers
+    // more again — otherwise every click could wait for the load timeout.
+    if (!allLoadDone || findLoadMoreButton(shadowRoot)) {
       await loadAllPostings(shadowRoot);
       lastSortSignature = '';
     }
@@ -2587,7 +2532,7 @@
   // aus dem Storage gelesen (vorher bei JEDER Sortierung zwei Storage-Abfragen).
   let coffeePulseCache = null; // null = noch nicht geprueft, sonst true/false
 
-  // Icon + label + mode dots of one segment (v3.1.2: also used to update a
+  // Label + mode bar of one segment (v3.1.2: also used to update a
   // segment in place on click, before the re-sort re-creates the bar).
   function fillSegment(btn, group, mode) {
     const m = MODE_DEFS[mode];
@@ -2672,7 +2617,8 @@
     decorateTiles(shadowRoot);
 
     // v1.9.18: Enable the clickable voter popup on the rating numbers.
-    attachVoterListener(shadowRoot);
+    attachVoterListener();
+    // Mark rating elements as votable for the hover style hint.
     try {
       shadowRoot.querySelectorAll('dst-posting--ratinglog:not(.dst-votable)').forEach(function (el) {
         el.classList.add('dst-votable');
@@ -2691,10 +2637,7 @@
       return;
     }
     if (existingBar) existingBar.remove();
-
-    // Also remove legacy container from v1.4
-    const legacyContainer = shadowRoot.querySelector('#dst-sorter-container');
-    if (legacyContainer) legacyContainer.remove();
+    if (!mainForBar) return;
 
     // ── Badge bar: lives INSIDE main.forum--main ──────────────────
     // v2.2.7: instead of inserting the bar as a sibling of the header (which
@@ -2708,7 +2651,7 @@
     bar.style.order = '-1';     // v2.4.10: always on top (see default order rule)
 
     // v2.2.0: render ONE badge per button group. Each badge shows the
-    // label/icon of its currently-selected sub-mode and cycles through its
+    // label of its currently-selected sub-mode and cycles through its
     // sub-modes on click. Exactly one group is "active" at any time (the one
     // that owns the current sortMode).
     // v3.1.0: the three groups form ONE segmented control (#dst-seg).
@@ -2738,7 +2681,6 @@
       const isActive = groupIdx === activeIdx;
       const btn = document.createElement('div');
       btn.className = 'dst-badge-btn' + (isActive ? ' active' : '');
-      btn.setAttribute('data-group', group.id);
       makeKeyboardButton(btn, '');
       btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
       fillSegment(btn, group, groupSelection[group.id]);
@@ -2802,11 +2744,10 @@
     const coffeeBtn = document.createElement('div');
     coffeeBtn.className = 'dst-badge-btn dst-coffee-btn';
     makeKeyboardButton(coffeeBtn, 'Unterstützen');
-    coffeeBtn.style.position = 'relative';
     // AMO Security Fix: createElement statt innerHTML
     const coffeeIcon = document.createElement('span');
     coffeeIcon.className = 'dst-coffee-icon';
-    coffeeIcon.style.cssText = 'display:inline-flex;line-height:1;vertical-align:middle;transition:transform 0.3s';
+    coffeeIcon.style.cssText = 'display:inline-flex;line-height:1;vertical-align:middle;position:relative';
     // v3.10.0: the same cup on every system (Noto Emoji, see icons/NOTICE.txt)
     // instead of the ☕ character, which looks different on every OS
     const coffeeImg = document.createElement('img');
@@ -2825,7 +2766,6 @@
       wisp.className = 'dst-steam-wisp';
       steamContainer.appendChild(wisp);
     }
-    coffeeIcon.style.position = 'relative';
     coffeeIcon.appendChild(steamContainer);
     // V14 JS Animation Control: restart on hover-in, stop after hover-out
     (function() {
@@ -2854,7 +2794,7 @@
     })();
     // ── v2.4.6: recurring donation pulse (exponential growth, b=1.5, same as popup) ──
     // Keys shared with popup.js: install time in storage.local, acknowledged counter n in sync.
-    // Pulse formula: Tag(n) = 30 · (1.5^n - 1) → 1st: day 15, 2nd: day 37.5, 3rd: day 71.25, …
+    // Pulse formula: day(n) = 30 · (1.5^(n+1) - 1) → 1st: day 15, 2nd: day 37.5, 3rd: day 71.25, …
     // A click increments n, so the pulse only returns at the next calculated day.
     const DST_DONATE_ACK_N_KEY = 'dstDonateAckN';
     const DST_INSTALL_TS_KEY = 'dstInstallTimestamp';
@@ -2928,24 +2868,15 @@
 
     // v2.2.7: Insert the bar as the FIRST CHILD of main.forum--main so it
     // inherits that container's exact width (aligns with the composer frame &
-    // posting entries). Fall back to the old sibling-of-header placement only
-    // if main.forum--main can't be found.
-    const mainEl = shadowRoot.querySelector('main.forum--main');
-    if (mainEl) {
-      mainEl.insertBefore(bar, mainEl.firstChild);
-    } else if (header.nextSibling) {
-      header.parentNode.insertBefore(bar, header.nextSibling);
-    } else if (header.parentNode) {
-      header.parentNode.appendChild(bar);
-    } else {
-      header.appendChild(bar);
-    }
+    // posting entries).
+    mainForBar.insertBefore(bar, mainForBar.firstChild);
 
     fitSortBar(bar);
     if (!fitSortBar.bound) {
       fitSortBar.bound = true;
       window.addEventListener('resize', function () {
-        const b = shadowRoot.querySelector('#dst-badge-bar');
+        const f = document.querySelector('dst-forum');
+        const b = f && f.shadowRoot && f.shadowRoot.querySelector('#dst-badge-bar');
         if (b) fitSortBar(b);
       });
     }
@@ -2963,14 +2894,6 @@
     if (!seg) return;
     const free = document.documentElement.clientWidth - bar.getBoundingClientRect().right;
     seg.classList.toggle('dst-wide', free >= 54 + 16);
-  }
-
-  function removeSortBadge(shadowRoot) {
-    const bar = shadowRoot.querySelector('#dst-badge-bar');
-    if (bar) bar.remove();
-    // Clean up legacy elements from v1.4
-    const c = shadowRoot.querySelector('#dst-sorter-container');
-    if (c) c.remove();
   }
 
   // ── Debounced sort ────────────────────────────────────────────
@@ -2998,7 +2921,7 @@
   //   - Sorting based on updated ratings only happens on:
   //     a) Manual badge bar click (user explicitly requests re-sort)
   //     b) New postings loaded (childList mutation)
-  //     c) Page load / tab switch
+  //     c) Page load
   //   This ensures the extension NEVER interferes with the vote process.
   function observeForum(shadowRoot) {
     if (observer) observer.disconnect();
@@ -3045,20 +2968,6 @@
       childList: true,
       subtree: false,
     });
-  }
-
-  // ── URL check: is this an article page? ─────────────────────────
-  function isArticlePage() {
-    const path = window.location.pathname;
-    return /\/story\//.test(path);
-  }
-
-  // ── Native forum initialization without navigation ──────────
-  function autoLoadForum() {
-    // The site mounts dst-forum independently. Its posting-count link is a
-    // navigation control (data-scrollto), not a load API. preventDefault alone
-    // would not stop that link's JavaScript scroll handler. Never click it.
-    return isArticlePage() && autoLoadEnabled && !!document.querySelector('dst-forum');
   }
 
   // ── Load main postings without automatically expanding reply threads ──
@@ -3141,30 +3050,16 @@
     const validTotal = (total && total >= loaded) ? total : 0;
     const percentage = validTotal > 0 ? Math.round((loaded / validTotal) * 100) : 0;
 
-    // Build progress bar HTML using DOM methods (AMO safe)
+    // Build progress bar HTML using DOM methods (AMO safe); same look as
+    // the voter window's bar (CSS .dst-progress)
     container.textContent = ''; // clear
-
-    // Outer bar
     const outer = document.createElement('div');
-    // v3.1.0: neutral, in derStandard's text colour (green is kept for ratings)
-    outer.style.cssText = 'width:100%;height:28px;background:var(--dst-track);border-radius:14px;position:relative;overflow:hidden;';
-
-    // Inner fill
+    outer.className = 'dst-progress';
     const fill = document.createElement('div');
-    fill.style.cssText = 'position:absolute;left:0;top:0;height:100%;width:' + percentage + '%;background:hsl(var(--dst-ink) / .18);border-radius:14px;transition:width 0.4s ease;';
-
-    // Pulse animation on fill
-    const pulseStyle = document.createElement('style');
-    pulseStyle.id = 'dst-pulse-style';
-    if (!shadowRoot.querySelector('#dst-pulse-style')) {
-      pulseStyle.textContent = '@keyframes dst-progress-pulse{0%{opacity:1}50%{opacity:0.7}100%{opacity:1}} #dst-progress-fill{animation:dst-progress-pulse 1.5s ease-in-out infinite}';
-      shadowRoot.appendChild(pulseStyle);
-    }
-    fill.id = 'dst-progress-fill';
-
-    // Text overlay
+    fill.className = 'dst-progress-fill dst-progress-fill--loading';
+    fill.style.width = percentage + '%';
     const textEl = document.createElement('span');
-    textEl.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:hsl(var(--dst-ink));font-weight:700;font-size:12px;z-index:1;';
+    textEl.className = 'dst-progress-text';
     // v2.4.1: show "X / Y" only when we have a trustworthy total; otherwise
     // just show the loaded count (never the bogus "/ 1").
     textEl.textContent = message
@@ -3190,10 +3085,6 @@
       container.remove();
       restoreScrollAnchor(anchor);
     }
-
-    // Remove pulse style
-    const pulseStyle = shadowRoot.querySelector('#dst-pulse-style');
-    if (pulseStyle) pulseStyle.remove();
   }
 
   // "✓ Alle N Postings geladen!" is shown for 1.5s, but only when background
@@ -3213,17 +3104,10 @@
   function renderCompleteNotice(shadowRoot) {
     const bar = shadowRoot.querySelector('#dst-badge-bar');
     if (!bar || !completeNotice) return;
-    showProgressBar(shadowRoot, 0, 0); // hides the badges, provides the container
-    const container = bar.querySelector('#dst-progress-container');
-    if (!container) return;
-    container.textContent = '';
-    const outer = document.createElement('div');
-    outer.style.cssText = 'width:100%;height:28px;background:hsl(var(--dst-ink) / .18);border-radius:14px;display:flex;align-items:center;justify-content:center;';
-    const textEl = document.createElement('span');
-    textEl.style.cssText = 'color:hsl(var(--dst-ink));font-weight:700;font-size:12px;';
-    textEl.textContent = '✓ Alle ' + completeNotice.total + ' Postings geladen!';
-    outer.appendChild(textEl);
-    container.appendChild(outer);
+    // the progress row (a full bar) with the notice as its text
+    showProgressBar(shadowRoot, 1, 1, '✓ Alle ' + completeNotice.total + ' Postings geladen!');
+    const fill = bar.querySelector('#dst-progress-container .dst-progress-fill');
+    if (fill) fill.classList.remove('dst-progress-fill--loading');
   }
 
   function showProgressComplete(shadowRoot, totalPostings) {
@@ -3254,8 +3138,14 @@
 
   function waitForForumCondition(shadowRoot, predicate, timeout = 10000) {
     return new Promise(resolve => {
-      let done = false, timer, poll;
-      const mutations = new MutationObserver(check);
+      let done = false, timer, poll, framePending = false;
+      // v4.10.1: at most one check per frame — every check asks forum-hook.js
+      // for the whole load state, and mutations come in bursts
+      const mutations = new MutationObserver(function () {
+        if (framePending) return;
+        framePending = true;
+        requestAnimationFrame(function () { framePending = false; check(); });
+      });
       function finish(result) {
         if (done) return;
         done = true;
@@ -3265,8 +3155,9 @@
         resolve(result);
       }
       function check() {
+        if (done) return;
         try {
-          if (!autoLoadEnabled || !sortEnabled) return finish(false);
+          if (!sortEnabled) return finish(false);
           if (predicate()) finish(true);
         } catch (error) {
           console.warn('[DST Sorter] Ladeprüfung fehlgeschlagen:', error);
@@ -3298,7 +3189,7 @@
   }
 
   async function loadAllPostings(shadowRoot) {
-    if (isLoadingAllPostings || !autoLoadEnabled || !sortEnabled) return false;
+    if (isLoadingAllPostings || !sortEnabled) return false;
     isLoadingAllPostings = true;
     const countRendered = () => {
       const roots = [shadowRoot, document.querySelector('dst-forum'),
@@ -3320,11 +3211,11 @@
     try {
       injectSortBadge(shadowRoot);
       if (observer) observer.disconnect();
-      while (autoLoadEnabled && sortEnabled) {
+      while (sortEnabled) {
         const before = readForumLoadState(shadowRoot);
         const beforeCount = countRendered();
         showProgressBar(shadowRoot, before?.loaded ?? beforeCount,
-          before?.total ?? getTotalPostingCount(shadowRoot));
+          before?.total || getTotalPostingCount(shadowRoot));
 
         // An inactive "Alle Postings" tab can restrict pagination. Never keep
         // clicking the active tab, and never touch reply-expansion controls.
@@ -3398,6 +3289,7 @@
       console.warn('[DST Sorter] Fehler beim Hintergrundladen:', error);
     } finally {
       isLoadingAllPostings = false;
+      allLoadDone = true;
       // No saved position, no restoration: the user remains free to scroll.
       observeForum(shadowRoot);
     }
@@ -3413,10 +3305,6 @@
       return;
     }
 
-    const autoLoaded = autoLoadForum();
-    log(
-      '[DST Sorter] Forum: ' + (autoLoaded ? 'vorhanden' : 'warte auf native Initialisierung')
-    );
 
     let poll = null;
     const docObserver = new MutationObserver(() => {
@@ -3474,6 +3362,8 @@
       if (ready()) { innerObs.disconnect(); start(); }
     });
     innerObs.observe(shadowRoot, { childList: true, subtree: true });
+    // v4.10.1: a forum without postings would otherwise be watched for good
+    setTimeout(function () { innerObs.disconnect(); }, 60000);
   }
 
   // ── Wait for rating data before first sort ────────────────────
@@ -3519,7 +3409,7 @@
     }
 
     // Start discovery even when the lazy-loaded button does not exist yet.
-    if (sortEnabled && autoLoadEnabled) {
+    if (sortEnabled) {
       // v2.4.10: start only once the page is idle, so the article itself
       // renders and scrolls without competition.
       await waitForIdle(2000);
@@ -3546,24 +3436,6 @@
         }
       }
     }, 3000);
-
-    // Listen for manual "Weitere Postings laden" clicks
-    const moreBtn = findLoadMoreButton(shadowRoot);
-    if (moreBtn) {
-      moreBtn.addEventListener('click', function() {
-        setTimeout(function() { scheduledSort(shadowRoot); }, 2000);
-      });
-    }
-
-    const tabs = shadowRoot.querySelectorAll(
-      'dst-forum--tabnavigation button.tab'
-    );
-    tabs.forEach(function(tab) {
-      tab.addEventListener('click', function() {
-        lastSortSignature = '';
-        setTimeout(function() { scheduledSort(shadowRoot); }, 1500);
-      });
-    });
   }
 
   // ── Storage migration: old format -> new format ────────────────
@@ -3593,11 +3465,13 @@
   // ── Storage: persist enabled state & sort mode ─────────────────
   function loadState(callback) {
     if (chrome?.storage?.sync) {
-      chrome.storage.sync.get([SORT_KEY, MODE_KEY, AUTOLOAD_KEY, 'sortByPositive'], (data) => {
+      chrome.storage.sync.get([SORT_KEY, MODE_KEY, 'sortByPositive', 'dstTintEdge'], (data) => {
+        data = data || {};
+        // v4.10.1: setting of the removed "Farbmarkierung" option
+        if ('dstTintEdge' in data) chrome.storage.sync.remove('dstTintEdge');
         sortEnabled = data[SORT_KEY] !== false;
         sortMode = migrateStorage(data);
         syncGroupSelection();
-        autoLoadEnabled = data[AUTOLOAD_KEY] !== false;
 
         // Persist migrated mode if it changed
         const oldMode = data[MODE_KEY];
@@ -3609,14 +3483,6 @@
         callback();
       });
     } else {
-      sortEnabled = localStorage.getItem(SORT_KEY) !== 'false';
-      const rawMode = localStorage.getItem(MODE_KEY);
-      sortMode = migrateStorage({ [MODE_KEY]: rawMode });
-      syncGroupSelection();
-      autoLoadEnabled = localStorage.getItem(AUTOLOAD_KEY) !== 'false';
-      if (rawMode !== sortMode) {
-        localStorage.setItem(MODE_KEY, sortMode);
-      }
       callback();
     }
   }
@@ -3626,27 +3492,10 @@
     chrome.runtime.onMessage.addListener((msg) => {
       if (msg.action === 'toggle') {
         sortEnabled = msg.enabled;
-        const forum = document.querySelector('dst-forum');
-        if (forum && forum.shadowRoot) {
-          // v2.4.10: reload in both directions. Switching ON previously only
-          // sorted once, without background loading, observer or voter popup.
-          if (!sortEnabled) removeSortBadge(forum.shadowRoot);
-          location.reload();
-        }
-      }
-      if (msg.action === 'setMode') {
-        sortMode = msg.mode;
-        syncGroupSelection();
-        const forum = document.querySelector('dst-forum');
-        if (forum && forum.shadowRoot) {
-          if (sortEnabled) {
-            lastSortSignature = '';
-            sortPostings(forum.shadowRoot);
-          }
-        }
-      }
-      if (msg.action === 'setAutoLoad') {
-        autoLoadEnabled = msg.enabled;
+        // v2.4.10: reload in both directions. Switching ON previously only
+        // sorted once, without background loading, observer or voter popup.
+        // v4.10.1: also when the forum has not finished mounting yet.
+        if (document.querySelector('dst-forum')) location.reload();
       }
     });
   }

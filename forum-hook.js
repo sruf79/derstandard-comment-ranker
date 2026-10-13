@@ -1,5 +1,5 @@
 /*
- * forum-hook.js  (v1.9.18)
+ * forum-hook.js
  * ---------------------------------------------------------------------------
  * Runs in the MAIN world (page context) at document_start.
  *
@@ -19,7 +19,13 @@
  * script builds a lookup map so it can translate a clicked rating element's
  * encoded id into the numeric id required by the ratinglog endpoint.
  *
- * It captures nothing else and never modifies any request or response.
+ * It never modifies any request or response.
+ *
+ * Second job: a read-only load-state bridge. On the event
+ * 'dst-request-load-state' it reads the forum component's own state (loaded /
+ * total / more / loading) and writes it as JSON to the attribute
+ * data-dst-load-state of <dst-forum>, so the content script knows when ALL
+ * postings are loaded.
  */
 (function () {
   'use strict';

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="de">
 <head>
   <meta charset="UTF-8">
   <title>derStandard Comment Ranker</title>
@@ -12,7 +12,7 @@
     
     /* v3.10.0: same look as the sort bar on the site — derStandard's blue
        article background, domed pills with a dark frame, a highlight line
-       and a soft shadow; the active state is a bevelled coloured ring. */
+       and a soft shadow. Green/red ring = state, golden ring = coffee. */
     :root {
       --base: hsl(198 28% 88%);
       --track: color-mix(in srgb, var(--base) 65%, #fff);
@@ -25,7 +25,7 @@
         inset 0 1.5px 0 rgba(255, 255, 255, .95),
         inset 0 -2px 3px rgba(0, 0, 0, .08),
         0 3px 8px rgba(0, 0, 0, .18);
-      --bevel: inset 0 2px 0 rgba(255, 255, 255, .6), inset 0 -2px 0 rgba(0, 0, 0, .35);
+      --gold-ring: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 2px 6px rgba(0, 0, 0, .12);
     }
 
     body {
@@ -45,14 +45,13 @@
       margin-bottom: 12px;
       display: flex;
       align-items: center;
-      transition: box-shadow .3s ease, background-color .3s ease;
+      transition: box-shadow .3s ease;
       height: 50px;
       color: #333;
     }
     
-    /* Box 1: Header mit Extension-Icon links */
-    /* v3.10.1: the name is no button — plain header on the background,
-       only clickable things are pills */
+    /* Header: logo + title, centred. v3.10.1: the name is no button — plain
+       header on the background, only clickable things are pills */
     .badge-box.header-badge {
       justify-content: center;   /* v4.8.0: centred */
       background: none;
@@ -86,12 +85,11 @@
       line-height: 1.2;
     }
     
-    /* Box 2: v4.8.0 — a pill button as switch: a green ring when on, a red
+    /* On/off: v4.8.0 — a pill button as switch: a green ring when on, a red
        ring when off. v4.10.0: only one switch left (on/off); its text says
        the current state ("ist an" / "ist aus"). */
     .toggles {
       display: flex;
-      gap: 10px;
       margin: 0 0 18px;
     }
     .toggle {
@@ -113,43 +111,30 @@
       box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), inset 0 -2px 3px rgba(0, 0, 0, .06), 0 0 0 1px var(--track-border), 0 0 0 2px rgba(46, 125, 50, .95), 0 2px 6px rgba(0, 0, 0, .12);
     }
     .toggle:focus-visible { outline: 2px solid #333; outline-offset: 3px; }
-    .toggles.no-anim .toggle { transition: none; }
+    /* hidden until the saved state is read, so it never flashes the wrong one */
+    .toggles.no-anim .toggle { transition: none; visibility: hidden; }
     @media (prefers-reduced-motion: reduce) {
       .toggle { transition: none; }
     }
     
-    /* Box 3: Review/Bewerten-Badge (v2.0.5) */
+    /* Review badge (store link, chosen per browser) */
     .review-badge {
       justify-content: center;
       gap: 8px;
       cursor: pointer;
       text-decoration: none;
-      position: relative; /* for tooltip + confirmation anchoring */
     }
     
-    /* golden ring on the pill's edge, like the coffee button on the site */
+    /* golden ring on the pill's edge, like the coffee button on the site;
+       v2.0.6: after 3 days of use the review badge shows it too (.pulsing) */
     .review-badge:hover,
+    .review-badge.pulsing,
     .coffee-badge:hover,
     .coffee-badge.prompting {
       background: #fff8e1;
-      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 2px 6px rgba(0, 0, 0, .12);   /* v3.22.2: golden glow like the sort bar */
+      box-shadow: var(--gold-ring);
     }
-    
-    /* ═══ v2.0.6: Golden pulse — only active after 3 days of usage ═══ */
-    /* Applied via JS by adding the .pulsing class. The pulse is a soft,
-       breathing golden glow (same visual language as the coffee badge),
-       paired with a gentle border-colour shift so it is eye-catching but
-       never aggressive. Honours prefers-reduced-motion. */
-    .review-badge.pulsing {
-      background: #fff8e1;
-      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 2px 6px rgba(0, 0, 0, .12);
-      animation: review-golden-pulse 2.4s ease-in-out infinite;
-    }
-    
-    @keyframes review-golden-pulse {
-      0%, 100% { box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 2px 6px rgba(0, 0, 0, .12); }
-      50%      { box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 2px 6px rgba(0, 0, 0, .12); }
-    }
+    .badge-box:focus-visible { outline: 2px solid #333; outline-offset: 3px; }
     
     /* Pulsing star gets a soft glow + slow shimmer to draw the eye */
     .review-badge.pulsing .review-icon {
@@ -163,38 +148,7 @@
     }
     
     @media (prefers-reduced-motion: reduce) {
-      .review-badge.pulsing,
-      .review-badge.pulsing .review-icon {
-        animation: none;
-      }
-      /* keep a static highlight so the CTA is still noticeable */
-      .review-badge.pulsing {
-        box-shadow: inset 0 0 0 1px #f5c518, 0 0 0 1px #f5c518, 0 0 10px 2px rgba(255, 215, 0, 0.3);
-      }
-    }
-    
-    /* ═══ v2.0.6: "Danke!" confirmation after a click ═══ */
-    .review-thanks {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      background: #fff8e1;
-      border-radius: 999px;
-      font-size: 13px;
-      font-weight: 700;
-      color: #2e7d32;
-      opacity: 0;
-      pointer-events: none;
-      transform: scale(0.96);
-      transition: opacity 0.25s, transform 0.25s;
-    }
-    
-    .review-badge.thanked .review-thanks {
-      opacity: 1;
-      transform: scale(1);
+      .review-badge.pulsing .review-icon { animation: none; }
     }
     
     .review-icon {
@@ -215,32 +169,22 @@
       color: #b8860b;
     }
     
-    /* Box 4: Coffee mit goldenem Pulse + Dampf */
+    /* Coffee badge: golden ring always on, like the coffee button on the
+       site; hovering gives one short golden flash and starts the steam. The
+       reminder (.prompting, see popup.js) keeps the light background and the
+       steam. */
     .coffee-badge {
       justify-content: center;
       gap: 6px;
       cursor: pointer;
       text-decoration: none;
-      position: relative;
+      margin-top: 18px;
+      box-shadow: var(--gold-ring);
     }
-    
-    /* v3.23.0: golden glow always on, like the coffee button on the site;
-       hovering gives one short golden flash, the reminder breathes */
-    .coffee-badge { margin-top: 18px; box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 2px 6px rgba(0, 0, 0, .12); }
     .coffee-badge:hover { animation: coffee-hover-flash .45s ease-out; }
-    .coffee-badge.prompting { animation: golden-pulse 1.5s ease-in-out infinite; }
     @keyframes coffee-hover-flash {
-      0%   { background-color: #FFE27A; box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 2px 6px rgba(0, 0, 0, .12), 0 0 0 10px rgba(255, 200, 0, .45); }
-      100% { background-color: #fff8e1; box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 2px 6px rgba(0, 0, 0, .12), 0 0 0 0 rgba(255, 200, 0, 0); }
-    }
-    
-    @keyframes golden-pulse {
-      0%, 100% { box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 2px 6px rgba(0, 0, 0, .12); }
-      50%      { box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 2px 6px rgba(0, 0, 0, .12); }
-    }
-    
-    .coffee-badge:active {
-      transform: translateY(0);
+      0%   { background-color: #FFE27A; box-shadow: var(--gold-ring), 0 0 0 10px rgba(255, 200, 0, .45); }
+      100% { background-color: #fff8e1; box-shadow: var(--gold-ring), 0 0 0 0 rgba(255, 200, 0, 0); }
     }
     
     .coffee-text {
@@ -255,12 +199,8 @@
       color: #B8860B;
     }
     
-    /* v2.4.5: Auto-Puls alle 15 Tage — respektiert reduzierte Bewegung */
     @media (prefers-reduced-motion: reduce) {
-      .coffee-badge:hover,
-      .coffee-badge.prompting {
-        animation: none;
-      }
+      .coffee-badge:hover, .steam-wisp { animation: none; }
     }
     
     /* Coffee Icon Container — position: relative für Dampf */
@@ -271,7 +211,7 @@
       flex-shrink: 0;
     }
     
-    /* Coffee Icon — gleiche Größe wie Website-Badge (16px) */
+    /* Coffee icon — same size as on the site (20px) */
     .coffee-icon {
       display: block;
       width: 20px;
@@ -284,7 +224,7 @@
       transform: scale(1.1);
     }
     
-    /* ═══ V14 Dampf-Animation ═══ */
+    /* steam above the cup */
     .steam-container {
       position: absolute;
       bottom: 60%;
@@ -342,28 +282,27 @@
   </style>
 </head>
 <body>
-  <!-- Box 1: Extension-Icon links, Titel -->
+  <!-- Header: logo + title -->
   <div class="badge-box header-badge">
     <div class="header-text-container">
       <span class="header-title"><img class="header-logo" src="icons/action64.png" alt="">derStandard Comment Ranker</span>
     </div>
   </div>
   
-  <!-- Box 2: v4.10.0 — one switch; the text and the ring show the current
+  <!-- On/off: v4.10.0 — one switch; the text and the ring show the current
        state (green ring = on, red ring = off) -->
   <div class="toggles no-anim">
-    <button type="button" class="toggle" id="btnExt" aria-pressed="true" title="Klicken zum Ein- oder Ausschalten">Erweiterung ist an</button>
+    <button type="button" class="toggle" id="btnExt" aria-pressed="true" aria-label="Erweiterung" title="Klicken zum Ein- oder Ausschalten">Erweiterung ist an</button>
   </div>
 
-  <!-- Box 3: Review/Bewerten — Browser-aware Link (Chrome Web Store / Firefox AMO) -->
+  <!-- Review — store link per browser (Chrome Web Store / Firefox AMO) -->
   <a class="badge-box review-badge" id="reviewBtn" href="#" target="_blank" rel="noopener">
-    <span class="review-icon">&#9733;</span>
-    <span class="review-text">Gefällt dir? Bewerte uns ★★★★★</span>
-    <span class="review-thanks">&#10024; Danke!</span>
+    <span class="review-icon" aria-hidden="true">&#9733;</span>
+    <span class="review-text">Gefällt dir? Bewerte uns <span aria-hidden="true">★★★★★</span></span>
   </a>
   
-  <!-- Box 4: Coffee mit goldenem Pulse + Dampf -->
-  <div class="badge-box coffee-badge" id="donateBtn">
+  <!-- Coffee (donate) with steam -->
+  <a class="badge-box coffee-badge" id="donateBtn" href="https://buymeacoffee.com/diversion" target="_blank" rel="noopener">
     <span class="coffee-text">Danke sagen</span>
     <span class="coffee-icon-container">
       <img class="coffee-icon" src="icons/coffee.svg" alt="">
@@ -375,7 +314,7 @@
         <span class="steam-wisp"></span>
       </span>
     </span>
-  </div>
+  </a>
+  <script src="popup.js"></script>
 </body>
-<script src="popup.js"></script>
 </html>
