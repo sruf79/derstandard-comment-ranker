@@ -587,7 +587,7 @@
       grid-row: 1 !important; grid-column: 3 / 5 !important;
       align-self: center; justify-self: end; position: relative; top: 2px;
     }
-    dst-posting[data-dst-tile] dst-posting--ratinglog button { font-size: 13px !important; padding: 2px 0 2px 10px !important; }
+    dst-posting[data-dst-tile] dst-posting--ratinglog button { font-size: 13px !important; padding: 3px 8px !important; }
     dst-posting[data-dst-tile] dst-posting--ratinglog button > div { zoom: 1.6; margin: 0 4px !important; }
     /* the "…" menu stays (its share submenu opens from it) but sits invisibly
        under our share icon */
@@ -676,14 +676,18 @@
        like the coffee icon (2px solid #FFD700 + warm #fff8e1 background) instead
        of underlining the numbers. The default border is transparent so the
        layout never jumps when the gold frame appears. */
+    /* v4.4.1: hover like derStandard's user-name button (a light grey
+       background) instead of the gold frame */
     dst-posting--ratinglog.dst-votable button {
-      border: 2px solid transparent !important;
+      border: 0 !important;
       border-radius: 11px !important;
-      transition: border-color 0.2s ease, background 0.2s ease !important;
+      transition: background 0.15s ease !important;
     }
     dst-posting--ratinglog.dst-votable button:hover {
-      border: 2px solid #FFD700 !important;
-      background: #fff8e1 !important;
+      background: hsl(var(--theme--on-base--hsl) / 5%) !important;
+    }
+    dst-posting--ratinglog.dst-votable button:active {
+      background: hsl(var(--theme--on-base--hsl) / 8%) !important;
     }
     dst-posting--ratinglog.dst-votable button:hover span.pos,
     dst-posting--ratinglog.dst-votable button:hover span.neg {
