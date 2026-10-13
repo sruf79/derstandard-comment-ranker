@@ -487,7 +487,7 @@
     /* replies: a card of their own instead of a ruled line */
     main.forum--main .thread dst-posting[data-dst-tile] {
       border: 1px solid hsl(var(--theme--on-secondary--hsl) / .15) !important;
-      margin-top: 12px;
+      margin-top: 8px;            /* v4.13.5: was 12px — closer to the original density */
     }
     /* v4.1.0: threads like Reddit — each reply is indented and joined to the
        posting it answers by a line that comes down from above and bends into
@@ -524,9 +524,9 @@
        3px before this card's frame, so no frame is ever crossed */
     main.forum--main .thread > dst-posting::before {
       content: '' !important;
-      /* v4.11.0: its bottom border (2px) ends exactly where the piece inside
-         the card (.dst-link) lies, so the line runs on straight */
-      top: -10px; height: calc(8px + var(--dst-name-y)) !important; width: calc(var(--dst-ind) / 2 - 3px) !important;
+      /* v4.13.5: it ends at the card's frame (no piece inside the card any
+         more, it read like a dash before the user name) */
+      top: -6px; height: calc(4px + var(--dst-name-y)) !important; width: calc(var(--dst-ind) / 2 - 3px) !important;
       border-left: 2px solid var(--dst-line); border-bottom: 2px solid var(--dst-line);
       border-bottom-left-radius: 14px !important;
     }
@@ -535,19 +535,8 @@
        so the overlapping pieces join seamlessly */
     main.forum--main .thread > dst-posting:has(~ dst-posting)::after {
       content: '' !important;
-      top: -10px; bottom: -12px; width: 0 !important; height: auto !important;
+      top: -6px; bottom: -8px; width: 0 !important; height: auto !important;
       border-left: 2px solid var(--dst-line);
-    }
-    /* … inside the reply it goes on (broken at the frame) to just before the
-       user name */
-    .dst-link { display: none; }
-    main.forum--main .thread > dst-posting > .dst-link {
-      display: block; position: absolute; pointer-events: none;
-      top: calc(var(--dst-name-y) - 2px); height: 2px;
-      /* v4.11.1: starts a bit after the frame (desktop 9px, phones 5px);
-         the end before the name stays */
-      left: calc(var(--dst-side) / 2 + 3px); width: calc(var(--dst-side) / 2 + 3px);
-      background: var(--dst-line); border-radius: 0 1px 1px 0;
     }
     /* … and past a nested thread between two replies */
     main.forum--main .thread > .thread:has(~ dst-posting)::before {
@@ -1543,10 +1532,7 @@
     clip.appendChild(acts);
     row.appendChild(clip);
 
-    // inside a reply: the thread line carries on after the card's frame
-    const link = document.createElement('span');
-    link.className = 'dst-link';
-    posting.append(more, row, link);
+    posting.append(more, row);
     posting.setAttribute('data-dst-tile', '');
   }
 
