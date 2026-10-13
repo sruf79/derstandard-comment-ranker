@@ -401,6 +401,33 @@
     }
     #dst-seg .dst-badge-btn.dst-coffee-btn.dst-flash { animation: dst-coffee-flash .45s ease-out; }
 
+    /* v4.15.0: while all postings load, the coffee slot shows a progress
+       ring with the percentage instead of the cup (no extra row, nothing
+       moves). At 100% the ring turns green and lights up once, stays for a
+       moment and then gives way to the cup again. */
+    .dst-load-ring, .dst-load-pct { display: none; }
+    #dst-seg .dst-coffee-btn.dst-loading > .dst-coffee-icon { opacity: 0 !important; }
+    #dst-seg .dst-coffee-btn.dst-loading > .dst-load-ring {
+      display: block; position: absolute; inset: 5px; border-radius: 50%; pointer-events: none;
+      background: conic-gradient(var(--dst-ring-c, hsl(var(--dst-ink) / .5)) calc(var(--dst-p, 0) * 1%), hsl(var(--dst-ink) / .1) 0);
+      -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3.5px));
+      mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3.5px));
+    }
+    #dst-seg .dst-coffee-btn.dst-loading > .dst-load-pct {
+      display: flex; position: absolute; inset: 0; align-items: center; justify-content: center; pointer-events: none;
+      font-size: 10.5px; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums;
+      color: var(--dst-ring-c, hsl(var(--dst-ink) / .7));
+    }
+    #dst-seg .dst-coffee-btn.dst-load-done { --dst-ring-c: rgba(46, 125, 50, .95); animation: dst-load-done .6s ease-out; }
+    @keyframes dst-load-done {
+      0%   { box-shadow: 0 0 0 0 rgba(46, 125, 50, .45); }
+      30%  { box-shadow: 0 0 0 10px rgba(46, 125, 50, .35); }
+      100% { box-shadow: 0 0 0 14px rgba(46, 125, 50, 0); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #dst-seg .dst-coffee-btn.dst-load-done { animation: none; }
+    }
+
     /* V14 Coffee Steam Container */
     .dst-steam-container {
       position: absolute;
@@ -895,8 +922,8 @@
     }
     @keyframes dst-voter-spin { to { transform: rotate(360deg); } }
 
-    /* v2.0.4: progress bar — v4.10.1: one look for loading the postings
-       (below the sort bar), its "all loaded" notice and the voter window */
+    /* v2.0.4: progress bar of the voter window (v4.15.0: loading the
+       postings shows a ring in the coffee slot instead) */
     .dst-progress {
       width: 100%;
       height: 28px;
@@ -2626,7 +2653,7 @@
 
   // ── Badge bar: 3 grouped toggle badges + coffee ───────────────
   async function changeSortMode(newMode, shadowRoot) {
-    completeNotice = null; // the reader wants the badges now, not the notice
+    completeNotice = null; // the 100% ring needs no re-render after a re-sort
     sortMode = newMode;
     syncGroupSelection();
 
@@ -2885,6 +2912,12 @@
     coffeeImg.draggable = false;
     coffeeIcon.appendChild(coffeeImg);
     coffeeBtn.appendChild(coffeeIcon);
+    // v4.15.0: progress ring + percentage, shown only while postings load
+    const loadRing = document.createElement('span');
+    loadRing.className = 'dst-load-ring';
+    const loadPct = document.createElement('span');
+    loadPct.className = 'dst-load-pct';
+    coffeeBtn.append(loadRing, loadPct);
     // V14 Dampf-Container mit 5 feinen Wisps
     const steamContainer = document.createElement('div');
     steamContainer.className = 'dst-steam-container';
@@ -3152,67 +3185,30 @@
   // bar) can show it again instead of flashing the badges for a moment.
   let lastProgress = null;
 
-  function showProgressBar(shadowRoot, loaded, total, message) {
-    const bar = shadowRoot.querySelector('#dst-badge-bar');
-    if (!bar) return;
-    lastProgress = [loaded, total, message];
-
-    // v3.8.0: the loading bar is its own row BELOW the sort track; the sort
-    // segments stay visible and usable while postings load.
-    let container = bar.querySelector('#dst-progress-container');
-    if (!container) {
-      container = document.createElement('div');
-      container.id = 'dst-progress-container';
-      container.style.cssText = 'width:100%;display:flex;flex-direction:column;min-width:0;';
-      // The new row pushes the forum down by ~38px: keep what the reader
-      // looks at in place (same anchoring as for a re-sort).
-      const anchor = captureScrollAnchor(shadowRoot);
-      bar.appendChild(container);
-      restoreScrollAnchor(anchor);
-    }
-
-    // v2.4.1: guard the denominator. A trustworthy total is always ≥ the
-    // number already loaded; if detection returned something smaller (or 0),
-    // fall back to the loaded count so we never render a bogus "X / 1".
+  // v4.15.0: the loading progress is a ring in the coffee slot
+  function showProgressBar(shadowRoot, loaded, total, done) {
+    const btn = shadowRoot.querySelector('#dst-seg .dst-coffee-btn');
+    if (!btn) return;
+    lastProgress = [loaded, total, done];
+    // v2.4.1: a trustworthy total is always >= the number already loaded
     const validTotal = (total && total >= loaded) ? total : 0;
-    const percentage = validTotal > 0 ? Math.round((loaded / validTotal) * 100) : 0;
-
-    // Build progress bar HTML using DOM methods (AMO safe); same look as
-    // the voter window's bar (CSS .dst-progress)
-    container.textContent = ''; // clear
-    const outer = document.createElement('div');
-    outer.className = 'dst-progress';
-    const fill = document.createElement('div');
-    fill.className = 'dst-progress-fill dst-progress-fill--loading';
-    fill.style.width = percentage + '%';
-    const textEl = document.createElement('span');
-    textEl.className = 'dst-progress-text';
-    // v2.4.1: show "X / Y" only when we have a trustworthy total; otherwise
-    // just show the loaded count (never the bogus "/ 1").
-    textEl.textContent = message
-      || (validTotal > 0
-            ? ('Lade alle Postings... ' + loaded + ' / ' + validTotal)
-            : ('Lade alle Postings... ' + loaded));
-
-    outer.appendChild(fill);
-    outer.appendChild(textEl);
-    container.appendChild(outer);
+    const pct = done ? 100 : (validTotal > 0 ? Math.min(99, Math.floor(loaded / validTotal * 100)) : 0);
+    btn.classList.add('dst-loading');
+    btn.style.setProperty('--dst-p', String(pct));
+    btn.querySelector('.dst-load-pct').textContent = pct + '%';
+    btn.title = done ? 'Alle ' + loaded + ' Postings geladen'
+      : 'Lade alle Postings… ' + loaded + (validTotal > 0 ? ' / ' + validTotal : '');
   }
 
   function hideProgressBar(shadowRoot) {
     lastProgress = null;
-    const bar = shadowRoot.querySelector('#dst-badge-bar');
-    if (!bar) return;
-
-    const container = bar.querySelector('#dst-progress-container');
-    if (container) {
-      // Removing the row pulls the forum up by ~38px — and a re-sort usually
-      // follows at once, which suspends the browser's own scroll anchoring.
-      const anchor = captureScrollAnchor(shadowRoot);
-      container.remove();
-      restoreScrollAnchor(anchor);
-    }
+    const btn = shadowRoot.querySelector('#dst-seg .dst-coffee-btn');
+    if (!btn) return;
+    btn.classList.remove('dst-loading', 'dst-load-done');
+    btn.style.removeProperty('--dst-p');
+    btn.removeAttribute('title');
   }
+
 
   // "✓ Alle N Postings geladen!" is shown for 1.5s, but only when background
   // loading actually added postings while the reader had the badge bar on
@@ -3231,10 +3227,10 @@
   function renderCompleteNotice(shadowRoot) {
     const bar = shadowRoot.querySelector('#dst-badge-bar');
     if (!bar || !completeNotice) return;
-    // the progress row (a full bar) with the notice as its text
-    showProgressBar(shadowRoot, 1, 1, '✓ Alle ' + completeNotice.total + ' Postings geladen!');
-    const fill = bar.querySelector('#dst-progress-container .dst-progress-fill');
-    if (fill) fill.classList.remove('dst-progress-fill--loading');
+    // the ring at 100%, green, lighting up once
+    showProgressBar(shadowRoot, completeNotice.total, completeNotice.total, true);
+    const btn = bar.querySelector('.dst-coffee-btn');
+    if (btn) btn.classList.add('dst-load-done');
   }
 
   function showProgressComplete(shadowRoot, totalPostings) {
@@ -3242,12 +3238,15 @@
     completeNotice = notice;
     renderCompleteNotice(shadowRoot);
 
-    // After 1.5s, hide the notice and show the badges again
-    setTimeout(function() {
-      if (completeNotice !== notice) return;
-      completeNotice = null;
-      hideProgressBar(shadowRoot);
-    }, 1500);
+    // the 100% stays for a moment, then the cup comes back. Timed by frames:
+    // right after loading the final sort keeps the page busy and delayed a
+    // plain setTimeout by several seconds.
+    const t0 = performance.now();
+    (function wait() {
+      if (performance.now() - t0 < 1800) { requestAnimationFrame(wait); return; }
+      if (completeNotice === notice) completeNotice = null;
+      if (!isLoadingAllPostings) hideProgressBar(shadowRoot);
+    })();
   }
 
   function readForumLoadState(shadowRoot) {
@@ -3341,8 +3340,6 @@
       while (sortEnabled) {
         const before = readForumLoadState(shadowRoot);
         const beforeCount = countRendered();
-        showProgressBar(shadowRoot, before?.loaded ?? beforeCount,
-          before?.total || getTotalPostingCount(shadowRoot));
 
         // An inactive "Alle Postings" tab can restrict pagination. Never keep
         // clicking the active tab, and never touch reply-expansion controls.
@@ -3361,6 +3358,10 @@
           completed = true;
           break;
         }
+        // v4.15.0: only once there is really something to load (a forum that
+        // is complete from the start never shows the ring)
+        showProgressBar(shadowRoot, before?.loaded ?? beforeCount,
+          before?.total || getTotalPostingCount(shadowRoot));
 
         const btn = findLoadMoreButton(shadowRoot);
         if (!btn || busy(btn) || before?.loading) {
