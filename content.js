@@ -397,6 +397,57 @@
     }
     #dst-seg .dst-badge-btn.dst-coffee-btn.dst-flash { animation: dst-coffee-flash .45s ease-out; }
 
+    /* v4.13.0: forum header as one large title with the count in it
+       ("Diskussion 280", the number pale) and derStandard's own gear, plain
+       and pale, on the right. The header spans exactly the sort pill: its
+       left edge up to the pill's right end (--dst-head-l/-r, set in
+       fitSortBar). The original count text stays in the DOM (derStandard
+       updates it; getTotalPostingCount reads it) and is only hidden; the
+       number comes from data-dst-n, which is missing while there is none. */
+    .forum--header {
+      --dst-ink: var(--theme--on-secondary--hsl, 0 0% 13%);
+      display: grid !important;
+      grid-template-columns: auto 1fr auto !important;
+      grid-template-rows: auto !important;
+      align-items: center;
+      column-gap: 10px;
+      margin: 0 !important;
+      padding: 26px var(--dst-head-r, 16px) 18px var(--dst-head-l, 16px) !important;
+    }
+    .forum--header > * { margin: 0 !important; }
+    .forum--header #forum--title {
+      grid-area: 1 / 1 !important;
+      padding-left: 4px;
+      font-size: clamp(24px, 7.8vw, 36px) !important;   /* smaller on phones */
+      font-weight: 800 !important;
+      letter-spacing: -.025em;
+      line-height: 1.1 !important;
+    }
+    .forum--header .forum--postingcount {
+      grid-area: 1 / 2 !important;
+      justify-self: start;
+      font-size: 0 !important;
+    }
+    .forum--header .forum--postingcount svg { display: none; }
+    .forum--header .forum--postingcount::after {
+      content: attr(data-dst-n);
+      white-space: nowrap;
+      font-size: clamp(24px, 7.8vw, 36px);
+      font-weight: 700;
+      letter-spacing: -.02em;
+      line-height: 1.1;
+      color: hsl(var(--dst-ink) / .3);
+      font-variant-numeric: tabular-nums;
+    }
+    .forum--header #forum-settings-flyout {
+      grid-area: 1 / 3 !important;
+      transform: translateX(3px);  /* glyph as far in as the title's */
+      color: hsl(var(--dst-ink) / .35);
+    }
+    .forum--header #forum-settings-flyout * { color: inherit !important; }
+    .forum--header #forum-settings-flyout svg { width: 22px; height: 22px; fill: currentColor; }
+    .forum--header #forum-settings-flyout:hover { color: hsl(var(--dst-ink) / .7); }
+
     /* V14 Coffee Steam Container */
     .dst-steam-container {
       position: absolute;
@@ -3006,6 +3057,30 @@
     if (!seg) return;
     const free = document.documentElement.clientWidth - bar.getBoundingClientRect().right;
     seg.classList.toggle('dst-wide', free >= 54 + 16);
+
+    // v4.13.0: the forum header spans the sort pill (up to its right end,
+    // before the coffee button) and shows the count as a bare number
+    const root = bar.getRootNode();
+    const header = root.querySelector && root.querySelector('.forum--header');
+    if (!header) return;
+    const h = header.getBoundingClientRect();
+    const s = seg.getBoundingClientRect();
+    // on phones the pill touches the window edge: then both ends 12px in
+    const inset = Math.max(0, 12 - s.left);
+    header.style.setProperty('--dst-head-l', Math.round(s.left + inset - h.left) + 'px');
+    header.style.setProperty('--dst-head-r', Math.round(h.right - (s.right - 54 - inset)) + 'px');
+    const count = header.querySelector('.forum--postingcount');
+    if (count) {
+      const m = (count.textContent || '').match(/\d[\d.]*/);
+      const n = m ? parseInt(m[0].replace(/\./g, ''), 10) : 0;
+      if (n > 0) {
+        count.setAttribute('data-dst-n', m[0]);
+        count.title = count.textContent.trim().replace(/\s+/g, ' ');
+      } else {
+        count.removeAttribute('data-dst-n');
+        count.removeAttribute('title');
+      }
+    }
   }
 
   // ── Debounced sort ────────────────────────────────────────────
