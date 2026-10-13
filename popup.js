@@ -1,4 +1,4 @@
-// popup.js — derStandard Comment Ranker v4.7.0
+// popup.js — derStandard Comment Ranker v4.8.0
 // 4-box popup: Header (icon + title), Toggle (enable/disable), Review
 // (browser-aware store link with a delayed golden pulse), and Coffee (donate).
 //
@@ -19,10 +19,12 @@
 //     gentle nudge again after a while (we can't detect actual donations).
 
 var SORT_KEY = 'dstSorterEnabled';
-// v3.11.0: on/off as a two-segment track (Deaktiviert | Aktiviert)
-var onoff = document.getElementById('onoff');
-var btnOff = document.getElementById('btnOff');
-var btnOn = document.getElementById('btnOn');
+var TINT_KEY = 'dstTintEdge';
+// v4.8.0: two switches as separate buttons — a green ring when on, a red
+// ring when off. "Farbmarkierung" is dimmed while the extension is off.
+var toggles = document.querySelector('.toggles');
+var btnExt = document.getElementById('btnExt');
+var btnTint = document.getElementById('btnTint');
 
 function sendMessageToTab(msg) {
   chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
@@ -32,59 +34,33 @@ function sendMessageToTab(msg) {
   });
 }
 
-function showEnabled(enabled) {
-  onoff.classList.toggle('is-on', enabled);
-  onoff.querySelector('.onoff-thumb').style.setProperty('--i', enabled ? '1' : '0');
-  btnOn.setAttribute('aria-pressed', String(enabled));
-  btnOff.setAttribute('aria-pressed', String(!enabled));
+function isOn(btn) { return btn.getAttribute('aria-pressed') === 'true'; }
+function show(btn, on) {
+  btn.setAttribute('aria-pressed', String(on));
+  if (btn === btnExt) btnTint.classList.toggle('dimmed', !on);
 }
 
-// Load saved state (no slide animation for the initial state)
-chrome.storage.sync.get([SORT_KEY], function(data) {
-  showEnabled(data[SORT_KEY] !== false);
-  requestAnimationFrame(function() { onoff.classList.remove('no-anim'); });
+// Load saved state (no transition for the initial state)
+chrome.storage.sync.get([SORT_KEY, TINT_KEY], function(data) {
+  data = data || {};
+  show(btnExt, data[SORT_KEY] !== false);
+  show(btnTint, data[TINT_KEY] === true);
+  requestAnimationFrame(function() { toggles.classList.remove('no-anim'); });
 });
 
-function setEnabled(enabled) {
-  if (onoff.classList.contains('is-on') === enabled) return;
-  showEnabled(enabled);
-  onoff.classList.remove('flash');
-  void onoff.offsetWidth; // restart the flash
-  onoff.classList.add('flash');
-  chrome.storage.sync.set({ [SORT_KEY]: enabled });
-  sendMessageToTab({ action: 'toggle', enabled: enabled });
-}
-btnOn.addEventListener('click', function() { setEnabled(true); });
-btnOff.addEventListener('click', function() { setEnabled(false); });
-onoff.addEventListener('animationend', function() { onoff.classList.remove('flash'); });
-
-// v4.7.0: "Farbmarkierung" (off by default), same switch as above. The
-// content script listens to the storage change, so the forum updates at once.
-var TINT_KEY = 'dstTintEdge';
-var onoffTint = document.getElementById('onoffTint');
-var tintOn = document.getElementById('tintOn');
-var tintOff = document.getElementById('tintOff');
-function showTint(on) {
-  onoffTint.classList.toggle('is-on', on);
-  onoffTint.querySelector('.onoff-thumb').style.setProperty('--i', on ? '1' : '0');
-  tintOn.setAttribute('aria-pressed', String(on));
-  tintOff.setAttribute('aria-pressed', String(!on));
-}
-chrome.storage.sync.get([TINT_KEY], function(d) {
-  showTint(!!(d && d[TINT_KEY] === true));
-  requestAnimationFrame(function() { onoffTint.classList.remove('no-anim'); });
+// The content script listens to the storage change of TINT_KEY; the on/off
+// switch is also sent to the tab directly.
+btnExt.addEventListener('click', function() {
+  var on = !isOn(btnExt);
+  show(btnExt, on);
+  chrome.storage.sync.set({ [SORT_KEY]: on });
+  sendMessageToTab({ action: 'toggle', enabled: on });
 });
-function setTint(on) {
-  if (onoffTint.classList.contains('is-on') === on) return;
-  showTint(on);
-  onoffTint.classList.remove('flash');
-  void onoffTint.offsetWidth;
-  onoffTint.classList.add('flash');
+btnTint.addEventListener('click', function() {
+  var on = !isOn(btnTint);
+  show(btnTint, on);
   chrome.storage.sync.set({ [TINT_KEY]: on });
-}
-tintOn.addEventListener('click', function() { setTint(true); });
-tintOff.addEventListener('click', function() { setTint(false); });
-onoffTint.addEventListener('animationend', function() { onoffTint.classList.remove('flash'); });
+});
 
 // Coffee button — click handling + recurring pulse live in the IIFE below (v2.4.5).
 

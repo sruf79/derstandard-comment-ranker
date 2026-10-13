@@ -218,6 +218,10 @@
       pointer-events: none;
     }
     #dst-seg::before { left: 0; right: calc(3px + 38px + 3px + 10px); }
+    /* v4.8.0: room on the right → the track reaches past the postings by
+       exactly the coffee button + gap, so the sort pill itself is as wide
+       as the postings (see fitSortBar) */
+    #dst-seg.dst-wide { margin-right: calc(-1 * (3px + 38px + 3px + 10px)); }
     /* v3.10.0: a 20px bridge in the same domed look links the two pills; it
        runs under both of them (pills z-index -1, bridge -2) */
     #dst-seg-bridge {
@@ -239,16 +243,6 @@
       pointer-events: none;
     }
     #dst-seg::after { right: 0; width: calc(3px + 38px + 3px); }
-    /* v3.20.0: the direction is shown by the whole sort pill: a fine green
-       resp. red line and a soft glow of that colour above and below it
-       (instead of a coloured ring around the active segment). */
-    #dst-seg::before { transition: box-shadow .3s ease; }
-    #dst-seg:has(#dst-seg-thumb[data-tone="pos"])::before {
-      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), inset 0 -2px 3px rgba(0, 0, 0, .06), 0 0 0 1px var(--dst-track-border), 0 0 0 2px rgba(46, 125, 50, .95), 0 2px 6px rgba(0, 0, 0, .12);
-    }
-    #dst-seg:has(#dst-seg-thumb[data-tone="neg"])::before {
-      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), inset 0 -2px 3px rgba(0, 0, 0, .06), 0 0 0 1px var(--dst-track-border), 0 0 0 2px rgba(198, 40, 40, .95), 0 2px 6px rgba(0, 0, 0, .12);
-    }
     /* v3.20.0: the active segment is a raised glass knob (iOS-like): white
        glass with a dark rim, a white inner rim, a highlight and a deep
        shadow; it reaches over the edge of the pill. Text stays sharp. */
@@ -262,22 +256,30 @@
       /* v3.24.0: light gathers at the lower inner edge, as in thick glass */
       box-shadow: 0 0 0 1px rgba(0, 0, 0, .14), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12);
     }
-    /* v3.21.2 (v3.22.1: half as far): the glow of the bar reaches above and below it, so the
-       colour still shows around the (larger) glass knob; the knob itself has
-       no coloured ring. */
+    /* v4.8.0: the track stays neutral; only the active knob shows the
+       direction: a 3px green resp. red ring whose colour seeps softly
+       inwards into a lightly tinted knob. */
+    #dst-seg-thumb[data-tone="pos"]::before {
+      background: linear-gradient(to bottom, #f3faef, #e2f0da);
+      box-shadow: 0 0 0 3px rgba(46, 125, 50, .95), inset 0 0 9px 2px rgba(46, 125, 50, .3), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12);
+    }
+    #dst-seg-thumb[data-tone="neg"]::before {
+      background: linear-gradient(to bottom, #fdf1f0, #f8dcda);
+      box-shadow: 0 0 0 3px rgba(198, 40, 40, .95), inset 0 0 9px 2px rgba(198, 40, 40, .3), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12);
+    }
     /* click flash: a short glow ring in the direction's colour */
     @keyframes dst-glass-flash-pos {
-      0%   { box-shadow: 0 0 0 1px rgba(0, 0, 0, .14), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12), 0 0 0 10px rgba(46, 125, 50, .4); }
-      100% { box-shadow: 0 0 0 1px rgba(0, 0, 0, .14), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12), 0 0 0 0 rgba(46, 125, 50, 0); }
+      0%   { box-shadow: 0 0 0 3px rgba(46, 125, 50, .95), inset 0 0 9px 2px rgba(46, 125, 50, .3), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12), 0 0 0 10px rgba(46, 125, 50, .4); }
+      100% { box-shadow: 0 0 0 3px rgba(46, 125, 50, .95), inset 0 0 9px 2px rgba(46, 125, 50, .3), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12), 0 0 0 3px rgba(46, 125, 50, 0); }
     }
     @keyframes dst-glass-flash-neg {
-      0%   { box-shadow: 0 0 0 1px rgba(0, 0, 0, .14), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12), 0 0 0 10px rgba(198, 40, 40, .4); }
-      100% { box-shadow: 0 0 0 1px rgba(0, 0, 0, .14), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12), 0 0 0 0 rgba(198, 40, 40, 0); }
+      0%   { box-shadow: 0 0 0 3px rgba(198, 40, 40, .95), inset 0 0 9px 2px rgba(198, 40, 40, .3), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12), 0 0 0 10px rgba(198, 40, 40, .4); }
+      100% { box-shadow: 0 0 0 3px rgba(198, 40, 40, .95), inset 0 0 9px 2px rgba(198, 40, 40, .3), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12), 0 0 0 3px rgba(198, 40, 40, 0); }
     }
     #dst-seg-thumb.dst-flash[data-tone="pos"]::before { animation: dst-glass-flash-pos .45s ease-out; }
     #dst-seg-thumb.dst-flash[data-tone="neg"]::before { animation: dst-glass-flash-neg .45s ease-out; }
     @media (prefers-reduced-motion: reduce) {
-      #dst-seg-thumb, #dst-seg::before { transition: none; }
+      #dst-seg-thumb { transition: none; }
       #dst-seg-thumb.dst-flash[data-tone]::before { animation: none; }
     }
     .dst-badge-btn {
@@ -2726,6 +2728,7 @@
     if (existingBar && mainForBar && existingBar.parentNode === mainForBar &&
         existingBar.querySelector('#dst-seg')) {
       updateSortBar(existingBar);
+      fitSortBar(existingBar);
       return;
     }
     if (existingBar) existingBar.remove();
@@ -2979,8 +2982,28 @@
       header.appendChild(bar);
     }
 
+    fitSortBar(bar);
+    if (!fitSortBar.bound) {
+      fitSortBar.bound = true;
+      window.addEventListener('resize', function () {
+        const b = shadowRoot.querySelector('#dst-badge-bar');
+        if (b) fitSortBar(b);
+      });
+    }
+
     if (completeNotice) renderCompleteNotice(shadowRoot);
     else if (isLoadingAllPostings && lastProgress) showProgressBar(shadowRoot, ...lastProgress);
+  }
+
+  // v4.8.0: when there is room right of the postings, the sort pill gets the
+  // exact width of the postings and the coffee button (with its bridge) sits
+  // outside, in the free space on the right. Otherwise (phones, narrow
+  // windows) the coffee button stays inside that width, as before.
+  function fitSortBar(bar) {
+    const seg = bar.querySelector('#dst-seg');
+    if (!seg) return;
+    const free = document.documentElement.clientWidth - bar.getBoundingClientRect().right;
+    seg.classList.toggle('dst-wide', free >= 54 + 16);
   }
 
   function removeSortBadge(shadowRoot) {

@@ -54,18 +54,19 @@
     /* v3.10.1: the name is no button — plain header on the background,
        only clickable things are pills */
     .badge-box.header-badge {
-      justify-content: flex-start;
+      justify-content: center;   /* v4.8.0: centred */
       background: none;
       box-shadow: none;
       height: auto;
       padding: 2px 4px 4px;
-      margin-bottom: 14px;
+      margin-bottom: 8px;
     }
     
     .header-text-container {
       display: flex;
       flex-direction: column;
       justify-content: center;
+      align-items: center;
       flex: 1;
     }
     
@@ -77,85 +78,37 @@
       line-height: 1.2;
     }
     
-    /* Box 2: On/off — v3.11.0: a two-segment track like the sort bar on the
-       site. v3.21.0: same glass look as the sort bar (v3.20.0): the track
-       glows red (Deaktiviert) or green (Aktiviert), the chosen segment is a
-       raised glass knob reaching over the track's edge. */
-    .onoff {
-      position: relative;
+    /* Box 2: v4.8.0 — two separate pill buttons side by side, no symbols.
+       Each one is a switch: a green ring when on, a red ring when off.
+       "Farbmarkierung" is dimmed while the whole extension is off. */
+    .toggles {
       display: flex;
-      gap: 3px;
-      padding: 3px;
-      height: 50px;
+      gap: 10px;
       margin: 0 0 18px;
-      border-radius: 999px;
-      isolation: isolate;
     }
-    .onoff::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      z-index: -1;
+    .toggle {
+      flex: 1 1 0;
+      height: 50px;
+      border: 0;
       border-radius: 999px;
       background: var(--pill-bg);
-      /* v4.7.0: neutral frame — the state shows by knob, bold text and the
-         coloured ✕ / ✓ */
-      box-shadow: var(--pill-shadow);
-    }
-    .onoff button {
-      position: relative;
-      flex: 1 1 0;
-      border: 0;
-      background: transparent;
       font: inherit;
       font-size: 14px;
-      font-weight: 600;
-      color: rgba(51, 51, 51, .8);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
+      font-weight: 700;
+      color: rgba(51, 51, 51, .7);
       cursor: pointer;
+      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), inset 0 -2px 3px rgba(0, 0, 0, .06), 0 0 0 1px var(--track-border), 0 0 0 2px rgba(198, 40, 40, .95), 0 2px 6px rgba(0, 0, 0, .12);
+      transition: box-shadow .3s ease, color .3s ease, opacity .3s ease;
     }
-    .onoff button[aria-pressed="true"] { font-weight: 700; color: #222; }
-    .onoff button:focus-visible { outline: 2px solid #333; outline-offset: 2px; border-radius: 999px; }
-    .onoff-ico-off { color: #c62828; }
-    .onoff-ico-on  { color: #2e7d32; }
-    .onoff-thumb {
-      position: absolute;
-      top: -1px;
-      bottom: -1px;
-      left: -1px;
-      width: calc((100% - 9px) / 2 + 8px);
-      border-radius: 999px;
-      transform: translateX(calc(var(--i, 1) * (100% - 5px)));
-      transition: transform .3s ease;
+    .toggle[aria-pressed="true"] {
+      color: #222;
+      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), inset 0 -2px 3px rgba(0, 0, 0, .06), 0 0 0 1px var(--track-border), 0 0 0 2px rgba(46, 125, 50, .95), 0 2px 6px rgba(0, 0, 0, .12);
     }
-    .onoff-thumb::before {
-      content: '';
-      position: absolute;
-      inset: -1px;
-      border-radius: 999px;
-      background:
-        linear-gradient(to bottom, #fff, #f4f5f7);  /* v4.4.0: calm, no gloss */
-      /* v3.24.0: light gathers at the lower inner edge, as in thick glass */
-      box-shadow: 0 0 0 1px rgba(0, 0, 0, .14), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12);
-    }
-    .onoff.no-anim .onoff-thumb, .onoff.no-anim::before { transition: none; }
-    /* click flash, as on the site: a short glow ring in the state's colour */
-    @keyframes onoff-flash-on {
-      0%   { box-shadow: 0 0 0 1px rgba(0, 0, 0, .14), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12), 0 0 0 10px rgba(46, 125, 50, .4); }
-      100% { box-shadow: 0 0 0 1px rgba(0, 0, 0, .14), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12), 0 0 0 0 rgba(46, 125, 50, 0); }
-    }
-    @keyframes onoff-flash-off {
-      0%   { box-shadow: 0 0 0 1px rgba(0, 0, 0, .14), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12), 0 0 0 10px rgba(198, 40, 40, .4); }
-      100% { box-shadow: 0 0 0 1px rgba(0, 0, 0, .14), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12), 0 0 0 0 rgba(198, 40, 40, 0); }
-    }
-    .onoff.flash .onoff-thumb::before { animation: onoff-flash-off .45s ease-out; }
-    .onoff.is-on.flash .onoff-thumb::before { animation: onoff-flash-on .45s ease-out; }
+    .toggle.dimmed { opacity: .5; }
+    .toggle:focus-visible { outline: 2px solid #333; outline-offset: 3px; }
+    .toggles.no-anim .toggle { transition: none; }
     @media (prefers-reduced-motion: reduce) {
-      .onoff-thumb, .onoff::before { transition: none; }
-      .onoff.flash .onoff-thumb::before { animation: none; }
+      .toggle { transition: none; }
     }
     
     /* Box 3: Review/Bewerten-Badge (v2.0.5) */
@@ -379,9 +332,6 @@
       100% { transform: translateY(-53px) translateX(0) rotate(0deg) scaleY(1.9); opacity: 0; }
     }
 
-    /* v4.7.0: a small heading above each switch */
-    .opt-label { font-size: 12px; font-weight: 700; color: #3d4b52; margin: 0 0 6px 14px; }
-    .header-badge { margin-bottom: 4px; }
   </style>
 </head>
 <body>
@@ -392,20 +342,10 @@
     </div>
   </div>
   
-  <!-- Box 2: Ein/Aus — Schiene mit zwei Segmenten wie die Sortierleiste (v3.11.0) -->
-  <div class="opt-label" id="lblExt">Erweiterung</div>
-  <div class="onoff is-on no-anim" id="onoff" role="group" aria-labelledby="lblExt">
-    <div class="onoff-thumb" aria-hidden="true"></div>
-    <button type="button" id="btnOff" aria-pressed="false"><span class="onoff-ico-off">&#10005;</span> Aus</button>
-    <button type="button" id="btnOn" aria-pressed="true"><span class="onoff-ico-on">&#10003;</span> An</button>
-  </div>
-
-  <!-- v4.7.0: Farbmarkierung (aus standardmäßig) -->
-  <div class="opt-label" id="lblTint" title="Grüne bzw. rote Kante an jedem Posting – je deutlicher die Bewertung, desto kräftiger">Farbmarkierung</div>
-  <div class="onoff no-anim" id="onoffTint" role="group" aria-labelledby="lblTint">
-    <div class="onoff-thumb" aria-hidden="true"></div>
-    <button type="button" id="tintOff" aria-pressed="true"><span class="onoff-ico-off">&#10005;</span> Aus</button>
-    <button type="button" id="tintOn" aria-pressed="false"><span class="onoff-ico-on">&#10003;</span> An</button>
+  <!-- Box 2: v4.8.0 — two switches as separate buttons (green ring = on, red ring = off) -->
+  <div class="toggles no-anim">
+    <button type="button" class="toggle" id="btnExt" aria-pressed="true" title="Erweiterung ein- oder ausschalten">Erweiterung</button>
+    <button type="button" class="toggle" id="btnTint" aria-pressed="false" title="Grüne bzw. rote Kante an jedem Posting – je deutlicher die Bewertung, desto kräftiger">Farbmarkierung</button>
   </div>
 
   <!-- Box 3: Review/Bewerten — Browser-aware Link (Chrome Web Store / Firefox AMO) -->
