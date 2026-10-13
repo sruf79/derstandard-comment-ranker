@@ -466,7 +466,7 @@
        derStandard's own arrangement (name, time and rating on top; − Antworten
        + below the text) in our style. v4.11.0: the footer is one symmetric
        row  💬 n  ·  − Antworten +  ·  ⌄  — the chevron unfolds a row below
-       with Teilen, Kopieren, Ausblenden, Melden.
+       with Melden, Ausblenden, Kopieren, Teilen.
        All icons are grey; colour only shows state: the rating top right and
        a vote you gave (derStandard fills − / + red / green itself).
        Everything is laid out on derStandard's own grids: only the column
@@ -1523,7 +1523,7 @@
     const clip = document.createElement('div');
     const acts = document.createElement('div');
     acts.className = 'dst-more-acts';
-    acts.append(share, copy, hide, report);
+    acts.append(report, hide, copy, share); // v4.11.2: left to right
     clip.appendChild(acts);
     row.appendChild(clip);
 
