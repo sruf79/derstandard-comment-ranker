@@ -405,13 +405,15 @@
        ("Diskussion 280", the number pale) and derStandard's own gear, plain
        and pale, on the right. The header spans exactly the sort pill: its
        left edge up to the pill's right end (--dst-head-l/-r, set in
-       fitSortBar). The original count text stays in the DOM (derStandard
-       updates it; getTotalPostingCount reads it) and is only hidden; the
-       number comes from data-dst-n, which is missing while there is none. */
+       fitSortBar). v4.13.2: the title keeps derStandard's own size (48px,
+       28px on phones); the number is appended to it (data-dst-n on the
+       title, missing while there is none) in the same font size. The
+       original count stays in the DOM (derStandard updates it;
+       getTotalPostingCount reads it) and is only hidden. */
     .forum--header {
       --dst-ink: var(--theme--on-secondary--hsl, 0 0% 13%);
       display: grid !important;
-      grid-template-columns: auto 1fr auto !important;
+      grid-template-columns: 1fr auto !important;
       grid-template-rows: auto !important;
       align-items: center;
       column-gap: 10px;
@@ -422,22 +424,15 @@
     .forum--header #forum--title {
       grid-area: 1 / 1 !important;
       padding-left: 4px;
-      font-size: clamp(24px, 7.8vw, 36px) !important;   /* smaller on phones */
       font-weight: 800 !important;
       letter-spacing: -.025em;
       line-height: 1.1 !important;
       white-space: nowrap;
     }
-    .forum--header .forum--postingcount {
-      grid-area: 1 / 2 !important;
-      justify-self: start;
-      font-size: 0 !important;
-    }
-    .forum--header .forum--postingcount svg { display: none; }
-    .forum--header .forum--postingcount::after {
+    .forum--header .forum--postingcount { display: none !important; }
+    .forum--header #forum--title[data-dst-n]::after {
       content: attr(data-dst-n);
-      white-space: nowrap;
-      font-size: clamp(24px, 7.8vw, 36px);
+      margin-left: .28em;
       font-weight: 700;
       letter-spacing: -.02em;
       line-height: 1.1;
@@ -445,7 +440,7 @@
       font-variant-numeric: tabular-nums;
     }
     .forum--header #forum-settings-flyout {
-      grid-area: 1 / 3 !important;
+      grid-area: 1 / 2 !important;
       transform: translateX(3px);  /* glyph as far in as the title's */
       color: hsl(var(--dst-ink) / .35);
     }
@@ -3075,16 +3070,17 @@
     header.style.setProperty('--dst-head-l', Math.round(s.left + inset - h.left) + 'px');
     header.style.setProperty('--dst-head-r', Math.round(h.right - (s.right - 54 - inset)) + 'px');
     const count = header.querySelector('.forum--postingcount');
-    if (count) {
+    const title = header.querySelector('#forum--title');
+    if (count && title) {
       const m = (count.textContent || '').match(/\d[\d.]*/);
       const n = m ? parseInt(m[0].replace(/\./g, ''), 10) : 0;
       if (n > 0) {
         // v4.13.1: from 10.000 in full thousands ("12k"), so it always fits
-        count.setAttribute('data-dst-n', n > 9999 ? Math.floor(n / 1000) + 'k' : m[0]);
-        count.title = count.textContent.trim().replace(/\s+/g, ' ');
+        title.setAttribute('data-dst-n', n > 9999 ? Math.floor(n / 1000) + 'k' : m[0]);
+        title.title = count.textContent.trim().replace(/\s+/g, ' ');
       } else {
-        count.removeAttribute('data-dst-n');
-        count.removeAttribute('title');
+        title.removeAttribute('data-dst-n');
+        title.removeAttribute('title');
       }
     }
   }
