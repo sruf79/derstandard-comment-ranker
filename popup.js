@@ -1,4 +1,4 @@
-// popup.js — derStandard Comment Ranker v4.13.6
+// popup.js — derStandard Comment Ranker v4.13.7
 // Popup: header (logo + title), on/off switch, review (browser-aware store
 // link with a delayed golden ring) and coffee (donate).
 //
@@ -50,6 +50,9 @@ chrome.storage.sync.get([SORT_KEY], function(data) {
 btnExt.addEventListener('click', function() {
   var on = btnExt.getAttribute('aria-pressed') !== 'true';
   showEnabled(on);
+  btnExt.classList.remove('flash');
+  void btnExt.offsetWidth; // restart the flash on quick repeated clicks
+  btnExt.classList.add('flash');
   chrome.storage.sync.set({ [SORT_KEY]: on });
   sendMessageToTab({ action: 'toggle', enabled: on });
 });
