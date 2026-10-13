@@ -798,22 +798,36 @@
       background: linear-gradient(to bottom, #fff, #f4f5f7);
       box-shadow: 0 1px 0 var(--dst-track-border), 0 4px 8px -4px rgba(0, 0, 0, .25);
     }
-    .dst-vch-n { font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
-    .dst-voter-col-head.pos .dst-vch-n { color: #2e7d32; }
-    .dst-voter-col-head.neg .dst-vch-n { color: #c62828; }
-    .dst-voter-col-head + .dst-voter-col-head { box-shadow: -1px 0 0 rgba(0, 0, 0, .1); }
+    /* v4.7.0: one bar like in the posting cards, scaled up: red left, green
+       right, the gap between them on the column divider. Both numbers stand
+       at fixed places (the ends of the full bar); the bars grow from the
+       divider towards them — up to 10 votes one tenth per vote, then the
+       bigger side full and the other in proportion (--f, set in JS). */
     .dst-voter-col-head {
       flex: 1 1 50%;
       min-width: 0;
       min-height: 38px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
+      position: relative;
+      --dst-vmax: min(160px, 100% - 70px);
     }
-    .dst-vch-bar { width: clamp(36px, 45%, 110px); height: 6px; border-radius: 3px; }
-    .dst-voter-col-head.pos .dst-vch-bar { background: rgb(75, 120, 43); }
-    .dst-voter-col-head.neg .dst-vch-bar { background: rgb(213, 42, 42); }
+    .dst-voter-col-head.pos { box-shadow: -1px 0 0 rgba(0, 0, 0, .1); }
+    .dst-vch-bar {
+      position: absolute; top: 50%; height: 8px; margin-top: -4px;
+      width: max(6px, calc(var(--f, 0) * var(--dst-vmax)));
+      box-shadow: inset 0 1px 1.5px rgba(0, 0, 0, .38), 0 1px 0 rgba(255, 255, 255, .85);
+    }
+    .dst-voter-col-head.neg .dst-vch-bar { right: 2px; background: rgb(213, 42, 42); border-radius: 4px 0 0 4px; }
+    .dst-voter-col-head.pos .dst-vch-bar { left: 1px; background: rgb(75, 120, 43); border-radius: 0 4px 4px 0; }
+    .dst-voter-col-head.zero .dst-vch-bar { display: none; }
+    .dst-vch-n {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1;
+    }
+    .dst-voter-col-head.neg .dst-vch-n { right: calc(var(--dst-vmax) + 12px); color: #c62828; }
+    .dst-voter-col-head.pos .dst-vch-n { left: calc(var(--dst-vmax) + 12px); color: #2e7d32; }
+    .dst-voter-col-head.zero .dst-vch-n { color: hsl(var(--dst-ink) / .4); }
+    /* an empty column is greyed out */
+    .dst-voter-list.dst-empty { background: hsl(var(--dst-ink) / .07); }
     .dst-voter-list {
       list-style: none;
       margin: 0;
@@ -1098,26 +1112,32 @@
       const label = count + ' ' + labelText + (Number(count) === 1 ? '' : 's');
       colHead.title = label;
       colHead.setAttribute('aria-label', label);
+      const c = Number(count) || 0;
+      const P = Number(posCount) || 0, N = Number(negCount) || 0, T = P + N;
+      // derStandard's rule: one tenth per vote up to 10, then in proportion
+      const f = T ? Math.min(T, 10) / 10 * c / Math.max(P, N) : 0;
+      colHead.style.setProperty('--f', String(f));
+      if (!c) colHead.classList.add('zero');
       const bar = document.createElement('span');
       bar.className = 'dst-vch-bar';
       bar.setAttribute('aria-hidden', 'true');
-      colHead.appendChild(bar);
-      // v4.5.0: the count right at its bar: "+23 ▬▬" and "▬▬ −10"
       const n = document.createElement('span');
       n.className = 'dst-vch-n';
-      n.textContent = Number(count) ? (kind === 'pos' ? '+' : '\u2212') + count : '0';
-      if (kind === 'pos') colHead.prepend(n); else colHead.appendChild(n);
+      n.textContent = c ? (kind === 'pos' ? '+' : '\u2212') + c : '0';
+      colHead.append(bar, n);
       const ul = document.createElement('ul');
       ul.className = 'dst-voter-list';
       ul.setAttribute('data-kind', kind);
+      if (!c) ul.classList.add('dst-empty');
       head.appendChild(colHead);
       col.appendChild(ul);
       return { col: col, ul: ul };
     }
-    const posCol = makeColumn('pos', posCount, 'Like');
+    // v4.7.0: red left, green right — like the rating bar in the cards
     const negCol = makeColumn('neg', negCount, 'Dislike');
-    body.appendChild(posCol.col);
+    const posCol = makeColumn('pos', posCount, 'Like');
     body.appendChild(negCol.col);
+    body.appendChild(posCol.col);
 
     // Footer
     const foot = document.createElement('div');

@@ -1,4 +1,4 @@
-// popup.js — derStandard Comment Ranker v4.6.0
+// popup.js — derStandard Comment Ranker v4.7.0
 // 4-box popup: Header (icon + title), Toggle (enable/disable), Review
 // (browser-aware store link with a delayed golden pulse), and Coffee (donate).
 //
@@ -34,7 +34,7 @@ function sendMessageToTab(msg) {
 
 function showEnabled(enabled) {
   onoff.classList.toggle('is-on', enabled);
-  document.getElementById('onoffThumb').style.setProperty('--i', enabled ? '1' : '0');
+  onoff.querySelector('.onoff-thumb').style.setProperty('--i', enabled ? '1' : '0');
   btnOn.setAttribute('aria-pressed', String(enabled));
   btnOff.setAttribute('aria-pressed', String(!enabled));
 }
@@ -58,24 +58,33 @@ btnOn.addEventListener('click', function() { setEnabled(true); });
 btnOff.addEventListener('click', function() { setEnabled(false); });
 onoff.addEventListener('animationend', function() { onoff.classList.remove('flash'); });
 
-// v4.6.0: option "Bewertung als Farbkante" (off by default). The content
-// script listens to the storage change, so the forum updates right away.
+// v4.7.0: "Farbmarkierung" (off by default), same switch as above. The
+// content script listens to the storage change, so the forum updates at once.
 var TINT_KEY = 'dstTintEdge';
-var optTint = document.getElementById('optTint');
-if (optTint) {
-  chrome.storage.sync.get([TINT_KEY], function(d) {
-    optTint.setAttribute('aria-checked', String(!!(d && d[TINT_KEY] === true)));
-  });
-  var toggleTint = function() {
-    var on = optTint.getAttribute('aria-checked') !== 'true';
-    optTint.setAttribute('aria-checked', String(on));
-    chrome.storage.sync.set({ [TINT_KEY]: on });
-  };
-  optTint.addEventListener('click', toggleTint);
-  optTint.addEventListener('keydown', function(e) {
-    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggleTint(); }
-  });
+var onoffTint = document.getElementById('onoffTint');
+var tintOn = document.getElementById('tintOn');
+var tintOff = document.getElementById('tintOff');
+function showTint(on) {
+  onoffTint.classList.toggle('is-on', on);
+  onoffTint.querySelector('.onoff-thumb').style.setProperty('--i', on ? '1' : '0');
+  tintOn.setAttribute('aria-pressed', String(on));
+  tintOff.setAttribute('aria-pressed', String(!on));
 }
+chrome.storage.sync.get([TINT_KEY], function(d) {
+  showTint(!!(d && d[TINT_KEY] === true));
+  requestAnimationFrame(function() { onoffTint.classList.remove('no-anim'); });
+});
+function setTint(on) {
+  if (onoffTint.classList.contains('is-on') === on) return;
+  showTint(on);
+  onoffTint.classList.remove('flash');
+  void onoffTint.offsetWidth;
+  onoffTint.classList.add('flash');
+  chrome.storage.sync.set({ [TINT_KEY]: on });
+}
+tintOn.addEventListener('click', function() { setTint(true); });
+tintOff.addEventListener('click', function() { setTint(false); });
+onoffTint.addEventListener('animationend', function() { onoffTint.classList.remove('flash'); });
 
 // Coffee button — click handling + recurring pulse live in the IIFE below (v2.4.5).
 
