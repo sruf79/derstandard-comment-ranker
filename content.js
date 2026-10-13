@@ -497,14 +497,20 @@
        draws its own bend (::before) and, if more replies follow on its level,
        the straight line further down (::after); a nested thread in between
        carries the line on (section ::before). */
-    main.forum--main { --dst-ind: 32px; --dst-line: color-mix(in srgb, hsl(var(--theme--on-secondary--hsl)) 32%, var(--theme--base, #e6e6e6)); --dst-name-y: 28px; }
-    @media (max-width: 600px) { main.forum--main { --dst-ind: 18px; } }
+    /* v4.13.6: lighter line (20%, was 32%), about the tone of the card
+       frames; the bend has a small radius, so it runs into the card
+       horizontally (like Reddit) instead of hooking into it */
+    main.forum--main { --dst-ind: 32px; --dst-line: color-mix(in srgb, hsl(var(--theme--on-secondary--hsl)) 20%, var(--theme--base, #e6e6e6)); --dst-name-y: 28px; --dst-bend: 8px; }
+    @media (max-width: 600px) { main.forum--main { --dst-ind: 18px; --dst-bend: 5px; } }
     main.forum--main .thread {
       background: none !important; border: 0 !important; border-radius: 0 !important;
       padding-left: var(--dst-ind); position: relative;
     }
     main.forum--main > .thread:not(.collapsed) { margin-bottom: 20px; }
     main.forum--main .thread > dst-posting { position: relative; }
+    /* v4.13.6: deleted postings too keep 8px to the card above, so the
+       lines (which start 2px below it) never reach into that card */
+    main.forum--main .thread > dst-posting:not([data-dst-tile]) { margin-top: 8px; }
     main.forum--main .thread > dst-posting::before,
     main.forum--main .thread > dst-posting::after,
     main.forum--main .thread > .thread::before {
@@ -528,7 +534,7 @@
          more, it read like a dash before the user name) */
       top: -6px; height: calc(4px + var(--dst-name-y)) !important; width: calc(var(--dst-ind) / 2 - 3px) !important;
       border-left: 2px solid var(--dst-line); border-bottom: 2px solid var(--dst-line);
-      border-bottom-left-radius: 14px !important;
+      border-bottom-left-radius: var(--dst-bend) !important;
     }
     /* when more replies follow, one straight trunk runs on past this reply
        (the bend branches off it, like on Reddit); the line colour is opaque,
