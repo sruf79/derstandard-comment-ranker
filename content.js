@@ -358,7 +358,9 @@
       box-shadow: inset 0 1px 1.5px rgba(0, 0, 0, .38), 0 1px 0 rgba(255, 255, 255, .85);
     }
 
-    /* Coffee/Donate button — never active, round, with a golden ring.
+    /* Coffee/Donate button — never active, round. v4.13.1: at rest it looks
+       like the inactive sort segments (no ring, icon at .65); the golden
+       ring only shows on hover and during the reminder (dst-pulsing).
        v3.7.0: inside the track as its last slot. v3.9.2: it fills its whole
        pill (44px, over the track padding), so the ring and the click flash
        sit on the pill's edge. Hovering lights the cup up, starts the steam
@@ -373,15 +375,17 @@
       border-radius: 50%;
       background: transparent;
       position: relative;
-      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 2px 6px rgba(0, 0, 0, .12);
     }
-    #dst-seg .dst-badge-btn.dst-coffee-btn:hover {
-      background: #fff8e1;
-      animation: dst-coffee-flash .45s ease-out;
-    }
+    #dst-seg .dst-badge-btn.dst-coffee-btn > * { opacity: .65; transition: opacity .15s ease, transform .3s ease; }
+    #dst-seg .dst-badge-btn.dst-coffee-btn:hover,
     #dst-seg .dst-badge-btn.dst-coffee-btn.dst-pulsing {
       background: #fff8e1;
+      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 2px 6px rgba(0, 0, 0, .12);
     }
+    #dst-seg .dst-badge-btn.dst-coffee-btn:hover { animation: dst-coffee-flash .45s ease-out; }
+    #dst-seg .dst-badge-btn.dst-coffee-btn:hover > *,
+    #dst-seg .dst-badge-btn.dst-coffee-btn.dst-pulsing > *,
+    #dst-seg .dst-badge-btn.dst-coffee-btn.dst-flash > * { opacity: 1; }
     .dst-badge-btn.dst-coffee-btn:hover .dst-coffee-icon,
     .dst-badge-btn.dst-coffee-btn.dst-pulsing .dst-coffee-icon {
       transform: scale(1.1);
@@ -422,6 +426,7 @@
       font-weight: 800 !important;
       letter-spacing: -.025em;
       line-height: 1.1 !important;
+      white-space: nowrap;
     }
     .forum--header .forum--postingcount {
       grid-area: 1 / 2 !important;
@@ -3074,7 +3079,8 @@
       const m = (count.textContent || '').match(/\d[\d.]*/);
       const n = m ? parseInt(m[0].replace(/\./g, ''), 10) : 0;
       if (n > 0) {
-        count.setAttribute('data-dst-n', m[0]);
+        // v4.13.1: from 10.000 in full thousands ("12k"), so it always fits
+        count.setAttribute('data-dst-n', n > 9999 ? Math.floor(n / 1000) + 'k' : m[0]);
         count.title = count.textContent.trim().replace(/\s+/g, ' ');
       } else {
         count.removeAttribute('data-dst-n');
