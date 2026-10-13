@@ -634,6 +634,7 @@
       background: none; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
       color: hsl(var(--theme--on-secondary--hsl) / .7);
+      transition: color .25s;
     }
     .dst-fb:hover { background: hsl(var(--theme--on-secondary--hsl) / .06); }
     .dst-fb svg { width: var(--dst-i); height: var(--dst-i); overflow: visible; }
@@ -642,7 +643,12 @@
     .dst-fb g { transform-origin: 12px 12px; transition: opacity .25s, transform .3s cubic-bezier(.3, .7, .3, 1); }
     .dst-fb .dst-back { opacity: 0; transform: translateX(5px) scale(.6); }
     dst-posting.dst-more-open > .dst-fb .dst-dots { opacity: 0; transform: scale(.5); }
-    dst-posting.dst-more-open > .dst-fb .dst-back { opacity: 1; transform: none; }
+    /* v4.12.1: "‹" is a side button — smaller and lighter than the four
+       actions; full colour on hover / keyboard focus */
+    dst-posting.dst-more-open > .dst-fb .dst-back { opacity: 1; transform: scale(.7); }
+    dst-posting.dst-more-open > .dst-fb { color: hsl(var(--theme--on-secondary--hsl) / .45); }
+    dst-posting.dst-more-open > .dst-fb:hover,
+    dst-posting.dst-more-open > .dst-fb:focus-visible { color: hsl(var(--theme--on-secondary--hsl) / .8); }
     /* the action row lies in the footer row itself (0px high, so the card
        never changes its height) */
     .dst-more-row {
@@ -671,7 +677,7 @@
     .dst-act.dst-done { color: #2e7d32; }
     .dst-act:focus-visible { outline: 2px solid hsl(var(--theme--on-secondary--hsl)); outline-offset: 2px; }
     @media (prefers-reduced-motion: reduce) {
-      .dst-fb g, .dst-more-acts, dst-posting[data-dst-tile] dst-posting-footer > * { transition: none; }
+      .dst-fb, .dst-fb g, .dst-more-acts, dst-posting[data-dst-tile] dst-posting-footer > * { transition: none; }
     }
     dst-posting[data-dst-tile] dst-posting-footer dst-reply-postingbox button { white-space: nowrap; }
     /* narrow cards (phones, deeply indented replies): smaller icons and gaps */
