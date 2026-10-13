@@ -762,25 +762,32 @@
       /* v3.26.1: no margin — the bar IS the top of the window; its 22px
          rounding equals the card's corners (44px high = a full pill) */
       margin: 0;
-      border-radius: 22px;
+      /* v4.5.0: the white top of the window (the colour of the selected
+         sort segment), with a straight edge to the list below */
+      flex-wrap: wrap;
+      padding: 8px 8px 6px;
+      gap: 2px 0;
       position: relative;
       z-index: 1;
-      background: linear-gradient(to bottom,
-        color-mix(in srgb, var(--dst-track) 35%, #fff),
-        var(--dst-track) 55%,
-        color-mix(in srgb, var(--dst-track) 94%, #000));
-      box-shadow: 0 0 0 1px var(--dst-track-border),
-        inset 0 1.5px 0 rgba(255, 255, 255, .95),
-        inset 0 -2px 3px rgba(0, 0, 0, .08),
-        0 3px 8px rgba(0, 0, 0, .18);
+      background: linear-gradient(to bottom, #fff, #f4f5f7);
+      box-shadow: 0 1px 0 var(--dst-track-border), 0 4px 8px -4px rgba(0, 0, 0, .25);
     }
+    .dst-vh-total {
+      flex-basis: 100%; text-align: center;
+      font-size: 13px; font-weight: 700; color: hsl(var(--dst-ink) / .75);
+    }
+    .dst-vch-n { font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .dst-voter-col-head.pos .dst-vch-n { color: #2e7d32; }
+    .dst-voter-col-head.neg .dst-vch-n { color: #c62828; }
+    .dst-voter-col-head + .dst-voter-col-head { box-shadow: -1px 0 0 rgba(0, 0, 0, .1); }
     .dst-voter-col-head {
-      flex: 1 1 0;
+      flex: 1 1 40%;                   /* v4.5.0: 40% → below the total line */
       min-width: 0;
       min-height: 38px;
       display: flex;
       align-items: center;
       justify-content: center;
+      gap: 10px;
     }
     .dst-vch-bar { width: clamp(36px, 45%, 110px); height: 6px; border-radius: 3px; }
     .dst-voter-col-head.pos .dst-vch-bar { background: rgb(75, 120, 43); }
@@ -1073,6 +1080,11 @@
       bar.className = 'dst-vch-bar';
       bar.setAttribute('aria-hidden', 'true');
       colHead.appendChild(bar);
+      // v4.5.0: the count right at its bar: "+23 ▬▬" and "▬▬ −10"
+      const n = document.createElement('span');
+      n.className = 'dst-vch-n';
+      n.textContent = (kind === 'pos' ? '+' : '\u2212') + count;
+      if (kind === 'pos') colHead.prepend(n); else colHead.appendChild(n);
       const ul = document.createElement('ul');
       ul.className = 'dst-voter-list';
       ul.setAttribute('data-kind', kind);
@@ -1080,6 +1092,11 @@
       col.appendChild(ul);
       return { col: col, ul: ul };
     }
+    const total = document.createElement('div');
+    total.className = 'dst-vh-total';
+    const sum = (Number(posCount) || 0) + (Number(negCount) || 0);
+    total.textContent = sum + (sum === 1 ? ' Bewertung' : ' Bewertungen');
+    head.appendChild(total);
     const posCol = makeColumn('pos', posCount, 'Like');
     const negCol = makeColumn('neg', negCount, 'Dislike');
     body.appendChild(posCol.col);
@@ -1230,6 +1247,8 @@
         pb.fill.classList.remove('dst-voter-progress-fill--loading');
         pb.bar.classList.add('dst-voter-progress--done');
         pb.txt.textContent = loaded + ' Bewertungen geladen';
+        // v4.5.0: the footer only shows while loading; the total is on top
+        refs.foot.style.display = 'none';
       } else {
         const pct = total > 0 ? Math.min(100, Math.round((loaded / total) * 100)) : 0;
         pb.fill.style.width = pct + '%';
@@ -2221,23 +2240,14 @@
       // (no dislike), then those with exactly 1 dislike, then 2, … — within
       // each step the most likes first. Postings without any like come last.
       // The dislikes direction mirrors this. Nothing is hidden.
-      // v3.22.0: the steps only apply to postings where the chosen side
-      // outweighs the other (likes > dislikes resp. dislikes > likes); all
-      // other postings follow in the same order.
-      // v3.24.1: the remaining postings (the chosen side does not outweigh)
-      // follow by the chosen side's votes, most first (e.g. most dislikes).
-      case 'positive-only': {
-        const da = ka.pos > ka.neg, db = kb.pos > kb.neg;
-        diff = (db - da) || (da ? (ka.neg - kb.neg) || (kb.pos - ka.pos)
-                                : (kb.pos - ka.pos) || (ka.neg - kb.neg));
+      // v4.5.0: back to these plain steps for every posting (no longer only
+      // where the chosen side outweighs the other).
+      case 'positive-only':
+        diff = ((ka.pos === 0) - (kb.pos === 0)) || (ka.neg - kb.neg) || (kb.pos - ka.pos);
         break;
-      }
-      case 'negative-only': {
-        const da = ka.neg > ka.pos, db = kb.neg > kb.pos;
-        diff = (db - da) || (da ? (ka.pos - kb.pos) || (kb.neg - ka.neg)
-                                : (kb.neg - ka.neg) || (ka.pos - kb.pos));
+      case 'negative-only':
+        diff = ((ka.neg === 0) - (kb.neg === 0)) || (ka.pos - kb.pos) || (kb.neg - ka.neg);
         break;
-      }
       case 'chronological-new': diff = kb.time - ka.time; break;
       case 'chronological':      // legacy alias -> behaves like "Old Timeline"
       case 'chronological-old': diff = ka.time - kb.time; break;
