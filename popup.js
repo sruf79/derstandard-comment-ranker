@@ -1,4 +1,4 @@
-// popup.js — derStandard Comment Ranker v4.12.1
+// popup.js — derStandard Comment Ranker v4.12.2
 // Popup: header (logo + title), on/off switch, review (browser-aware store
 // link with a delayed golden ring) and coffee (donate).
 //
@@ -22,6 +22,11 @@ var SORT_KEY = 'dstSorterEnabled';
 // red = off). The "Farbmarkierung" option was removed.
 var toggles = document.querySelector('.toggles');
 var btnExt = document.getElementById('btnExt');
+
+// v4.12.2: focus rings only once the keyboard is used (see popup.html)
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Tab') document.body.classList.add('kbd');
+}, true);
 
 function sendMessageToTab(msg) {
   chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {

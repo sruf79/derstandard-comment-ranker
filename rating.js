@@ -188,7 +188,7 @@
     #dst-feedback-bar .dst-fdbk-title {
       font-size: 15px;
       font-weight: 600;
-      color: #b8860b;
+      color: hsl(var(--dst-ink));   /* v4.12.2: like the popup's button texts */
       white-space: nowrap;
     }
     #dst-feedback-bar .dst-fdbk-stars { display: flex; gap: 2px; }

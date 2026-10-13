@@ -112,7 +112,8 @@
       background: linear-gradient(to bottom, #f3faef, #e2f0da);
       box-shadow: 0 0 0 3px rgba(46, 125, 50, .95), inset 0 0 9px 2px rgba(46, 125, 50, .3), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12);
     }
-    .toggle:focus-visible { outline: 2px solid #333; outline-offset: 3px; }
+    .toggle:focus-visible { outline: none; }
+    body.kbd .toggle:focus-visible { outline: 2px solid #333; outline-offset: 3px; }
     /* hidden until the saved state is read, so it never flashes the wrong one */
     .toggles.no-anim .toggle { transition: none; visibility: hidden; }
     @media (prefers-reduced-motion: reduce) {
@@ -136,7 +137,10 @@
       background: #fff8e1;
       box-shadow: var(--gold-ring);
     }
-    .badge-box:focus-visible { outline: 2px solid #333; outline-offset: 3px; }
+    /* v4.12.2: focus ring only after the keyboard was used (Safari focuses
+       the first link when the popup opens, which drew a ring on "Bewerte uns") */
+    body.kbd .badge-box:focus-visible { outline: 2px solid #333; outline-offset: 3px; }
+    .badge-box:focus-visible { outline: none; }
     
     /* v4.10.3: no extra star in front — the five stars are the symbol
        (18px). Pulsing: a soft glow + slow shimmer to draw the eye */
@@ -169,7 +173,7 @@
     .review-text {
       font-size: 14px;
       font-weight: 600;
-      color: #b8860b;
+      color: #333;   /* v4.12.2: same text colour as the other buttons */
     }
     
     /* Coffee badge: golden ring always on, like the coffee button on the
@@ -192,14 +196,8 @@
     
     .coffee-text {
       font-size: 14px;
-      color: #555;
+      color: #333;
       font-weight: 600;
-      transition: color 0.3s;
-    }
-    
-    .coffee-badge:hover .coffee-text,
-    .coffee-badge.prompting .coffee-text {
-      color: #B8860B;
     }
     
     @media (prefers-reduced-motion: reduce) {
