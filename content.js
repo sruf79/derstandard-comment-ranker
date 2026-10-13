@@ -764,24 +764,23 @@
       margin: 0;
       /* v4.5.0: the white top of the window (the colour of the selected
          sort segment), with a straight edge to the list below */
-      flex-wrap: wrap;
-      padding: 8px 8px 6px;
-      gap: 2px 0;
+      /* v4.5.2: no total line any more — count + bar sit exactly in the
+         middle of their half, both ways */
+      height: 56px;
+      padding: 0;
+      gap: 0;
+      align-items: stretch;
       position: relative;
       z-index: 1;
       background: linear-gradient(to bottom, #fff, #f4f5f7);
       box-shadow: 0 1px 0 var(--dst-track-border), 0 4px 8px -4px rgba(0, 0, 0, .25);
-    }
-    .dst-vh-total {
-      flex-basis: 100%; text-align: center;
-      font-size: 13px; font-weight: 700; color: hsl(var(--dst-ink) / .75);
     }
     .dst-vch-n { font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
     .dst-voter-col-head.pos .dst-vch-n { color: #2e7d32; }
     .dst-voter-col-head.neg .dst-vch-n { color: #c62828; }
     .dst-voter-col-head + .dst-voter-col-head { box-shadow: -1px 0 0 rgba(0, 0, 0, .1); }
     .dst-voter-col-head {
-      flex: 1 1 40%;                   /* v4.5.0: 40% → below the total line */
+      flex: 1 1 50%;
       min-width: 0;
       min-height: 38px;
       display: flex;
@@ -1092,11 +1091,6 @@
       col.appendChild(ul);
       return { col: col, ul: ul };
     }
-    const total = document.createElement('div');
-    total.className = 'dst-vh-total';
-    const sum = (Number(posCount) || 0) + (Number(negCount) || 0);
-    total.textContent = sum + (sum === 1 ? ' Bewertung' : ' Bewertungen');
-    head.appendChild(total);
     const posCol = makeColumn('pos', posCount, 'Like');
     const negCol = makeColumn('neg', negCount, 'Dislike');
     body.appendChild(posCol.col);
