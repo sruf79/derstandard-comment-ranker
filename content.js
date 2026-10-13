@@ -582,12 +582,13 @@
     /* footer: ⚑ 👁 · − Antworten + · ⧉ ⤴ 💬n
        v4.5.4: every icon is the same glyph size (--dst-i) in a button of the
        same size (--dst-ic), and the visible gap between neighbouring icons is
-       always the same (--dst-g). The reply count gets a fixed slot (--dst-n),
-       so the icons do not move when the number grows. */
+       always the same (--dst-g). v4.10.5: the reply button is exactly as wide
+       as icon + number (--dst-n = number + 4px gap, measured in updateTile),
+       so its number ends as far from the edge as the flag starts. */
     dst-posting[data-dst-tile] {
-      --dst-i: 22px; --dst-g: 18px; --dst-n: 34px;
+      --dst-i: 22px; --dst-g: 18px; --dst-n: 0px;
       --dst-p: calc((var(--dst-ic) - var(--dst-i)) / 2);
-      --dst-answ: calc(2 * var(--dst-p) + var(--dst-i) + 4px + var(--dst-n));
+      --dst-answ: calc(2 * var(--dst-p) + var(--dst-i) + var(--dst-n));
     }
     dst-posting[data-dst-tile] dst-posting-footer {
       grid-template-columns: 1fr auto auto auto 1fr !important;
@@ -607,7 +608,7 @@
     /* thread toggle ("💬 169"): far right; from 1.000 on "+1k" (updateTile) */
     dst-posting[data-dst-tile] dst-posting-footer .answers {
       grid-column: 5 !important; justify-self: end !important; width: var(--dst-answ) !important;
-      margin: 0 !important; display: flex !important; align-items: center; justify-content: flex-start !important; gap: 4px;
+      margin: 0 !important; display: flex !important; align-items: center; justify-content: flex-start !important; gap: 4px !important;
       padding: 0 0 0 var(--dst-p) !important; height: var(--dst-ic);
       color: hsl(var(--theme--on-secondary--hsl) / .7);
       font-variant-numeric: tabular-nums; overflow: visible;
@@ -639,9 +640,9 @@
     dst-posting[data-dst-tile] dst-posting-footer dst-reply-postingbox button { white-space: nowrap; }
     /* narrow cards (phones, deeply indented replies): smaller icons and gaps */
     @container (max-width: 420px) {
-      dst-posting-footer, .dst-fb, dst-posting-head { --dst-ic: 26px; --dst-gap: 2px; --dst-i: 19px; --dst-g: 8px; --dst-n: 18px;
+      dst-posting-footer, .dst-fb, dst-posting-head { --dst-ic: 26px; --dst-gap: 2px; --dst-i: 19px; --dst-g: 8px;
         --dst-p: calc((var(--dst-ic) - var(--dst-i)) / 2);
-        --dst-answ: calc(2 * var(--dst-p) + var(--dst-i) + 4px + var(--dst-n)); }
+        --dst-answ: calc(2 * var(--dst-p) + var(--dst-i) + var(--dst-n)); }
       dst-posting-footer .rate-down, dst-posting-footer .rate-up { width: 28px !important; }
       dst-posting-footer dst-reply-postingbox button { padding: 0 6px !important; }
     }
@@ -1436,18 +1437,43 @@
   }
 
   // Keeps our small additions in line with derStandard's data.
+  // width of a text in an element's font (cached; not before the web font
+  // has loaded, see the fonts.ready hook in decorateTiles)
+  const textWidthCache = new Map();
+  let textCanvas = null;
+  function textWidth(el, text) {
+    // (the shorthand "font" is empty here because of font-variant-numeric)
+    const cs = getComputedStyle(el);
+    const font = cs.fontStyle + ' ' + cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
+    const key = font + '|' + text;
+    if (textWidthCache.has(key)) return textWidthCache.get(key);
+    textCanvas = textCanvas || document.createElement('canvas').getContext('2d');
+    textCanvas.font = font;
+    // the numbers use tabular figures: every digit is as wide as a "0"
+    const w = textCanvas.measureText(text.replace(/\d/g, '0')).width;
+    if (document.fonts.status === 'loaded') textWidthCache.set(key, w);
+    return w;
+  }
+
   function updateTile(posting) {
     // replies: up to 999 derStandard's own number (stays live), from 1.000
     // on "+1k", "+2k", …
     const ans = posting.querySelector('dst-posting-footer .answers');
     if (ans) {
       const n = parseInt((ans.textContent || '').replace(/\D/g, ''), 10) || 0;
+      const label = n > 999 ? '+' + Math.floor(n / 1000) + 'k' : (n ? String(n) : '');
       if (n > 999) {
-        const label = '+' + Math.floor(n / 1000) + 'k';
         if (ans.getAttribute('data-dst-n') !== label) ans.setAttribute('data-dst-n', label);
       } else if (ans.hasAttribute('data-dst-n')) {
         ans.removeAttribute('data-dst-n');
       }
+      // v4.10.5: the button is exactly as wide as icon + number, so the
+      // number ends where the flag starts on the other side (symmetry)
+      const w = label ? Math.round(textWidth(ans, label) * 10) / 10 + 4 : 0;
+      // v4.10.5: tooltip just the number, without "(x direkt, y indirekt)"
+      const tip = n === 1 ? '1 Antwort' : n + ' Antworten';
+      if (n && ans.title !== tip) ans.title = tip;
+      if (posting.style.getPropertyValue('--dst-n') !== w + 'px') posting.style.setProperty('--dst-n', w + 'px');
     }
     const pin = posting.querySelector('dst-posting-head time strong');
     if (pin && pin.title !== 'Angeheftet') pin.title = 'Angeheftet';
@@ -1462,6 +1488,13 @@
     if (!main) return;
     main.querySelectorAll('dst-posting.posting').forEach(decorateTile);
     observeTiles(main);
+    // v4.10.5: measure the reply numbers again once the web font is there
+    if (!decorateTiles.fontHook && document.fonts.status !== 'loaded') {
+      decorateTiles.fontHook = true;
+      document.fonts.ready.then(function () {
+        main.querySelectorAll('dst-posting[data-dst-tile]').forEach(updateTile);
+      });
+    }
   }
 
   function decorateTile(p) {
