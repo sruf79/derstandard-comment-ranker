@@ -403,27 +403,29 @@
 
     /* v4.15.0: while all postings load, the coffee slot shows a progress
        ring with the percentage instead of the cup (no extra row, nothing
-       moves). At 100% the ring turns green and lights up once, stays for a
-       moment and then gives way to the cup again. */
+       moves). v4.15.1: when done, the button lights up golden like the
+       coffee button on hover and shows a green ✓ (as the popup switch once
+       had); after a moment the cup comes back. */
     .dst-load-ring, .dst-load-pct { display: none; }
     #dst-seg .dst-coffee-btn.dst-loading > .dst-coffee-icon { opacity: 0 !important; }
     #dst-seg .dst-coffee-btn.dst-loading > .dst-load-ring {
       display: block; position: absolute; inset: 5px; border-radius: 50%; pointer-events: none;
-      background: conic-gradient(var(--dst-ring-c, hsl(var(--dst-ink) / .5)) calc(var(--dst-p, 0) * 1%), hsl(var(--dst-ink) / .1) 0);
+      background: conic-gradient(hsl(var(--dst-ink) / .5) calc(var(--dst-p, 0) * 1%), hsl(var(--dst-ink) / .1) 0);
       -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3.5px));
       mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3.5px));
     }
     #dst-seg .dst-coffee-btn.dst-loading > .dst-load-pct {
       display: flex; position: absolute; inset: 0; align-items: center; justify-content: center; pointer-events: none;
       font-size: 10.5px; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums;
-      color: var(--dst-ring-c, hsl(var(--dst-ink) / .7));
+      color: hsl(var(--dst-ink) / .7);
     }
-    #dst-seg .dst-coffee-btn.dst-load-done { --dst-ring-c: rgba(46, 125, 50, .95); animation: dst-load-done .6s ease-out; }
-    @keyframes dst-load-done {
-      0%   { box-shadow: 0 0 0 0 rgba(46, 125, 50, .45); }
-      30%  { box-shadow: 0 0 0 10px rgba(46, 125, 50, .35); }
-      100% { box-shadow: 0 0 0 14px rgba(46, 125, 50, 0); }
+    #dst-seg .dst-coffee-btn.dst-load-done {
+      background: #fff8e1;
+      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 2px 6px rgba(0, 0, 0, .12);
+      animation: dst-coffee-flash .45s ease-out;
     }
+    #dst-seg .dst-coffee-btn.dst-load-done > .dst-load-ring { display: none; }
+    #dst-seg .dst-coffee-btn.dst-load-done > .dst-load-pct { font-size: 24px; font-weight: 800; color: #2e7d32; opacity: 1; }
     @media (prefers-reduced-motion: reduce) {
       #dst-seg .dst-coffee-btn.dst-load-done { animation: none; }
     }
@@ -3195,7 +3197,7 @@
     const pct = done ? 100 : (validTotal > 0 ? Math.min(99, Math.floor(loaded / validTotal * 100)) : 0);
     btn.classList.add('dst-loading');
     btn.style.setProperty('--dst-p', String(pct));
-    btn.querySelector('.dst-load-pct').textContent = pct + '%';
+    btn.querySelector('.dst-load-pct').textContent = done ? '✓' : pct + '%';
     btn.title = done ? 'Alle ' + loaded + ' Postings geladen'
       : 'Lade alle Postings… ' + loaded + (validTotal > 0 ? ' / ' + validTotal : '');
   }
@@ -3227,7 +3229,7 @@
   function renderCompleteNotice(shadowRoot) {
     const bar = shadowRoot.querySelector('#dst-badge-bar');
     if (!bar || !completeNotice) return;
-    // the ring at 100%, green, lighting up once
+    // done: golden flash and a green ✓
     showProgressBar(shadowRoot, completeNotice.total, completeNotice.total, true);
     const btn = bar.querySelector('.dst-coffee-btn');
     if (btn) btn.classList.add('dst-load-done');
