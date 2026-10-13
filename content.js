@@ -717,7 +717,7 @@
         color-mix(in srgb, var(--dst-track) 35%, #fff),
         var(--dst-track) 40%,
         color-mix(in srgb, var(--dst-track) 96%, #000));
-      border-radius: 22px;
+      border-radius: 14px;              /* v4.5.1: like the posting cards */
       /* v3.25.1: more depth — bevelled edge and a deep, layered shadow */
       box-shadow: 0 0 0 1px var(--dst-track-border),
         inset 0 1.5px 0 rgba(255, 255, 255, .95),
