@@ -540,7 +540,9 @@
     main.forum--main .thread > dst-posting > .dst-link {
       display: block; position: absolute; pointer-events: none;
       top: calc(var(--dst-name-y) - 2px); height: 2px;
-      left: 4px; width: calc(var(--dst-side) + 2px);
+      /* v4.11.1: starts a bit after the frame (desktop 9px, phones 5px);
+         the end before the name stays */
+      left: calc(var(--dst-side) / 2 + 3px); width: calc(var(--dst-side) / 2 + 3px);
       background: var(--dst-line); border-radius: 0 1px 1px 0;
     }
     /* … and past a nested thread between two replies */
