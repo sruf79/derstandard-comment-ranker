@@ -1,4 +1,4 @@
-// popup.js — derStandard Comment Ranker v4.9.1
+// popup.js — derStandard Comment Ranker v4.10.0
 // 4-box popup: Header (icon + title), Toggle (enable/disable), Review
 // (browser-aware store link with a delayed golden pulse), and Coffee (donate).
 //
@@ -19,12 +19,10 @@
 //     gentle nudge again after a while (we can't detect actual donations).
 
 var SORT_KEY = 'dstSorterEnabled';
-var TINT_KEY = 'dstTintEdge';
-// v4.8.0: two switches as separate buttons — a green ring when on, a red
-// ring when off. "Farbmarkierung" is dimmed while the extension is off.
+// v4.10.0: one switch; text and ring show the current state (green = on,
+// red = off). The "Farbmarkierung" option was removed.
 var toggles = document.querySelector('.toggles');
 var btnExt = document.getElementById('btnExt');
-var btnTint = document.getElementById('btnTint');
 
 function sendMessageToTab(msg) {
   chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
@@ -34,32 +32,23 @@ function sendMessageToTab(msg) {
   });
 }
 
-function isOn(btn) { return btn.getAttribute('aria-pressed') === 'true'; }
-function show(btn, on) {
-  btn.setAttribute('aria-pressed', String(on));
-  if (btn === btnExt) btnTint.classList.toggle('dimmed', !on);
+function showEnabled(on) {
+  btnExt.setAttribute('aria-pressed', String(on));
+  btnExt.textContent = on ? 'Erweiterung ist an' : 'Erweiterung ist aus';
 }
 
 // Load saved state (no transition for the initial state)
-chrome.storage.sync.get([SORT_KEY, TINT_KEY], function(data) {
-  data = data || {};
-  show(btnExt, data[SORT_KEY] !== false);
-  show(btnTint, data[TINT_KEY] === true);
+chrome.storage.sync.get([SORT_KEY], function(data) {
+  showEnabled((data || {})[SORT_KEY] !== false);
   requestAnimationFrame(function() { toggles.classList.remove('no-anim'); });
 });
+chrome.storage.sync.remove('dstTintEdge'); // setting of the removed option
 
-// The content script listens to the storage change of TINT_KEY; the on/off
-// switch is also sent to the tab directly.
 btnExt.addEventListener('click', function() {
-  var on = !isOn(btnExt);
-  show(btnExt, on);
+  var on = btnExt.getAttribute('aria-pressed') !== 'true';
+  showEnabled(on);
   chrome.storage.sync.set({ [SORT_KEY]: on });
   sendMessageToTab({ action: 'toggle', enabled: on });
-});
-btnTint.addEventListener('click', function() {
-  var on = !isOn(btnTint);
-  show(btnTint, on);
-  chrome.storage.sync.set({ [TINT_KEY]: on });
 });
 
 // Coffee button — click handling + recurring pulse live in the IIFE below (v2.4.5).

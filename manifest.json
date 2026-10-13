@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "derStandard Comment Ranker",
-  "version": "4.9.1",
+  "version": "4.10.0",
   "description": "Sortiere Kommentare und zeige Voter-Details. Inoffizielle Browser-Extension.",
   "permissions": ["storage"],
   "host_permissions": ["*://*.derstandard.at/*", "*://*.derstandard.de/*"],

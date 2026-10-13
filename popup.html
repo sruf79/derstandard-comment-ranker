@@ -86,9 +86,9 @@
       line-height: 1.2;
     }
     
-    /* Box 2: v4.8.0 — two separate pill buttons side by side, no symbols.
-       Each one is a switch: a green ring when on, a red ring when off.
-       "Farbmarkierung" is dimmed while the whole extension is off. */
+    /* Box 2: v4.8.0 — a pill button as switch: a green ring when on, a red
+       ring when off. v4.10.0: only one switch left (on/off); its text says
+       the current state ("ist an" / "ist aus"). */
     .toggles {
       display: flex;
       gap: 10px;
@@ -112,7 +112,6 @@
       color: #222;
       box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), inset 0 -2px 3px rgba(0, 0, 0, .06), 0 0 0 1px var(--track-border), 0 0 0 2px rgba(46, 125, 50, .95), 0 2px 6px rgba(0, 0, 0, .12);
     }
-    .toggle.dimmed { opacity: .5; }
     .toggle:focus-visible { outline: 2px solid #333; outline-offset: 3px; }
     .toggles.no-anim .toggle { transition: none; }
     @media (prefers-reduced-motion: reduce) {
@@ -350,10 +349,10 @@
     </div>
   </div>
   
-  <!-- Box 2: v4.8.0 — two switches as separate buttons (green ring = on, red ring = off) -->
+  <!-- Box 2: v4.10.0 — one switch; the text and the ring show the current
+       state (green ring = on, red ring = off) -->
   <div class="toggles no-anim">
-    <button type="button" class="toggle" id="btnExt" aria-pressed="true" title="Erweiterung ein- oder ausschalten">Erweiterung</button>
-    <button type="button" class="toggle" id="btnTint" aria-pressed="false" title="Grüne bzw. rote Kante an jedem Posting – je deutlicher die Bewertung, desto kräftiger">Farbmarkierung</button>
+    <button type="button" class="toggle" id="btnExt" aria-pressed="true" title="Klicken zum Ein- oder Ausschalten">Erweiterung ist an</button>
   </div>
 
   <!-- Box 3: Review/Bewerten — Browser-aware Link (Chrome Web Store / Firefox AMO) -->
