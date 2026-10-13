@@ -1082,7 +1082,7 @@
       // v4.5.0: the count right at its bar: "+23 ▬▬" and "▬▬ −10"
       const n = document.createElement('span');
       n.className = 'dst-vch-n';
-      n.textContent = (kind === 'pos' ? '+' : '\u2212') + count;
+      n.textContent = Number(count) ? (kind === 'pos' ? '+' : '\u2212') + count : '0';
       if (kind === 'pos') colHead.prepend(n); else colHead.appendChild(n);
       const ul = document.createElement('ul');
       ul.className = 'dst-voter-list';
