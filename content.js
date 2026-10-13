@@ -496,7 +496,7 @@
        a vote you gave (derStandard fills − / + red / green itself).
        Everything is laid out on derStandard's own grids: only the column
        templates change, their named lines (marker, posting, …) stay. */
-    main.forum--main { --dst-side: 14px; --dst-ic: 34px; --dst-ans: 52px; --dst-gap: 6px; }
+    main.forum--main { --dst-side: 14px; --dst-ic: 34px; --dst-gap: 6px; }
     @media (max-width: 600px) { main.forum--main { --dst-side: 6px; } }
     main.forum--main dst-posting[data-dst-tile] {
       grid-template-columns: [permalink-start marker-start] 0px [marker-end] var(--dst-side)
@@ -593,7 +593,7 @@
        under our share icon */
     dst-posting[data-dst-tile] dst-posting-head dst-posting--context {
       position: absolute; bottom: 10px;
-      right: calc(var(--dst-side) + var(--dst-ans) + var(--dst-gap));
+      right: calc(var(--dst-side) + var(--dst-answ) - 2 * var(--dst-p) + var(--dst-g));
       width: var(--dst-ic); height: var(--dst-ic);
     }
     dst-posting[data-dst-tile] dst-posting-head dst-posting--context > button { opacity: 0; pointer-events: none; }
@@ -605,30 +605,44 @@
     }
     dst-posting[data-dst-tile] dst-posting-head time:has(strong) button { padding-left: 4px !important; }
     dst-posting[data-dst-tile] dst-posting-head time strong svg { margin: 0 !important; }
-    /* footer: ⚑ 👁 [ ] · − Antworten + · ⧉ ⤴ 💬 — both outer groups are the
-       same width, so "− Antworten +" sits exactly in the middle */
+    /* footer: ⚑ 👁 · − Antworten + · ⧉ ⤴ 💬n
+       v4.5.4: every icon is the same glyph size (--dst-i) in a button of the
+       same size (--dst-ic), and the visible gap between neighbouring icons is
+       always the same (--dst-g). The reply count gets a fixed slot (--dst-n),
+       so the icons do not move when the number grows. */
+    dst-posting[data-dst-tile] {
+      --dst-i: 22px; --dst-g: 18px; --dst-n: 34px;
+      --dst-p: calc((var(--dst-ic) - var(--dst-i)) / 2);
+      --dst-answ: calc(2 * var(--dst-p) + var(--dst-i) + 4px + var(--dst-n));
+    }
     dst-posting[data-dst-tile] dst-posting-footer {
-      grid-template-columns: var(--dst-ans) var(--dst-ic) var(--dst-ic) 1fr auto auto auto 1fr var(--dst-ic) var(--dst-ic) var(--dst-ans) !important;
+      grid-template-columns: 1fr auto auto auto 1fr !important;
       column-gap: var(--dst-gap);
       padding: 0 !important;
       margin-top: 12px;
     }
     dst-posting[data-dst-tile] dst-posting-footer > * { grid-row: 1 !important; }
     dst-posting[data-dst-tile] dst-posting-footer dst-dialog--report { grid-column: 1 !important; justify-self: start; }
-    dst-posting[data-dst-tile] dst-posting-footer .rate-down { grid-column: 5 !important; }
-    dst-posting[data-dst-tile] dst-posting-footer dst-reply-postingbox { grid-column: 6 !important; }
-    dst-posting[data-dst-tile] dst-posting-footer .rate-up { grid-column: 7 !important; }
-    /* thread toggle ("💬 169"): far right, the mirror image of the flag;
-       from 1.000 on shortened to "+1k" (see updateTile) */
-    dst-posting[data-dst-tile] dst-posting-footer .answers {
-      grid-column: 11 !important; justify-self: end !important; width: auto !important;
-      margin: 0 !important; display: flex !important; align-items: center; gap: 4px;
-      padding: 0 4px !important; height: var(--dst-ic);
-      color: hsl(var(--theme--on-secondary--hsl) / .7);
-      font-variant-numeric: tabular-nums;
+    dst-posting[data-dst-tile] dst-posting-footer .rate-down { grid-column: 2 !important; }
+    dst-posting[data-dst-tile] dst-posting-footer dst-reply-postingbox { grid-column: 3 !important; }
+    dst-posting[data-dst-tile] dst-posting-footer .rate-up { grid-column: 4 !important; }
+    dst-posting[data-dst-tile] dst-posting-footer dst-dialog--report button {
+      width: var(--dst-ic) !important; height: var(--dst-ic) !important; padding: 0 !important;
+      display: flex !important; align-items: center; justify-content: center;
     }
-    /* every footer icon the same size (derStandard's are 24px, ours 22px) */
-    dst-posting[data-dst-tile] dst-posting-footer svg { width: 22px !important; height: 22px !important; flex: none; }
+    /* thread toggle ("💬 169"): far right; from 1.000 on "+1k" (updateTile) */
+    dst-posting[data-dst-tile] dst-posting-footer .answers {
+      grid-column: 5 !important; justify-self: end !important; width: var(--dst-answ) !important;
+      margin: 0 !important; display: flex !important; align-items: center; justify-content: flex-start !important; gap: 4px;
+      padding: 0 0 0 var(--dst-p) !important; height: var(--dst-ic);
+      color: hsl(var(--theme--on-secondary--hsl) / .7);
+      font-variant-numeric: tabular-nums; overflow: visible;
+    }
+    /* every footer icon the same size, without padding of its own */
+    dst-posting[data-dst-tile] dst-posting-footer svg {
+      width: var(--dst-i) !important; height: var(--dst-i) !important;
+      padding: 0 !important; margin: 0 !important; flex: none;
+    }
     dst-posting[data-dst-tile] dst-posting-footer .answers[data-dst-n] span { display: none; }
     dst-posting[data-dst-tile] dst-posting-footer .answers[data-dst-n]::after { content: attr(data-dst-n); }
     /* our footer icons live on the posting grid, in the footer row */
@@ -642,20 +656,20 @@
       color: hsl(var(--theme--on-secondary--hsl) / .7);
     }
     .dst-fb:hover { background: hsl(var(--theme--on-secondary--hsl) / .06); }
-    .dst-fb svg { width: 22px; height: 22px; }
-    .dst-fb.hide { justify-self: start; margin-left: calc(var(--dst-ans) + var(--dst-gap)); }
-    .dst-fb.share { justify-self: end; margin-right: calc(var(--dst-ans) + var(--dst-gap)); }
-    .dst-fb.copy { justify-self: end; margin-right: calc(var(--dst-ans) + var(--dst-ic) + 2 * var(--dst-gap)); }
+    .dst-fb svg { width: var(--dst-i); height: var(--dst-i); }
+    /* positions from the glyph edges: flag | g | hide   …   copy | g | share | g | 💬 */
+    .dst-fb.hide { justify-self: start; margin-left: calc(var(--dst-i) + var(--dst-g)); }
+    .dst-fb.share { justify-self: end; margin-right: calc(var(--dst-answ) - 2 * var(--dst-p) + var(--dst-g)); }
+    .dst-fb.copy { justify-self: end; margin-right: calc(var(--dst-answ) - 2 * var(--dst-p) + 2 * var(--dst-g) + var(--dst-i)); }
     .dst-fb.dst-done { color: #2e7d32; }
-    /* narrow cards (phones, deeply indented replies): smaller icons and gaps;
-       both sides shrink alike, so the footer stays symmetric */
     dst-posting[data-dst-tile] dst-posting-footer dst-reply-postingbox button { white-space: nowrap; }
+    /* narrow cards (phones, deeply indented replies): smaller icons and gaps */
     @container (max-width: 420px) {
-      dst-posting-footer, .dst-fb, dst-posting-head { --dst-ic: 26px; --dst-ans: 40px; --dst-gap: 2px; }
+      dst-posting-footer, .dst-fb, dst-posting-head { --dst-ic: 26px; --dst-gap: 2px; --dst-i: 19px; --dst-g: 8px; --dst-n: 18px;
+        --dst-p: calc((var(--dst-ic) - var(--dst-i)) / 2);
+        --dst-answ: calc(2 * var(--dst-p) + var(--dst-i) + 4px + var(--dst-n)); }
       dst-posting-footer .rate-down, dst-posting-footer .rate-up { width: 28px !important; }
       dst-posting-footer dst-reply-postingbox button { padding: 0 6px !important; }
-      .dst-fb svg { width: 19px; height: 19px; }
-      dst-posting[data-dst-tile] dst-posting-footer svg { width: 19px !important; height: 19px !important; }
     }
 
     /* Mobile: the segmented control stays in ONE row; just tighter padding. */
