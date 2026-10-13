@@ -1,4 +1,4 @@
-// popup.js — derStandard Comment Ranker v4.5.4
+// popup.js — derStandard Comment Ranker v4.6.0
 // 4-box popup: Header (icon + title), Toggle (enable/disable), Review
 // (browser-aware store link with a delayed golden pulse), and Coffee (donate).
 //
@@ -57,6 +57,25 @@ function setEnabled(enabled) {
 btnOn.addEventListener('click', function() { setEnabled(true); });
 btnOff.addEventListener('click', function() { setEnabled(false); });
 onoff.addEventListener('animationend', function() { onoff.classList.remove('flash'); });
+
+// v4.6.0: option "Bewertung als Farbkante" (off by default). The content
+// script listens to the storage change, so the forum updates right away.
+var TINT_KEY = 'dstTintEdge';
+var optTint = document.getElementById('optTint');
+if (optTint) {
+  chrome.storage.sync.get([TINT_KEY], function(d) {
+    optTint.setAttribute('aria-checked', String(!!(d && d[TINT_KEY] === true)));
+  });
+  var toggleTint = function() {
+    var on = optTint.getAttribute('aria-checked') !== 'true';
+    optTint.setAttribute('aria-checked', String(on));
+    chrome.storage.sync.set({ [TINT_KEY]: on });
+  };
+  optTint.addEventListener('click', toggleTint);
+  optTint.addEventListener('keydown', function(e) {
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggleTint(); }
+  });
+}
 
 // Coffee button — click handling + recurring pulse live in the IIFE below (v2.4.5).
 

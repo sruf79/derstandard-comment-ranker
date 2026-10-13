@@ -487,6 +487,15 @@
         inset 0 1.5px 0 rgba(255, 255, 255, .7),
         0 3px 10px rgba(0, 0, 0, .12) !important;
     }
+    /* v4.6.0 (popup option "Bewertung als Farbkante", off by default): a
+       coloured edge on the left, stronger the clearer the vote lead (see
+       TINT_STEPS); --dst-tc is set per posting in updateTile */
+    main.forum--main.dst-tint-on dst-posting.posting[data-dst-tl] {
+      box-shadow: inset 4px 0 0 var(--dst-tc),
+        0 0 0 1px color-mix(in srgb, var(--theme--base, #e6e6e6) 80%, #000),
+        inset 0 1.5px 0 rgba(255, 255, 255, .7),
+        0 3px 10px rgba(0, 0, 0, .12) !important;
+    }
 
     /* ═══ v4.3.0: POSTING CARDS ═════════════════════════════════════════
        derStandard's own arrangement (name, time and rating on top; − Antworten
@@ -1460,8 +1469,38 @@
     posting.setAttribute('data-dst-tile', '');
   }
 
+  // v4.6.0: colour steps of the edge by vote lead (likes − dislikes): never
+  // less than 5 apart and growing (×1.35); at 200 the full rating colour.
+  const TINT_STEPS = [5, 10, 17, 26, 38, 54, 76, 106, 146, 200];
+  let tintEnabled = false;
+  function applyTint(posting) {
+    const r = readRatings(posting);
+    const lead = r.pos - r.neg;
+    let level = 0;
+    TINT_STEPS.forEach(function (t, i) { if (Math.abs(lead) >= t) level = i + 1; });
+    const key = level ? (lead > 0 ? 'p' : 'n') + level : '';
+    if ((posting.getAttribute('data-dst-tl') || '') === key) return;
+    if (!level) { posting.removeAttribute('data-dst-tl'); posting.style.removeProperty('--dst-tc'); return; }
+    posting.setAttribute('data-dst-tl', key);
+    posting.style.setProperty('--dst-tc', 'color-mix(in srgb, ' +
+      (lead > 0 ? 'rgb(75, 120, 43)' : 'rgb(213, 42, 42)') + ' ' + (level * 10) + '%, var(--theme--card, #fff))');
+  }
+  function setTint(on) {
+    tintEnabled = !!on;
+    const forum = document.querySelector('dst-forum');
+    const main = forum && forum.shadowRoot && forum.shadowRoot.querySelector('main.forum--main');
+    if (main) main.classList.toggle('dst-tint-on', tintEnabled);
+  }
+  if (chrome?.storage?.sync) {
+    chrome.storage.sync.get(['dstTintEdge'], function (d) { setTint(d && d.dstTintEdge === true); });
+    chrome.storage.onChanged.addListener(function (ch, area) {
+      if (area === 'sync' && ch.dstTintEdge) setTint(ch.dstTintEdge.newValue === true);
+    });
+  }
+
   // Keeps our small additions in line with derStandard's data.
   function updateTile(posting) {
+    applyTint(posting);
     // replies: up to 999 written out, from 1.000 on "+1k", "+2k", …
     const ans = posting.querySelector('dst-posting-footer .answers');
     if (ans) {
@@ -1481,6 +1520,7 @@
     const main = shadowRoot.querySelector('main.forum--main');
     if (!main) return;
     main.querySelectorAll('dst-posting.posting').forEach(decorateTile);
+    main.classList.toggle('dst-tint-on', tintEnabled);
     observeTiles(main);
   }
 
@@ -1534,7 +1574,9 @@
     });
     tileObserver.observe(main, {
       subtree: true,
-      childList: true
+      childList: true,
+      attributes: true,
+      attributeFilter: ['positiveratings', 'negativeratings']
     });
   }
 
