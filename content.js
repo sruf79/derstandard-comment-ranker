@@ -477,6 +477,10 @@
        templates change, their named lines (marker, posting, …) stay. */
     main.forum--main { --dst-side: 14px; --dst-ic: 34px; --dst-gap: 6px; }
     @media (max-width: 600px) { main.forum--main { --dst-side: 6px; } }
+    /* v4.14.0: below 640px derStandard's forum touches the window edges;
+       10px on both sides keep the cards and the sort bar whole (round
+       corners, frame and shadow) instead of cut off at the edge */
+    @media (max-width: 639px) { main.forum--main { padding-left: 10px !important; padding-right: 10px !important; box-sizing: border-box; } }
     main.forum--main dst-posting[data-dst-tile] {
       grid-template-columns: [permalink-start marker-start] 0px [marker-end] var(--dst-side)
         [posting-start] minmax(0, 1fr) [posting-end] var(--dst-side) [permalink-end] !important;
