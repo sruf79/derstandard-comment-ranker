@@ -1411,17 +1411,26 @@
     check: 'M9,20.42L2.79,14.21L5.62,11.38L9,14.77L18.88,4.88L21.71,7.71L9,20.42Z'
   };
 
-  function tileSvg(path) {
-    return '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="' + path + '"/></svg>';
+  // v4.13.8: icons are built with createElementNS (AMO flags innerHTML)
+  function svgEl(tag, attrs, children) {
+    const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for (const k in attrs) el.setAttribute(k, attrs[k]);
+    (children || []).forEach(function (c) { el.appendChild(c); });
+    return el;
   }
 
-  function tileButton(cls, label, html, onClick) {
+  function tileSvg(path) {
+    return svgEl('svg', { viewBox: '0 0 24 24', 'aria-hidden': 'true' },
+      [svgEl('path', { fill: 'currentColor', d: path })]);
+  }
+
+  function tileButton(cls, label, nodes, onClick) {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = cls;
     b.title = label;
     b.setAttribute('aria-label', label);
-    b.innerHTML = html;
+    b.append.apply(b, nodes);
     b.addEventListener('click', function (e) {
       e.preventDefault();
       e.stopPropagation();
@@ -1451,15 +1460,21 @@
   }
 
   // v4.12.0: "⋯" (more) and "‹" (back) in one symbol, the CSS shows one of them
-  const MORE_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true">' +
-    '<g class="dst-dots"><circle cx="4.5" cy="12" r="2.4"/><circle cx="12" cy="12" r="2.4"/><circle cx="19.5" cy="12" r="2.4"/></g>' +
-    '<g class="dst-back"><path d="M15.5 3 6.5 12l9 9"/></g></svg>';
+  function moreSvg() {
+    return svgEl('svg', { viewBox: '0 0 24 24', 'aria-hidden': 'true' }, [
+      svgEl('g', { class: 'dst-dots' }, [4.5, 12, 19.5].map(function (cx) {
+        return svgEl('circle', { cx: cx, cy: 12, r: 2.4 });
+      })),
+      svgEl('g', { class: 'dst-back' }, [svgEl('path', { d: 'M15.5 3 6.5 12l9 9' })])
+    ]);
+  }
   const FLAG_PATH = 'M14.4,6L14,4H5V21H7V14H12.6L13,16H20V6H14.4Z';
 
   // v4.11.0: one action of the unfolding row (symbol + short label)
   function tileAction(label, title, path, onClick) {
-    return tileButton('dst-act', title,
-      tileSvg(path).replace('</svg>', '</svg><span>' + label + '</span>'), onClick);
+    const text = document.createElement('span');
+    text.textContent = label;
+    return tileButton('dst-act', title, [tileSvg(path), text], onClick);
   }
 
   function buildTile(posting) {
@@ -1472,7 +1487,7 @@
       more.setAttribute('aria-label', more.title);
       row.inert = !open;
     }
-    const more = tileButton('dst-fb more', 'Weitere Aktionen', MORE_SVG, function () {
+    const more = tileButton('dst-fb more', 'Weitere Aktionen', [moreSvg()], function () {
       setOpen(!posting.classList.contains('dst-more-open'));
     });
     more.setAttribute('aria-expanded', 'false');
