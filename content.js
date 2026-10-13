@@ -403,10 +403,11 @@
 
     /* v4.15.0: while all postings load, the coffee slot shows a progress
        ring with the percentage instead of the cup (no extra row, nothing
-       moves). v4.15.1: when done, the button lights up golden like the
-       coffee button on hover and shows a green ✓ (as the popup switch once
-       had); after a moment the cup comes back. */
-    .dst-load-ring, .dst-load-pct { display: none; }
+       moves). When done (v4.15.2, like Apple Pay / Google Drive): the ring
+       closes, then fades while the button lights up golden like the coffee
+       button on hover, and a green check draws itself; after a moment the
+       cup comes back. */
+    .dst-load-ring, .dst-load-pct, .dst-load-check { display: none; }
     #dst-seg .dst-coffee-btn.dst-loading > .dst-coffee-icon { opacity: 0 !important; }
     #dst-seg .dst-coffee-btn.dst-loading > .dst-load-ring {
       display: block; position: absolute; inset: 5px; border-radius: 50%; pointer-events: none;
@@ -419,15 +420,32 @@
       font-size: 10.5px; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums;
       color: hsl(var(--dst-ink) / .7);
     }
-    #dst-seg .dst-coffee-btn.dst-load-done {
-      background: #fff8e1;
-      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 2px 6px rgba(0, 0, 0, .12);
-      animation: dst-coffee-flash .45s ease-out;
+    #dst-seg .dst-coffee-btn.dst-load-done { animation: dst-load-gold .5s ease-out .2s both; }
+    @keyframes dst-load-gold {
+      0%   { background-color: rgba(255, 248, 225, 0); box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, 0), 0 0 0 2px rgba(230, 170, 0, 0), 0 2px 6px rgba(0, 0, 0, 0), 0 0 0 0 rgba(255, 200, 0, .5); }
+      40%  { background-color: #FFE27A; box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 2px 6px rgba(0, 0, 0, .12), 0 0 0 10px rgba(255, 200, 0, .4); }
+      100% { background-color: #fff8e1; box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 2px 6px rgba(0, 0, 0, .12), 0 0 0 12px rgba(255, 200, 0, 0); }
     }
-    #dst-seg .dst-coffee-btn.dst-load-done > .dst-load-ring { display: none; }
-    #dst-seg .dst-coffee-btn.dst-load-done > .dst-load-pct { font-size: 24px; font-weight: 800; color: #2e7d32; opacity: 1; }
+    #dst-seg .dst-coffee-btn.dst-load-done > .dst-load-pct { display: none; }
+    #dst-seg .dst-coffee-btn.dst-load-done > .dst-load-ring { animation: dst-ring-out .2s ease .2s both; }
+    @keyframes dst-ring-out { to { opacity: 0; } }
+    #dst-seg .dst-coffee-btn.dst-load-done > .dst-load-check {
+      display: block; position: absolute; inset: 0; margin: auto; width: 26px; height: 26px;
+      opacity: 1; overflow: visible; pointer-events: none;
+    }
+    .dst-load-check path {
+      fill: none; stroke: #2e7d32; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round;
+      stroke-dasharray: 1; stroke-dashoffset: 1;
+    }
+    #dst-seg .dst-coffee-btn.dst-load-done > .dst-load-check path { animation: dst-check-draw .3s cubic-bezier(.4, 0, .2, 1) .3s both; }
+    @keyframes dst-check-draw { to { stroke-dashoffset: 0; } }
     @media (prefers-reduced-motion: reduce) {
-      #dst-seg .dst-coffee-btn.dst-load-done { animation: none; }
+      #dst-seg .dst-coffee-btn.dst-load-done {
+        animation: none; background: #fff8e1;
+        box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 0 0 2px rgba(230, 170, 0, .95), 0 2px 6px rgba(0, 0, 0, .12);
+      }
+      #dst-seg .dst-coffee-btn.dst-load-done > .dst-load-ring { display: none; }
+      #dst-seg .dst-coffee-btn.dst-load-done > .dst-load-check path { animation: none; stroke-dashoffset: 0; }
     }
 
     /* V14 Coffee Steam Container */
@@ -2919,7 +2937,9 @@
     loadRing.className = 'dst-load-ring';
     const loadPct = document.createElement('span');
     loadPct.className = 'dst-load-pct';
-    coffeeBtn.append(loadRing, loadPct);
+    const loadCheck = svgEl('svg', { class: 'dst-load-check', viewBox: '0 0 24 24', 'aria-hidden': 'true' },
+      [svgEl('path', { d: 'M5.5 12.5l4.2 4.2L18.5 7.5', pathLength: 1 })]);
+    coffeeBtn.append(loadRing, loadPct, loadCheck);
     // V14 Dampf-Container mit 5 feinen Wisps
     const steamContainer = document.createElement('div');
     steamContainer.className = 'dst-steam-container';
@@ -3197,7 +3217,7 @@
     const pct = done ? 100 : (validTotal > 0 ? Math.min(99, Math.floor(loaded / validTotal * 100)) : 0);
     btn.classList.add('dst-loading');
     btn.style.setProperty('--dst-p', String(pct));
-    btn.querySelector('.dst-load-pct').textContent = done ? '✓' : pct + '%';
+    btn.querySelector('.dst-load-pct').textContent = pct + '%';
     btn.title = done ? 'Alle ' + loaded + ' Postings geladen'
       : 'Lade alle Postings… ' + loaded + (validTotal > 0 ? ' / ' + validTotal : '');
   }
@@ -3229,7 +3249,7 @@
   function renderCompleteNotice(shadowRoot) {
     const bar = shadowRoot.querySelector('#dst-badge-bar');
     if (!bar || !completeNotice) return;
-    // done: golden flash and a green ✓
+    // done: the ring closes, a golden flash and a green check drawing itself
     showProgressBar(shadowRoot, completeNotice.total, completeNotice.total, true);
     const btn = bar.querySelector('.dst-coffee-btn');
     if (btn) btn.classList.add('dst-load-done');
