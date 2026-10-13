@@ -138,8 +138,9 @@
     }
     .badge-box:focus-visible { outline: 2px solid #333; outline-offset: 3px; }
     
-    /* Pulsing star gets a soft glow + slow shimmer to draw the eye */
-    .review-badge.pulsing .review-icon {
+    /* v4.10.3: no extra star in front — the five stars are the symbol
+       (18px). Pulsing: a soft glow + slow shimmer to draw the eye */
+    .review-badge.pulsing .review-stars {
       animation: review-star-shimmer 2.4s ease-in-out infinite;
       text-shadow: 0 0 6px rgba(245, 197, 24, 0.6);
     }
@@ -150,10 +151,10 @@
     }
     
     @media (prefers-reduced-motion: reduce) {
-      .review-badge.pulsing .review-icon { animation: none; }
+      .review-badge.pulsing .review-stars { animation: none; }
     }
     
-    .review-icon {
+    .review-stars {
       font-size: 18px;
       line-height: 1;
       color: #f5c518;
@@ -161,8 +162,8 @@
       transition: transform 0.3s;
     }
     
-    .review-badge:hover .review-icon {
-      transform: scale(1.15);
+    .review-badge:hover .review-stars {
+      transform: scale(1.1);
     }
     
     .review-text {
@@ -299,8 +300,8 @@
 
   <!-- Review — store link per browser (Chrome Web Store / Firefox AMO) -->
   <a class="badge-box review-badge" id="reviewBtn" href="#" target="_blank" rel="noopener">
-    <span class="review-icon" aria-hidden="true">&#9733;</span>
-    <span class="review-text">Gefällt dir? Bewerte uns <span aria-hidden="true">★★★★★</span></span>
+    <span class="review-text">Gefällt dir? Bewerte uns</span>
+    <span class="review-stars" aria-hidden="true">★★★★★</span>
   </a>
   
   <!-- Coffee (donate) with steam -->
