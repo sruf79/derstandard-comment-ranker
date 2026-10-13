@@ -465,8 +465,8 @@
     /* ═══ v4.3.0: POSTING CARDS ═════════════════════════════════════════
        derStandard's own arrangement (name, time and rating on top; − Antworten
        + below the text) in our style. v4.11.0: the footer is one symmetric
-       row  💬 n  ·  − Antworten +  ·  ⌄  — the chevron unfolds a row below
-       with Melden, Ausblenden, Kopieren, Teilen.
+       row  💬 n  ·  − Antworten +  ·  ⋯  — "⋯" swaps it for Melden,
+       Ausblenden, Kopieren, Teilen (v4.12.0).
        All icons are grey; colour only shows state: the rating top right and
        a vote you gave (derStandard fills − / + red / green itself).
        Everything is laid out on derStandard's own grids: only the column
@@ -587,13 +587,10 @@
        v4.5.4: every icon is the same glyph size (--dst-i) in a button of the
        same size (--dst-ic). v4.11.0: the reply icon sits bottom left (its
        number grows to the right, the icon never moves, as in derStandard's
-       original), the chevron bottom right, both the same distance from the
-       edge; the chevron is a bit smaller (18/22) — a thin line weighs less
-       than the filled bubble. */
+       original), "⋯" bottom right, both the same distance from the edge. */
     dst-posting[data-dst-tile] {
       --dst-i: 22px;
       --dst-p: calc((var(--dst-ic) - var(--dst-i)) / 2);
-      --dst-ch: calc(var(--dst-i) * 18 / 22);
     }
     dst-posting[data-dst-tile] dst-posting-footer {
       grid-template-columns: 1fr auto auto auto 1fr !important;
@@ -624,42 +621,48 @@
     }
     dst-posting[data-dst-tile] dst-posting-footer .answers[data-dst-n] span { display: none; }
     dst-posting[data-dst-tile] dst-posting-footer .answers[data-dst-n]::after { content: attr(data-dst-n); }
-    /* the chevron lives on the posting grid, in the footer row, bottom right */
+    /* v4.12.0: "⋯" bottom right, on the posting grid in the footer row.
+       It swaps the row: 💬 / − Antworten + give way to Melden, Ausblenden,
+       Kopieren, Teilen in the same place (nothing moves, nothing is covered);
+       "⋯" turns into "‹" (back). Both glyphs in the same 22px box as the
+       bubble, so they sit as far from the edge as the bubble on the left. */
     .dst-fb {
       grid-row: footer-start / footer-end; align-self: center;
       grid-column: posting-start / posting-end; justify-self: end;
-      margin-right: calc(var(--dst-p) - (var(--dst-ic) - var(--dst-ch)) / 2);
-      position: relative; z-index: 1; margin-top: 12px;
+      position: relative; z-index: 2; margin-top: 12px;
       width: var(--dst-ic); height: var(--dst-ic); padding: 0; border: 0; border-radius: 50%;
       background: none; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
       color: hsl(var(--theme--on-secondary--hsl) / .7);
     }
     .dst-fb:hover { background: hsl(var(--theme--on-secondary--hsl) / .06); }
-    .dst-fb svg {
-      width: var(--dst-ch); height: var(--dst-ch);
-      fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;
-      transition: transform .35s cubic-bezier(.3, .7, .3, 1);
-    }
-    dst-posting.dst-more-open > .dst-fb svg { transform: rotate(180deg); }
-    /* the row below: the card grows downwards (and shrinks back) */
+    .dst-fb svg { width: var(--dst-i); height: var(--dst-i); overflow: visible; }
+    .dst-fb .dst-dots { fill: currentColor; }
+    .dst-fb .dst-back { fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+    .dst-fb g { transform-origin: 12px 12px; transition: opacity .25s, transform .3s cubic-bezier(.3, .7, .3, 1); }
+    .dst-fb .dst-back { opacity: 0; transform: translateX(5px) scale(.6); }
+    dst-posting.dst-more-open > .dst-fb .dst-dots { opacity: 0; transform: scale(.5); }
+    dst-posting.dst-more-open > .dst-fb .dst-back { opacity: 1; transform: none; }
+    /* the action row lies in the footer row itself (0px high, so the card
+       never changes its height) */
     .dst-more-row {
-      grid-row: permalink-end / span 1; grid-column: posting-start / posting-end;
-      display: grid; grid-template-rows: 0fr;
-      transition: grid-template-rows .35s cubic-bezier(.3, .7, .3, 1);
+      grid-row: footer-start / footer-end; grid-column: posting-start / posting-end;
+      align-self: center; height: 0; margin-top: 12px; position: relative; z-index: 1;
+      display: flex; align-items: center; pointer-events: none;
     }
-    .dst-more-row > div { overflow: hidden; min-height: 0; }
-    dst-posting.dst-more-open > .dst-more-row { grid-template-rows: 1fr; }
+    .dst-more-row > div { flex: 1; }
+    dst-posting.dst-more-open > .dst-more-row { pointer-events: auto; }
     .dst-more-acts {
       display: flex; justify-content: center; gap: 22px;
-      border-top: 1px solid hsl(var(--theme--on-secondary--hsl) / .1);
-      padding: 6px 0 10px;
-      opacity: 0; transition: opacity .25s;
+      opacity: 0; transform: translateY(10px);
+      transition: opacity .25s, transform .3s cubic-bezier(.3, .7, .3, 1);
     }
-    dst-posting.dst-more-open .dst-more-acts { opacity: 1; transition-delay: .1s; }
+    dst-posting.dst-more-open .dst-more-acts { opacity: 1; transform: none; transition-delay: .08s; }
+    dst-posting[data-dst-tile] dst-posting-footer > * { transition: opacity .2s, transform .3s cubic-bezier(.3, .7, .3, 1); }
+    dst-posting.dst-more-open dst-posting-footer > * { opacity: 0 !important; transform: translateY(-10px); pointer-events: none; }
     .dst-act {
       flex: 0 0 72px; display: flex; flex-direction: column; align-items: center; gap: 3px;
-      padding: 6px 4px; border: 0; border-radius: 12px; background: none; cursor: pointer;
+      padding: 2px 4px; border: 0; border-radius: 12px; background: none; cursor: pointer;
       font: inherit; font-size: 11.5px; line-height: 1.2;
       color: hsl(var(--theme--on-secondary--hsl) / .75);
     }
@@ -668,14 +671,13 @@
     .dst-act.dst-done { color: #2e7d32; }
     .dst-act:focus-visible { outline: 2px solid hsl(var(--theme--on-secondary--hsl)); outline-offset: 2px; }
     @media (prefers-reduced-motion: reduce) {
-      .dst-fb svg, .dst-more-row, .dst-more-acts { transition: none; }
+      .dst-fb g, .dst-more-acts, dst-posting[data-dst-tile] dst-posting-footer > * { transition: none; }
     }
     dst-posting[data-dst-tile] dst-posting-footer dst-reply-postingbox button { white-space: nowrap; }
     /* narrow cards (phones, deeply indented replies): smaller icons and gaps */
     @container (max-width: 420px) {
       dst-posting-footer, .dst-fb, dst-posting-head { --dst-ic: 26px; --dst-gap: 2px; --dst-i: 19px;
-        --dst-p: calc((var(--dst-ic) - var(--dst-i)) / 2);
-        --dst-ch: calc(var(--dst-i) * 18 / 22); }
+        --dst-p: calc((var(--dst-ic) - var(--dst-i)) / 2); }
       dst-posting-footer .rate-down, dst-posting-footer .rate-up { width: 28px !important; }
       dst-posting-footer dst-reply-postingbox button { padding: 0 6px !important; }
       .dst-more-acts { gap: 4px; }
@@ -1443,7 +1445,10 @@
     });
   }
 
-  const CHEVRON_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7.5l9 9 9-9"/></svg>';
+  // v4.12.0: "⋯" (more) and "‹" (back) in one symbol, the CSS shows one of them
+  const MORE_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+    '<g class="dst-dots"><circle cx="4.5" cy="12" r="2.4"/><circle cx="12" cy="12" r="2.4"/><circle cx="19.5" cy="12" r="2.4"/></g>' +
+    '<g class="dst-back"><path d="M15.5 3 6.5 12l9 9"/></g></svg>';
   const FLAG_PATH = 'M14.4,6L14,4H5V21H7V14H12.6L13,16H20V6H14.4Z';
 
   // v4.11.0: one action of the unfolding row (symbol + short label)
@@ -1453,20 +1458,17 @@
   }
 
   function buildTile(posting) {
-    // v4.11.0: the chevron bottom right unfolds a row below the card with
-    // the four actions of derStandard's "…" menu (they are rarely needed)
-    const more = tileButton('dst-fb more', 'Weitere Aktionen', CHEVRON_SVG, function () {
-      // the card grows downwards: the browser's scroll anchoring would move
-      // it up instead while the next postings are on screen
-      const root = document.documentElement;
-      anchoringSuspended++;
-      root.style.overflowAnchor = 'none';
-      setTimeout(function () {
-        if (--anchoringSuspended === 0) root.style.overflowAnchor = '';
-      }, 450);
-      const open = posting.classList.toggle('dst-more-open');
+    // v4.12.0: "⋯" bottom right swaps the footer row for the four actions
+    // of derStandard's "…" menu (they are rarely needed); "‹" swaps back
+    function setOpen(open) {
+      posting.classList.toggle('dst-more-open', open);
       more.setAttribute('aria-expanded', String(open));
+      more.title = open ? 'Zurück' : 'Weitere Aktionen';
+      more.setAttribute('aria-label', more.title);
       row.inert = !open;
+    }
+    const more = tileButton('dst-fb more', 'Weitere Aktionen', MORE_SVG, function () {
+      setOpen(!posting.classList.contains('dst-more-open'));
     });
     more.setAttribute('aria-expanded', 'false');
 
@@ -1487,16 +1489,18 @@
         posting.style.setProperty('--dst-ctx-b', 'auto');
       }
       runPostingMenu(posting, 'Posting teilen');
+      setOpen(false);
     });
     const copy = tileAction('Kopieren', 'Permalink kopieren', TILE_ICONS.copy, function (btn) {
       runPostingMenu(posting, 'Permalink kopieren').then(function (ok) {
         const trigger = posting.querySelector('dst-posting--context > button');
         if (trigger && trigger.getAttribute('aria-expanded') === 'true') trigger.click();
-        if (!ok) return;
+        if (!ok) { setOpen(false); return; }
         const icon = btn.querySelector('path');
         icon.setAttribute('d', TILE_ICONS.check);
         btn.classList.add('dst-done');
         setTimeout(function () {
+          setOpen(false);
           icon.setAttribute('d', TILE_ICONS.copy);
           btn.classList.remove('dst-done');
         }, 1200);
@@ -1504,12 +1508,14 @@
     });
     const hide = tileAction('Ausblenden', 'User:in ausblenden', TILE_ICONS.hide, function () {
       runPostingMenu(posting, 'ausblenden');
+      setOpen(false);
     });
     // Melden: "Posting melden" from derStandard's "…" menu, otherwise its
     // own report button (kept, but hidden in the footer)
     const nativeFlag = posting.querySelector('dst-dialog--report svg path');
     const report = tileAction('Melden', 'Diesen Inhalt melden',
       (nativeFlag && nativeFlag.getAttribute('d')) || FLAG_PATH, function () {
+        setOpen(false);
         runPostingMenu(posting, 'Posting melden').then(function (ok) {
           if (ok) return;
           const b = posting.querySelector('dst-dialog--report button');
