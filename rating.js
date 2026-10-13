@@ -150,216 +150,106 @@
   // ── CSS for the feedback bar (injected once into <head>) ──────────
   // v2.0.8: Renamed from "rating" to "feedback" to avoid adblocker filters
   const FEEDBACK_CSS = `
-    /* Feedback bar — appears below the badge bar inside shadow DOM */
-    /* v3.1.0: derStandard's own card look (theme colours per Ressort) */
+    /* v4.10.4: a pill in the look of the sort bar (and of the review button
+       in the popup): "Gefällt dir? Bewerte uns", five stars, ✕ */
     #dst-feedback-bar {
       --dst-ink: var(--theme--on-secondary--hsl, 0 0% 13%);
+      --dst-track: color-mix(in srgb, var(--theme--base, #e6e6e6) 65%, #fff);
+      --dst-track-border: color-mix(in srgb, var(--theme--base, #e6e6e6) 75%, #000);
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 10px 14px;
-      background: var(--theme--card, #fff);
+      height: 50px;
+      padding: 0 6px 0 20px;
+      box-sizing: border-box;
+      /* same distance to the sort bar above and to the postings below */
+      margin: -13px 0 18px;
+      border-radius: 999px;
+      background: linear-gradient(to bottom,
+        color-mix(in srgb, var(--dst-track) 35%, #fff),
+        var(--dst-track) 55%,
+        color-mix(in srgb, var(--dst-track) 94%, #000));
+      box-shadow: 0 0 0 1px var(--dst-track-border),
+        inset 0 1.5px 0 rgba(255, 255, 255, .95),
+        inset 0 -2px 3px rgba(0, 0, 0, .08),
+        0 3px 8px rgba(0, 0, 0, .18);
       color: hsl(var(--dst-ink));
-      border: 1px solid hsl(var(--dst-ink) / .15);
-      border-radius: 6px;
-      margin: 8px 0 4px;
-      position: relative;
-      opacity: 1;
-      transform: scale(1) translateY(0);
-      transform-origin: center center;
       font-family: inherit;
+      container-type: inline-size;
+      overflow: hidden;
     }
-
-    #dst-feedback-bar .dst-fdbk-icon {
-      width: 32px;
-      height: 32px;
-      min-width: 32px;
-      background: hsl(var(--dst-ink) / .08);
-      border-radius: 6px;
+    #dst-feedback-bar .dst-fdbk-main {
+      flex: 1;
+      min-width: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 14px;
-    }
-
-    #dst-feedback-bar .dst-fdbk-text {
-      flex: 1;
-      min-width: 0;
+      gap: 12px;
     }
     #dst-feedback-bar .dst-fdbk-title {
-      font-size: 12.5px;
-      font-weight: 700;
-      color: hsl(var(--dst-ink));
-      margin: 0 0 4px;
-      line-height: 1.2;
+      font-size: 15px;
+      font-weight: 600;
+      color: #b8860b;
+      white-space: nowrap;
     }
-
-    /* Inline stars */
-    #dst-feedback-bar .dst-fdbk-stars {
-      display: flex;
-      gap: 3px;
-      align-items: center;
-    }
+    #dst-feedback-bar .dst-fdbk-stars { display: flex; gap: 2px; }
     #dst-feedback-bar .dst-fdbk-star {
       font: inherit;
-      font-size: 22px;
-      padding: 0;
+      font-size: 18px;               /* like the stars in the popup */
+      line-height: 1;
+      padding: 0 1px;
       border: 0;
       background: none;
       cursor: pointer;
       color: hsl(var(--dst-ink) / .25);
-      transition: color 0.12s ease, transform 0.12s ease;
+      transition: color .12s ease, transform .12s ease;
       user-select: none;
-      line-height: 1;
     }
     #dst-feedback-bar .dst-fdbk-star:hover { transform: scale(1.15); }
-    #dst-feedback-bar .dst-fdbk-star.active { color: #F9A825; }
-    #dst-feedback-bar .dst-fdbk-star.hover-preview { color: #FFCC02; }
-
-    #dst-feedback-bar .dst-fdbk-label {
-      font-size: 11px;
-      color: hsl(var(--dst-ink) / .65);
-      margin-left: 8px;
-      white-space: nowrap;
-      transition: color 0.2s ease, font-weight 0.2s ease;
-    }
-
-    /* Dismiss button (v3.1.0: always shown) */
+    #dst-feedback-bar .dst-fdbk-star.active,
+    #dst-feedback-bar .dst-fdbk-star.hover-preview { color: #f5c518; }
     #dst-feedback-bar .dst-fdbk-dismiss {
-      border: 1px solid hsl(var(--dst-ink) / .2);
-      border-radius: 999px;
-      padding: 5px 10px;
-      font-size: 11px;
-      font-weight: 600;
+      flex: none;
+      width: 38px;
+      height: 38px;
+      border: 0;
+      border-radius: 50%;
+      background: none;
       cursor: pointer;
-      transition: all 0.2s;
-      color: hsl(var(--dst-ink) / .65);
-      background: transparent;
-      flex-shrink: 0;
+      font-size: 15px;
+      color: hsl(var(--dst-ink) / .55);
     }
     #dst-feedback-bar .dst-fdbk-dismiss:hover {
-      border-color: hsl(var(--dst-ink) / .4);
-      color: hsl(var(--dst-ink));
       background: hsl(var(--dst-ink) / .06);
+      color: hsl(var(--dst-ink));
     }
     #dst-feedback-bar .dst-fdbk-dismiss:focus-visible,
     #dst-feedback-bar .dst-fdbk-star:focus-visible {
       outline: 2px solid hsl(var(--dst-ink));
       outline-offset: 2px;
     }
-
-    /* ═══ Golden Glow Pulse — 4-layer, 3 diminishing cycles ═══ */
-    @keyframes dst-golden-pulse {
-      0% {
-        transform: scale(1);
-        box-shadow:
-          0 2px 8px rgba(0,0,0,0.08),
-          0 0 0 0px rgba(255,215,0,0),
-          0 0 0px rgba(255,215,0,0),
-          0 0 0px rgba(255,193,7,0);
-      }
-      12% {
-        transform: scale(1.04);
-        box-shadow:
-          0 2px 8px rgba(0,0,0,0.08),
-          0 0 0 3px rgba(255,215,0,0.7),
-          0 0 18px rgba(255,215,0,0.45),
-          0 0 35px rgba(255,193,7,0.22),
-          inset 0 0 10px rgba(255,215,0,0.06);
-      }
-      24% {
-        transform: scale(1);
-        box-shadow:
-          0 2px 8px rgba(0,0,0,0.08),
-          0 0 0 2px rgba(255,215,0,0.4),
-          0 0 12px rgba(255,215,0,0.25),
-          0 0 24px rgba(255,193,7,0.1),
-          inset 0 0 6px rgba(255,215,0,0.03);
-      }
-      38% {
-        transform: scale(1.03);
-        box-shadow:
-          0 2px 8px rgba(0,0,0,0.08),
-          0 0 0 2.5px rgba(255,215,0,0.55),
-          0 0 14px rgba(255,215,0,0.32),
-          0 0 28px rgba(255,193,7,0.14),
-          inset 0 0 8px rgba(255,215,0,0.04);
-      }
-      52% {
-        transform: scale(1);
-        box-shadow:
-          0 2px 8px rgba(0,0,0,0.08),
-          0 0 0 1.5px rgba(255,215,0,0.3),
-          0 0 8px rgba(255,215,0,0.18),
-          0 0 18px rgba(255,193,7,0.07),
-          inset 0 0 4px rgba(255,215,0,0.02);
-      }
-      68% {
-        transform: scale(1.02);
-        box-shadow:
-          0 2px 8px rgba(0,0,0,0.08),
-          0 0 0 2px rgba(255,215,0,0.38),
-          0 0 10px rgba(255,215,0,0.22),
-          0 0 22px rgba(255,193,7,0.08),
-          inset 0 0 6px rgba(255,215,0,0.03);
-      }
-      82% {
-        transform: scale(1);
-        box-shadow:
-          0 2px 8px rgba(0,0,0,0.08),
-          0 0 0 1.5px rgba(255,215,0,0.22),
-          0 0 6px rgba(255,215,0,0.1),
-          0 0 14px rgba(255,193,7,0.04);
-      }
-      100% {
-        transform: scale(1);
-        box-shadow:
-          0 2px 8px rgba(0,0,0,0.08),
-          0 0 0 1px rgba(255,215,0,0.15),
-          0 0 5px rgba(255,215,0,0.08),
-          0 0 10px rgba(255,193,7,0.03);
-      }
+    @container (max-width: 420px) {
+      #dst-feedback-bar .dst-fdbk-main { gap: 8px; }
+      #dst-feedback-bar .dst-fdbk-title { font-size: 13px; }
     }
 
+    /* after rating: the golden ring of the coffee button, then fade out */
     #dst-feedback-bar.dst-golden-pulsing {
-      animation: dst-golden-pulse 2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      background: #fff8e1;
+      box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95),
+        0 0 0 2px rgba(230, 170, 0, .95), 0 2px 6px rgba(0, 0, 0, .12);
+      transition: background .3s ease, box-shadow .3s ease;
     }
-
-    /* ═══ Fade-out + height collapse ═══ */
-    @keyframes dst-golden-fade {
-      0% {
-        opacity: 1;
-        transform: translateY(0);
-        max-height: 80px;
-        margin: 8px 0 4px;
-        padding: 10px 14px;
-        box-shadow:
-          0 2px 8px rgba(0,0,0,0.08),
-          0 0 0 1px rgba(255,215,0,0.15),
-          0 0 5px rgba(255,215,0,0.08);
-      }
-      50% {
-        opacity: 0;
-        transform: translateY(-6px);
-        max-height: 80px;
-        margin: 8px 0 4px;
-        padding: 10px 14px;
-        box-shadow: none;
-      }
-      100% {
-        opacity: 0;
-        transform: translateY(-6px);
-        max-height: 0;
-        margin: 0;
-        padding: 0 14px;
-        border-width: 0;
-        box-shadow: none;
-      }
+    @keyframes dst-fdbk-fade {
+      0%   { opacity: 1; height: 50px; margin: -13px 0 18px; }
+      50%  { opacity: 0; height: 50px; margin: -13px 0 18px; }
+      100% { opacity: 0; height: 0; margin: 0; }
     }
-
     #dst-feedback-bar.dst-golden-fading {
-      animation: dst-golden-fade 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      animation: dst-fdbk-fade .4s ease forwards;
       pointer-events: none;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #dst-feedback-bar .dst-fdbk-star, #dst-feedback-bar.dst-golden-pulsing { transition: none; }
     }
   `;
 
@@ -371,45 +261,31 @@
     bar.id = 'dst-feedback-bar';
 
     // AMO Security Fix: DOM-Aufbau per createElement statt innerHTML
-    const icon = document.createElement('div');
-    icon.className = 'dst-fdbk-icon';
-    const triUp = document.createElement('span');
-    triUp.style.cssText = 'color:#2e7d32; font-size:13px;';
-    triUp.textContent = '\u25B2';
-    const triDown = document.createElement('span');
-    triDown.style.cssText = 'color:#c62828; font-size:9px;';
-    triDown.textContent = '\u25BC';
-    icon.appendChild(triUp);
-    icon.appendChild(triDown);
-
-    const textWrap = document.createElement('div');
-    textWrap.className = 'dst-fdbk-text';
-    const title = document.createElement('div');
+    const main = document.createElement('div');
+    main.className = 'dst-fdbk-main';
+    const title = document.createElement('span');
     title.className = 'dst-fdbk-title';
-    title.textContent = 'Gefällt dir die Extension? Bewerte sie!';
-    const starsWrap = document.createElement('div');
+    title.textContent = 'Gefällt dir? Bewerte uns';
+    const starsWrap = document.createElement('span');
     starsWrap.className = 'dst-fdbk-stars';
+    const labels = ['Schlecht', 'Geht so', 'Gut', 'Sehr gut', 'Perfekt'];
     for (let i = 1; i <= 5; i++) {
       // v4.10.1: real buttons, so the stars work with the keyboard too
       const star = document.createElement('button');
       star.type = 'button';
       star.className = 'dst-fdbk-star';
       star.setAttribute('data-value', String(i));
-      star.setAttribute('aria-label', i + (i === 1 ? ' Stern' : ' Sterne'));
+      star.setAttribute('aria-label', i + (i === 1 ? ' Stern' : ' Sterne') + ' – ' + labels[i - 1]);
+      star.title = labels[i - 1];
       star.textContent = '\u2605';
       starsWrap.appendChild(star);
     }
-    const fdbkLabel = document.createElement('span');
-    fdbkLabel.className = 'dst-fdbk-label';
-    fdbkLabel.textContent = 'Zum Bewerten klicken';
-    starsWrap.appendChild(fdbkLabel);
-    textWrap.appendChild(title);
-    textWrap.appendChild(starsWrap);
-
-    bar.appendChild(icon);
-    bar.appendChild(textWrap);
+    main.appendChild(title);
+    main.appendChild(starsWrap);
+    bar.appendChild(main);
 
     const dismissBtn = document.createElement('button');
+    dismissBtn.type = 'button';
     dismissBtn.className = 'dst-fdbk-dismiss';
     dismissBtn.title = 'Ein anderes Mal';
     dismissBtn.setAttribute('aria-label', 'Ein anderes Mal');
@@ -432,11 +308,8 @@
   // ── Wire up star interactions + dismiss ─────────────────────────
   function wireFeedbackBar(bar) {
     const stars = bar.querySelectorAll('.dst-fdbk-star');
-    const label = bar.querySelector('.dst-fdbk-label');
     const dismissBtn = bar.querySelector('.dst-fdbk-dismiss');
     let rated = false;
-
-    const labels = ['', 'Schlecht', 'Geht so', 'Gut', 'Sehr gut', 'Perfekt'];
 
     // Hover preview
     stars.forEach(star => {
@@ -447,13 +320,11 @@
           s.classList.toggle('hover-preview',
             +s.dataset.value <= val && !s.classList.contains('active'));
         });
-        label.textContent = labels[val];
       });
 
       star.addEventListener('mouseleave', () => {
         if (rated) return;
         stars.forEach(s => s.classList.remove('hover-preview'));
-        label.textContent = 'Zum Bewerten klicken';
       });
 
       // Click → rate → golden pulse → fade → gone FOREVER
@@ -469,9 +340,6 @@
           s.classList.toggle('active', +s.dataset.value <= val);
           s.style.cursor = 'default';
         });
-        label.textContent = labels[val];
-        label.style.color = '#B8860B';
-        label.style.fontWeight = '700';
 
         // 2. Open review page (if ≥4 stars) — browser-aware URL.
         //    CHROME FIX: window.open() MUST run synchronously inside the click
@@ -489,10 +357,7 @@
 
         // 4. Golden pulse → fade → remove
         setTimeout(() => bar.classList.add('dst-golden-pulsing'), 80);
-        setTimeout(() => {
-          bar.classList.remove('dst-golden-pulsing');
-          bar.classList.add('dst-golden-fading');
-        }, 2200);
+        setTimeout(() => bar.classList.add('dst-golden-fading'), 2200);
         setTimeout(() => {
           bar.style.display = 'none';
           bar.remove();
