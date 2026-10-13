@@ -464,8 +464,9 @@
     }
     /* ═══ v4.3.0: POSTING CARDS ═════════════════════════════════════════
        derStandard's own arrangement (name, time and rating on top; − Antworten
-       + below the text) in our style. The footer is one symmetric row:
-         ⚑ 👁 ·  − Antworten +  · ⧉ ⤴ 💬
+       + below the text) in our style. v4.11.0: the footer is one symmetric
+       row  💬 n  ·  − Antworten +  ·  ⌄  — the chevron unfolds a row below
+       with Teilen, Kopieren, Ausblenden, Melden.
        All icons are grey; colour only shows state: the rating top right and
        a vote you gave (derStandard fills − / + red / green itself).
        Everything is laid out on derStandard's own grids: only the column
@@ -510,11 +511,18 @@
       background: none !important; border-radius: 0 !important;
       pointer-events: none;
     }
+    /* v4.11.0: deleted postings have no 1px frame — same line position */
+    main.forum--main .thread > dst-posting:not([data-dst-tile])::before,
+    main.forum--main .thread > dst-posting:not([data-dst-tile])::after {
+      left: calc(var(--dst-ind) / -2) !important;
+    }
     /* the bend into the reply: it starts 2px below the card above and stops
        3px before this card's frame, so no frame is ever crossed */
     main.forum--main .thread > dst-posting::before {
       content: '' !important;
-      top: -10px; height: calc(10px + var(--dst-name-y)) !important; width: calc(var(--dst-ind) / 2 - 3px) !important;
+      /* v4.11.0: its bottom border (2px) ends exactly where the piece inside
+         the card (.dst-link) lies, so the line runs on straight */
+      top: -10px; height: calc(8px + var(--dst-name-y)) !important; width: calc(var(--dst-ind) / 2 - 3px) !important;
       border-left: 2px solid var(--dst-line); border-bottom: 2px solid var(--dst-line);
       border-bottom-left-radius: 14px !important;
     }
@@ -566,29 +574,24 @@
     /* the "…" menu stays (its share submenu opens from it) but sits invisibly
        under our share icon */
     dst-posting[data-dst-tile] dst-posting-head dst-posting--context {
-      position: absolute; bottom: 10px;
-      right: calc(var(--dst-side) + var(--dst-answ) - 2 * var(--dst-p) + var(--dst-g));
-      width: var(--dst-ic); height: var(--dst-ic);
+      position: absolute; width: var(--dst-ic); height: var(--dst-ic);
+      /* v4.11.0: moved under "Teilen" from JS (its share menu opens there) */
+      left: var(--dst-ctx-x, auto); top: var(--dst-ctx-y, auto);
+      right: var(--dst-ctx-r, var(--dst-side)); bottom: var(--dst-ctx-b, 10px);
     }
     dst-posting[data-dst-tile] dst-posting-head dst-posting--context > button { opacity: 0; pointer-events: none; }
-    /* pinned: only the pin in front of the time (tooltip "Angeheftet"), in
-       derStandard's own dark colour */
-    dst-posting[data-dst-tile] dst-posting-head time strong {
-      font-size: 0 !important; display: inline-flex; align-items: center;
-      margin-right: 0; color: hsl(var(--theme--on-secondary--hsl)) !important;
-    }
-    dst-posting[data-dst-tile] dst-posting-head time:has(strong) button { padding-left: 4px !important; }
-    dst-posting[data-dst-tile] dst-posting-head time strong svg { margin: 0 !important; }
-    /* footer: ⚑ 👁 · − Antworten + · ⧉ ⤴ 💬n
+    /* pinned: derStandard's own pin with the text "Angeheftet" (v4.11.0) */
+    /* footer: 💬n · − Antworten + · ⌄
        v4.5.4: every icon is the same glyph size (--dst-i) in a button of the
-       same size (--dst-ic), and the visible gap between neighbouring icons is
-       always the same (--dst-g). v4.10.5: the reply button is exactly as wide
-       as icon + number (--dst-n = number + 4px gap, measured in updateTile),
-       so its number ends as far from the edge as the flag starts. */
+       same size (--dst-ic). v4.11.0: the reply icon sits bottom left (its
+       number grows to the right, the icon never moves, as in derStandard's
+       original), the chevron bottom right, both the same distance from the
+       edge; the chevron is a bit smaller (18/22) — a thin line weighs less
+       than the filled bubble. */
     dst-posting[data-dst-tile] {
-      --dst-i: 22px; --dst-g: 18px; --dst-n: 0px;
+      --dst-i: 22px;
       --dst-p: calc((var(--dst-ic) - var(--dst-i)) / 2);
-      --dst-answ: calc(2 * var(--dst-p) + var(--dst-i) + var(--dst-n));
+      --dst-ch: calc(var(--dst-i) * 18 / 22);
     }
     dst-posting[data-dst-tile] dst-posting-footer {
       grid-template-columns: 1fr auto auto auto 1fr !important;
@@ -597,19 +600,18 @@
       margin-top: 12px;
     }
     dst-posting[data-dst-tile] dst-posting-footer > * { grid-row: 1 !important; }
-    dst-posting[data-dst-tile] dst-posting-footer dst-dialog--report { grid-column: 1 !important; justify-self: start; }
     dst-posting[data-dst-tile] dst-posting-footer .rate-down { grid-column: 2 !important; }
     dst-posting[data-dst-tile] dst-posting-footer dst-reply-postingbox { grid-column: 3 !important; }
     dst-posting[data-dst-tile] dst-posting-footer .rate-up { grid-column: 4 !important; }
-    dst-posting[data-dst-tile] dst-posting-footer dst-dialog--report button {
-      width: var(--dst-ic) !important; height: var(--dst-ic) !important; padding: 0 !important;
-      display: flex !important; align-items: center; justify-content: center;
-    }
-    /* thread toggle ("💬 169"): far right; from 1.000 on "+1k" (updateTile) */
+    /* derStandard's report flag lives on (Melden in the row below clicks it),
+       but takes no room in the footer */
+    dst-posting[data-dst-tile] dst-posting-footer dst-dialog--report { grid-column: 1 !important; justify-self: start; }
+    dst-posting[data-dst-tile] dst-posting-footer dst-dialog--report > button { display: none !important; }
+    /* thread toggle ("💬 169"): bottom left; from 1.000 on "+1k" (updateTile) */
     dst-posting[data-dst-tile] dst-posting-footer .answers {
-      grid-column: 5 !important; justify-self: end !important; width: var(--dst-answ) !important;
+      grid-column: 1 !important; justify-self: start !important;
       margin: 0 !important; display: flex !important; align-items: center; justify-content: flex-start !important; gap: 4px !important;
-      padding: 0 0 0 var(--dst-p) !important; height: var(--dst-ic);
+      padding: 0 var(--dst-p) !important; height: var(--dst-ic); min-width: var(--dst-ic);
       color: hsl(var(--theme--on-secondary--hsl) / .7);
       font-variant-numeric: tabular-nums; overflow: visible;
     }
@@ -620,10 +622,11 @@
     }
     dst-posting[data-dst-tile] dst-posting-footer .answers[data-dst-n] span { display: none; }
     dst-posting[data-dst-tile] dst-posting-footer .answers[data-dst-n]::after { content: attr(data-dst-n); }
-    /* our footer icons live on the posting grid, in the footer row */
+    /* the chevron lives on the posting grid, in the footer row, bottom right */
     .dst-fb {
       grid-row: footer-start / footer-end; align-self: center;
-      grid-column: posting-start / posting-end;
+      grid-column: posting-start / posting-end; justify-self: end;
+      margin-right: calc(var(--dst-p) - (var(--dst-ic) - var(--dst-ch)) / 2);
       position: relative; z-index: 1; margin-top: 12px;
       width: var(--dst-ic); height: var(--dst-ic); padding: 0; border: 0; border-radius: 50%;
       background: none; cursor: pointer;
@@ -631,20 +634,50 @@
       color: hsl(var(--theme--on-secondary--hsl) / .7);
     }
     .dst-fb:hover { background: hsl(var(--theme--on-secondary--hsl) / .06); }
-    .dst-fb svg { width: var(--dst-i); height: var(--dst-i); }
-    /* positions from the glyph edges: flag | g | hide   …   copy | g | share | g | 💬 */
-    .dst-fb.hide { justify-self: start; margin-left: calc(var(--dst-i) + var(--dst-g)); }
-    .dst-fb.share { justify-self: end; margin-right: calc(var(--dst-answ) - 2 * var(--dst-p) + var(--dst-g)); }
-    .dst-fb.copy { justify-self: end; margin-right: calc(var(--dst-answ) - 2 * var(--dst-p) + 2 * var(--dst-g) + var(--dst-i)); }
-    .dst-fb.dst-done { color: #2e7d32; }
+    .dst-fb svg {
+      width: var(--dst-ch); height: var(--dst-ch);
+      fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;
+      transition: transform .35s cubic-bezier(.3, .7, .3, 1);
+    }
+    dst-posting.dst-more-open > .dst-fb svg { transform: rotate(180deg); }
+    /* the row below: the card grows downwards (and shrinks back) */
+    .dst-more-row {
+      grid-row: permalink-end / span 1; grid-column: posting-start / posting-end;
+      display: grid; grid-template-rows: 0fr;
+      transition: grid-template-rows .35s cubic-bezier(.3, .7, .3, 1);
+    }
+    .dst-more-row > div { overflow: hidden; min-height: 0; }
+    dst-posting.dst-more-open > .dst-more-row { grid-template-rows: 1fr; }
+    .dst-more-acts {
+      display: flex; justify-content: center; gap: 22px;
+      border-top: 1px solid hsl(var(--theme--on-secondary--hsl) / .1);
+      padding: 6px 0 10px;
+      opacity: 0; transition: opacity .25s;
+    }
+    dst-posting.dst-more-open .dst-more-acts { opacity: 1; transition-delay: .1s; }
+    .dst-act {
+      flex: 0 0 72px; display: flex; flex-direction: column; align-items: center; gap: 3px;
+      padding: 6px 4px; border: 0; border-radius: 12px; background: none; cursor: pointer;
+      font: inherit; font-size: 11.5px; line-height: 1.2;
+      color: hsl(var(--theme--on-secondary--hsl) / .75);
+    }
+    .dst-act:hover { background: hsl(var(--theme--on-secondary--hsl) / .06); }
+    .dst-act svg { width: 22px; height: 22px; }
+    .dst-act.dst-done { color: #2e7d32; }
+    .dst-act:focus-visible { outline: 2px solid hsl(var(--theme--on-secondary--hsl)); outline-offset: 2px; }
+    @media (prefers-reduced-motion: reduce) {
+      .dst-fb svg, .dst-more-row, .dst-more-acts { transition: none; }
+    }
     dst-posting[data-dst-tile] dst-posting-footer dst-reply-postingbox button { white-space: nowrap; }
     /* narrow cards (phones, deeply indented replies): smaller icons and gaps */
     @container (max-width: 420px) {
-      dst-posting-footer, .dst-fb, dst-posting-head { --dst-ic: 26px; --dst-gap: 2px; --dst-i: 19px; --dst-g: 8px;
+      dst-posting-footer, .dst-fb, dst-posting-head { --dst-ic: 26px; --dst-gap: 2px; --dst-i: 19px;
         --dst-p: calc((var(--dst-ic) - var(--dst-i)) / 2);
-        --dst-answ: calc(2 * var(--dst-p) + var(--dst-i) + var(--dst-n)); }
+        --dst-ch: calc(var(--dst-i) * 18 / 22); }
       dst-posting-footer .rate-down, dst-posting-footer .rate-up { width: 28px !important; }
       dst-posting-footer dst-reply-postingbox button { padding: 0 6px !important; }
+      .dst-more-acts { gap: 4px; }
+      .dst-act { flex-basis: 68px; }
     }
 
     /* Mobile: the segmented control stays in ONE row; just tighter padding. */
@@ -1408,53 +1441,98 @@
     });
   }
 
+  const CHEVRON_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7.5l9 9 9-9"/></svg>';
+  const FLAG_PATH = 'M14.4,6L14,4H5V21H7V14H12.6L13,16H20V6H14.4Z';
+
+  // v4.11.0: one action of the unfolding row (symbol + short label)
+  function tileAction(label, title, path, onClick) {
+    return tileButton('dst-act', title,
+      tileSvg(path).replace('</svg>', '</svg><span>' + label + '</span>'), onClick);
+  }
+
   function buildTile(posting) {
-    const hide = tileButton('dst-fb hide', 'User:in ausblenden', tileSvg(TILE_ICONS.hide), function () {
-      runPostingMenu(posting, 'ausblenden');
+    // v4.11.0: the chevron bottom right unfolds a row below the card with
+    // the four actions of derStandard's "…" menu (they are rarely needed)
+    const more = tileButton('dst-fb more', 'Weitere Aktionen', CHEVRON_SVG, function () {
+      // the card grows downwards: the browser's scroll anchoring would move
+      // it up instead while the next postings are on screen
+      const root = document.documentElement;
+      anchoringSuspended++;
+      root.style.overflowAnchor = 'none';
+      setTimeout(function () {
+        if (--anchoringSuspended === 0) root.style.overflowAnchor = '';
+      }, 450);
+      const open = posting.classList.toggle('dst-more-open');
+      more.setAttribute('aria-expanded', String(open));
+      row.inert = !open;
     });
-    const copy = tileButton('dst-fb copy', 'Permalink kopieren', tileSvg(TILE_ICONS.copy), function (btn) {
+    more.setAttribute('aria-expanded', 'false');
+
+    const share = tileAction('Teilen', 'Posting teilen', TILE_ICONS.share, function (btn) {
+      // derStandard's share menu opens at its (invisible) "…" button: put
+      // that button where our share button is
+      // (CSS variables: derStandard re-renders the button's own style)
+      const ctx = posting.querySelector('dst-posting--context');
+      if (ctx) {
+        // the menu hangs below that button, right-aligned with it; moved by
+        // the difference, whatever box it is positioned in
+        const r = btn.getBoundingClientRect();
+        const c = ctx.getBoundingClientRect();
+        const cs = getComputedStyle(ctx);
+        posting.style.setProperty('--dst-ctx-x', (parseFloat(cs.left) + r.right - c.right) + 'px');
+        posting.style.setProperty('--dst-ctx-y', (parseFloat(cs.top) + r.bottom - c.bottom) + 'px');
+        posting.style.setProperty('--dst-ctx-r', 'auto');
+        posting.style.setProperty('--dst-ctx-b', 'auto');
+      }
+      runPostingMenu(posting, 'Posting teilen');
+    });
+    const copy = tileAction('Kopieren', 'Permalink kopieren', TILE_ICONS.copy, function (btn) {
       runPostingMenu(posting, 'Permalink kopieren').then(function (ok) {
         const trigger = posting.querySelector('dst-posting--context > button');
         if (trigger && trigger.getAttribute('aria-expanded') === 'true') trigger.click();
         if (!ok) return;
-        btn.innerHTML = tileSvg(TILE_ICONS.check);
+        const icon = btn.querySelector('path');
+        icon.setAttribute('d', TILE_ICONS.check);
         btn.classList.add('dst-done');
         setTimeout(function () {
-          btn.innerHTML = tileSvg(TILE_ICONS.copy);
+          icon.setAttribute('d', TILE_ICONS.copy);
           btn.classList.remove('dst-done');
         }, 1200);
       });
     });
-    const share = tileButton('dst-fb share', 'Posting teilen', tileSvg(TILE_ICONS.share), function () {
-      runPostingMenu(posting, 'Posting teilen');
+    const hide = tileAction('Ausblenden', 'User:in ausblenden', TILE_ICONS.hide, function () {
+      runPostingMenu(posting, 'ausblenden');
     });
+    // Melden: "Posting melden" from derStandard's "…" menu, otherwise its
+    // own report button (kept, but hidden in the footer)
+    const nativeFlag = posting.querySelector('dst-dialog--report svg path');
+    const report = tileAction('Melden', 'Diesen Inhalt melden',
+      (nativeFlag && nativeFlag.getAttribute('d')) || FLAG_PATH, function () {
+        runPostingMenu(posting, 'Posting melden').then(function (ok) {
+          if (ok) return;
+          const b = posting.querySelector('dst-dialog--report button');
+          if (b) b.click();
+        });
+      });
+
+    const row = document.createElement('div');
+    row.className = 'dst-more-row';
+    row.inert = true;
+    const clip = document.createElement('div');
+    const acts = document.createElement('div');
+    acts.className = 'dst-more-acts';
+    acts.append(share, copy, hide, report);
+    clip.appendChild(acts);
+    row.appendChild(clip);
 
     // inside a reply: the thread line carries on after the card's frame
     const link = document.createElement('span');
     link.className = 'dst-link';
-    posting.append(hide, copy, share, link);
+    posting.append(more, row, link);
     posting.setAttribute('data-dst-tile', '');
   }
 
   // Keeps our small additions in line with derStandard's data.
-  // width of a text in an element's font (cached; not before the web font
-  // has loaded, see the fonts.ready hook in decorateTiles)
-  const textWidthCache = new Map();
-  let textCanvas = null;
-  function textWidth(el, text) {
-    // (the shorthand "font" is empty here because of font-variant-numeric)
-    const cs = getComputedStyle(el);
-    const font = cs.fontStyle + ' ' + cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
-    const key = font + '|' + text;
-    if (textWidthCache.has(key)) return textWidthCache.get(key);
-    textCanvas = textCanvas || document.createElement('canvas').getContext('2d');
-    textCanvas.font = font;
-    // the numbers use tabular figures: every digit is as wide as a "0"
-    const w = textCanvas.measureText(text.replace(/\d/g, '0')).width;
-    if (document.fonts.status === 'loaded') textWidthCache.set(key, w);
-    return w;
-  }
-
   function updateTile(posting) {
     // replies: up to 999 derStandard's own number (stays live), from 1.000
     // on "+1k", "+2k", …
@@ -1467,16 +1545,10 @@
       } else if (ans.hasAttribute('data-dst-n')) {
         ans.removeAttribute('data-dst-n');
       }
-      // v4.10.5: the button is exactly as wide as icon + number, so the
-      // number ends where the flag starts on the other side (symmetry)
-      const w = label ? Math.round(textWidth(ans, label) * 10) / 10 + 4 : 0;
       // v4.10.5: tooltip just the number, without "(x direkt, y indirekt)"
       const tip = n === 1 ? '1 Antwort' : n + ' Antworten';
       if (n && ans.title !== tip) ans.title = tip;
-      if (posting.style.getPropertyValue('--dst-n') !== w + 'px') posting.style.setProperty('--dst-n', w + 'px');
     }
-    const pin = posting.querySelector('dst-posting-head time strong');
-    if (pin && pin.title !== 'Angeheftet') pin.title = 'Angeheftet';
     // the full user name as tooltip (long names are shortened with "…")
     const user = posting.querySelector('dst-posting--user > button');
     const name = user && user.querySelector('span > span');
@@ -1488,13 +1560,6 @@
     if (!main) return;
     main.querySelectorAll('dst-posting.posting').forEach(decorateTile);
     observeTiles(main);
-    // v4.10.5: measure the reply numbers again once the web font is there
-    if (!decorateTiles.fontHook && document.fonts.status !== 'loaded') {
-      decorateTiles.fontHook = true;
-      document.fonts.ready.then(function () {
-        main.querySelectorAll('dst-posting[data-dst-tile]').forEach(updateTile);
-      });
-    }
   }
 
   function decorateTile(p) {
@@ -1521,7 +1586,7 @@
     tileObserver = new MutationObserver(function (mutations) {
       mutations.forEach(function (m) {
         const t = m.target;
-        if (!t.closest || t.closest('.dst-fb')) return;
+        if (!t.closest || t.closest('.dst-fb, .dst-more-row')) return;
         if (m.type === 'childList') {
           m.addedNodes.forEach(function (n) {
             if (n.nodeType !== 1) return;
