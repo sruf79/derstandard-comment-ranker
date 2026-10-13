@@ -407,13 +407,13 @@
        left edge up to the pill's right end (--dst-head-l/-r, set in
        fitSortBar). v4.13.2: the title keeps derStandard's own size (48px,
        28px on phones); the number is appended to it (data-dst-n on the
-       title, missing while there is none) in the same font size. The
+       title, missing while there is none), 1.25x the title's size. The
        original count stays in the DOM (derStandard updates it;
        getTotalPostingCount reads it) and is only hidden. */
     .forum--header {
       --dst-ink: var(--theme--on-secondary--hsl, 0 0% 13%);
       display: grid !important;
-      grid-template-columns: 1fr auto !important;
+      grid-template-columns: minmax(0, 1fr) auto !important;   /* gear fixed, whatever the number */
       grid-template-rows: auto !important;
       align-items: center;
       column-gap: 10px;
@@ -432,12 +432,19 @@
     .forum--header .forum--postingcount { display: none !important; }
     .forum--header #forum--title[data-dst-n]::after {
       content: attr(data-dst-n);
-      margin-left: .28em;
+      margin-left: .24em;
+      font-size: 1.25em;          /* v4.13.3: the number larger than the word */
       font-weight: 700;
       letter-spacing: -.02em;
       line-height: 1.1;
       color: hsl(var(--dst-ink) / .3);
       font-variant-numeric: tabular-nums;
+    }
+    /* below 350px (e.g. iPhone SE 1st gen) "Diskussion 9.999" only fits
+       a bit smaller and with the number as large as the word */
+    @media (max-width: 349px) {
+      .forum--header #forum--title { font-size: 25px !important; }
+      .forum--header #forum--title[data-dst-n]::after { font-size: 1em; }
     }
     .forum--header #forum-settings-flyout {
       grid-area: 1 / 2 !important;
