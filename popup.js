@@ -1,4 +1,4 @@
-// popup.js — derStandard Comment Ranker v4.17.0
+// popup.js — derStandard Comment Ranker v4.17.1
 // Popup: header (logo + title), on/off switch, review (browser-aware store
 // link with a delayed golden ring) and coffee (donate).
 //

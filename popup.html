@@ -12,11 +12,11 @@
     
     /* v3.10.0: same look as the sort bar on the site — derStandard's blue
        article background, domed pills with a dark frame, a highlight line
-       and a soft shadow. Green/red ring = state, golden ring = coffee. */
+       and a soft shadow. Green/red edge and bar = state, golden ring = coffee. */
     :root {
       --base: hsl(198 28% 88%);
-      --track: color-mix(in srgb, var(--base) 65%, #fff);
-      --track-border: color-mix(in srgb, var(--base) 75%, #000);
+      --track: color-mix(in srgb, var(--base) 78%, #fff);         /* v4.17.1: as the sort bar */
+      --track-border: color-mix(in srgb, var(--base) 80%, #000);
       --pill-bg: linear-gradient(to bottom,
         color-mix(in srgb, var(--track) 35%, #fff),
         var(--track) 55%,
@@ -85,8 +85,8 @@
       line-height: 1.2;
     }
     
-    /* On/off: v4.8.0 — a pill button as switch: a green ring when on, a red
-       ring when off. v4.10.0: only one switch left (on/off); its text says
+    /* On/off: v4.8.0 — a pill button as switch, green when on, red when
+       off (v4.17.1: see .toggle). v4.10.0: only one switch left (on/off); its text says
        the current state ("ist an" / "ist aus"). */
     .toggles {
       display: flex;
@@ -102,24 +102,36 @@
       font-weight: 600;
       color: #333;
       cursor: pointer;
-      /* v4.10.2: the same ring as the active segment of the sort bar on the
-         site — 3px, its colour seeping softly into a lightly tinted knob */
-      background: linear-gradient(to bottom, #fdf1f0, #f8dcda);
-      box-shadow: 0 0 0 3px rgba(198, 40, 40, .95), inset 0 0 9px 2px rgba(198, 40, 40, .3), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12);
+      /* v4.17.1: like the active knob of the sort bar on the site — a white
+         knob with a fine green/red edge and a glow from below, and under
+         the text a short bar in that colour (like the bar in the knob) */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: linear-gradient(to bottom, #fff, #f6f7f8);
+      box-shadow: 0 0 0 1.5px rgba(198, 40, 40, .75), inset 0 0 0 1px rgba(255, 255, 255, .9), inset 0 -7px 12px -2px rgba(198, 40, 40, .45), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12);
       transition: box-shadow .3s ease;
     }
-    .toggle[aria-pressed="true"] {
-      background: linear-gradient(to bottom, #f3faef, #e2f0da);
-      box-shadow: 0 0 0 3px rgba(46, 125, 50, .95), inset 0 0 9px 2px rgba(46, 125, 50, .3), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12);
+    .toggle::after {
+      content: '';
+      width: 46px;
+      height: 6px;
+      border-radius: 3px;
+      background: rgb(198, 40, 40);
+      box-shadow: inset 0 1px 1.5px rgba(0, 0, 0, .38), 0 1px 0 rgba(255, 255, 255, .85);
     }
-    /* v4.13.7: a short glow ring on click, like the sort bar's knob */
+    .toggle[aria-pressed="true"] { box-shadow: 0 0 0 1.5px rgba(46, 125, 50, .75), inset 0 0 0 1px rgba(255, 255, 255, .9), inset 0 -7px 12px -2px rgba(46, 125, 50, .45), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12); }
+    .toggle[aria-pressed="true"]::after { background: rgb(46, 125, 50); }
+    /* v4.13.7: a short glow on click, like the sort bar's knob */
     @keyframes flash-on {
-      0%   { box-shadow: 0 0 0 3px rgba(46, 125, 50, .95), inset 0 0 9px 2px rgba(46, 125, 50, .3), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12), 0 0 0 10px rgba(46, 125, 50, .4); }
-      100% { box-shadow: 0 0 0 3px rgba(46, 125, 50, .95), inset 0 0 9px 2px rgba(46, 125, 50, .3), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12), 0 0 0 3px rgba(46, 125, 50, 0); }
+      0%   { box-shadow: 0 0 0 1.5px rgba(46, 125, 50, .75), inset 0 0 0 1px rgba(255, 255, 255, .9), inset 0 -7px 12px -2px rgba(46, 125, 50, .45), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12), 0 0 0 9px rgba(46, 125, 50, .35); }
+      100% { box-shadow: 0 0 0 1.5px rgba(46, 125, 50, .75), inset 0 0 0 1px rgba(255, 255, 255, .9), inset 0 -7px 12px -2px rgba(46, 125, 50, .45), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12), 0 0 0 1.5px rgba(46, 125, 50, 0); }
     }
     @keyframes flash-off {
-      0%   { box-shadow: 0 0 0 3px rgba(198, 40, 40, .95), inset 0 0 9px 2px rgba(198, 40, 40, .3), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12), 0 0 0 10px rgba(198, 40, 40, .4); }
-      100% { box-shadow: 0 0 0 3px rgba(198, 40, 40, .95), inset 0 0 9px 2px rgba(198, 40, 40, .3), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12), 0 0 0 3px rgba(198, 40, 40, 0); }
+      0%   { box-shadow: 0 0 0 1.5px rgba(198, 40, 40, .75), inset 0 0 0 1px rgba(255, 255, 255, .9), inset 0 -7px 12px -2px rgba(198, 40, 40, .45), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12), 0 0 0 9px rgba(198, 40, 40, .35); }
+      100% { box-shadow: 0 0 0 1.5px rgba(198, 40, 40, .75), inset 0 0 0 1px rgba(255, 255, 255, .9), inset 0 -7px 12px -2px rgba(198, 40, 40, .45), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12), 0 0 0 1.5px rgba(198, 40, 40, 0); }
     }
     .toggle.flash { animation: flash-off .45s ease-out; }
     .toggle.flash[aria-pressed="true"] { animation-name: flash-on; }
