@@ -145,7 +145,7 @@
          (v3.8.1: 35% white, was 25%) */
       --dst-track: color-mix(in srgb, var(--theme--base, #e6e6e6) 65%, #fff);
       /* v3.8.1: frame of the track — a darker shade of the same colour */
-      --dst-track-border: color-mix(in srgb, var(--theme--base, #e6e6e6) 75%, #000);
+      --dst-track-border: color-mix(in srgb, var(--theme--base, #e6e6e6) 80%, #000);   /* v4.16.0: = card frame (was 75%) */
     }
     /* v3.8.0: two rows — the sort track (always shown and usable) and, while
        postings are loading, the loading bar below it. */
@@ -191,7 +191,9 @@
       left: -1px;
       border-radius: 999px;
       transform: translateX(calc(var(--dst-i, 0) * (100% - 5px)));
-      transition: transform .3s ease;
+      /* v4.16.0: a soft spring (fast start, the faintest settle), like
+         Apple's segmented control; done before the re-sort (460ms) */
+      transition: transform .4s cubic-bezier(.3, 1.08, .5, 1);
     }
     /* v3.8.4: two pills with the same rounding (v3.8.5: 10px apart): the three
        sort segments and the coffee button. v3.8.1: darker frame + soft drop
@@ -311,8 +313,14 @@
     /* v3.21.1: inactive segments recede (label and bar slightly faded), as
        the inactive badges did in v2.3.2–2.4.10 (opacity .65) */
     #dst-seg .dst-badge-btn[data-mode]:not(.active) > * { opacity: .65; }
+    /* v4.16.0: press feedback like Apple's segmented control: pressing the
+       active segment shrinks the knob a little, pressing another one dims
+       its label; both spring back on release */
+    #dst-seg-thumb::before { transition: transform .15s ease; }
+    #dst-seg:has(> .dst-badge-btn.active:active) #dst-seg-thumb::before { transform: scale(.95); }
+    #dst-seg .dst-badge-btn[data-mode]:not(.active):active > * { opacity: .35; transition-duration: .1s; }
     @media (prefers-reduced-motion: reduce) {
-      #dst-seg .dst-badge-btn > * { transition: none; }
+      #dst-seg .dst-badge-btn > *, #dst-seg-thumb::before { transition: none; }
     }
     #dst-seg .dst-badge-btn.active {
       background: transparent;    /* the thumb underneath is the card */
@@ -2834,6 +2842,9 @@
     const shownMode = syncShownSelection();
     const seg = document.createElement('div');
     seg.id = 'dst-seg';
+    // v4.16.0: Safari on iOS only applies :active (press feedback) when a
+    // touch listener exists
+    seg.addEventListener('touchstart', function () {}, { passive: true });
     const n = BUTTON_GROUPS.length;
     const activeIdx = BUTTON_GROUPS.findIndex((g) => g.modes.indexOf(shownMode) !== -1);
     const thumb = document.createElement('div');
