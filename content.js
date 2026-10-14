@@ -143,7 +143,7 @@
       /* v3.7.1: the article's background (derStandard's --theme--base, per
          Ressort) made lighter, so the bar stands out from the page
          (v3.8.1: 35% white, was 25%) */
-      --dst-track: color-mix(in srgb, var(--theme--base, #e6e6e6) 65%, #fff);
+      --dst-track: color-mix(in srgb, var(--theme--base, #e6e6e6) 78%, #fff);   /* v4.17.0: was 65%, so the white knob stands out */
       /* v3.8.1: frame of the track — a darker shade of the same colour */
       --dst-track-border: color-mix(in srgb, var(--theme--base, #e6e6e6) 80%, #000);   /* v4.16.0: = card frame (was 75%) */
     }
@@ -246,30 +246,26 @@
     #dst-seg::after { right: 0; width: calc(3px + 38px + 3px); }
     /* v3.20.0: the active segment is a raised knob reaching over the edge of
        the pill. v4.8.0: the track stays neutral; only the knob shows the
-       direction (data-tone, always set): a 3px green resp. red ring whose
-       colour seeps softly inwards into a lightly tinted knob. */
+       direction (data-tone, always set), see v4.17.0 below. */
     #dst-seg-thumb::before {
       content: '';
       position: absolute;
       inset: -1px;
       border-radius: 999px;
     }
-    #dst-seg-thumb[data-tone="pos"]::before {
-      background: linear-gradient(to bottom, #f3faef, #e2f0da);
-      box-shadow: 0 0 0 3px rgba(46, 125, 50, .95), inset 0 0 9px 2px rgba(46, 125, 50, .3), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12);
-    }
-    #dst-seg-thumb[data-tone="neg"]::before {
-      background: linear-gradient(to bottom, #fdf1f0, #f8dcda);
-      box-shadow: 0 0 0 3px rgba(198, 40, 40, .95), inset 0 0 9px 2px rgba(198, 40, 40, .3), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12);
-    }
+    /* v4.17.0: a white knob; the direction shows as a fine coloured edge
+       and a glow from below (was a 3px ring on a tinted knob) */
+    #dst-seg-thumb[data-tone]::before { background: linear-gradient(to bottom, #fff, #f6f7f8); }
+    #dst-seg-thumb[data-tone="pos"]::before { box-shadow: 0 0 0 1.5px rgba(46, 125, 50, .75), inset 0 0 0 1px rgba(255, 255, 255, .9), inset 0 -7px 12px -2px rgba(46, 125, 50, .45), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12); }
+    #dst-seg-thumb[data-tone="neg"]::before { box-shadow: 0 0 0 1.5px rgba(198, 40, 40, .75), inset 0 0 0 1px rgba(255, 255, 255, .9), inset 0 -7px 12px -2px rgba(198, 40, 40, .45), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12); }
     /* click flash: a short glow ring in the direction's colour */
     @keyframes dst-glass-flash-pos {
-      0%   { box-shadow: 0 0 0 3px rgba(46, 125, 50, .95), inset 0 0 9px 2px rgba(46, 125, 50, .3), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12), 0 0 0 10px rgba(46, 125, 50, .4); }
-      100% { box-shadow: 0 0 0 3px rgba(46, 125, 50, .95), inset 0 0 9px 2px rgba(46, 125, 50, .3), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12), 0 0 0 3px rgba(46, 125, 50, 0); }
+      0%   { box-shadow: 0 0 0 1.5px rgba(46, 125, 50, .75), inset 0 0 0 1px rgba(255, 255, 255, .9), inset 0 -7px 12px -2px rgba(46, 125, 50, .45), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12), 0 0 0 9px rgba(46, 125, 50, .35); }
+      100% { box-shadow: 0 0 0 1.5px rgba(46, 125, 50, .75), inset 0 0 0 1px rgba(255, 255, 255, .9), inset 0 -7px 12px -2px rgba(46, 125, 50, .45), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12), 0 0 0 1.5px rgba(46, 125, 50, 0); }
     }
     @keyframes dst-glass-flash-neg {
-      0%   { box-shadow: 0 0 0 3px rgba(198, 40, 40, .95), inset 0 0 9px 2px rgba(198, 40, 40, .3), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12), 0 0 0 10px rgba(198, 40, 40, .4); }
-      100% { box-shadow: 0 0 0 3px rgba(198, 40, 40, .95), inset 0 0 9px 2px rgba(198, 40, 40, .3), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12), 0 0 0 3px rgba(198, 40, 40, 0); }
+      0%   { box-shadow: 0 0 0 1.5px rgba(198, 40, 40, .75), inset 0 0 0 1px rgba(255, 255, 255, .9), inset 0 -7px 12px -2px rgba(198, 40, 40, .45), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12), 0 0 0 9px rgba(198, 40, 40, .35); }
+      100% { box-shadow: 0 0 0 1.5px rgba(198, 40, 40, .75), inset 0 0 0 1px rgba(255, 255, 255, .9), inset 0 -7px 12px -2px rgba(198, 40, 40, .45), 0 2px 6px rgba(0, 0, 0, .16), 0 1px 1.5px rgba(0, 0, 0, .12), 0 0 0 1.5px rgba(198, 40, 40, 0); }
     }
     #dst-seg-thumb.dst-flash[data-tone="pos"]::before { animation: dst-glass-flash-pos .45s ease-out; }
     #dst-seg-thumb.dst-flash[data-tone="neg"]::before { animation: dst-glass-flash-neg .45s ease-out; }
