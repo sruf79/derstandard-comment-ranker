@@ -15,6 +15,20 @@
 
   const SORT_KEY = 'dstSorterEnabled';
   const MODE_KEY = 'dstSorterMode';
+  const FLAT_KEY = 'dstFlat';   // v4.18.0: flat design instead of the glass look
+  let flatDesign = false;
+  function applyFlat() {
+    const f = document.querySelector('dst-forum');
+    if (f) f.classList.toggle('dst-flat', flatDesign);
+  }
+  try {
+    chrome.storage.onChanged.addListener(function (changes, area) {
+      if (area === 'sync' && FLAT_KEY in changes) {
+        flatDesign = changes[FLAT_KEY].newValue === true;
+        applyFlat();
+      }
+    });
+  } catch (e) { /* noop */ }
 
   // ── v2.2.0: grouped toggle buttons ─────────────────────────────
   // Instead of 5 separate sort badges we now render only 3 sort buttons
@@ -1001,6 +1015,43 @@
       #dst-voter-overlay, #dst-voter-card, .dst-progress-fill--loading,
       .dst-steam-wisp { animation: none; }
     }
+
+    /* ═══ v4.18.0: FLAT DESIGN (option in the popup) ═══════════════════
+       The same layout without the glass look: flat fills and fine frames,
+       no domes, highlights or drop shadows; the active knob is white with
+       a 2px edge in the direction's colour. Set on the dst-forum host. */
+    :host(.dst-flat) #dst-seg::before,
+    :host(.dst-flat) #dst-seg::after,
+    :host(.dst-flat) #dst-seg-bridge,
+    :host(.dst-flat) #dst-feedback-bar {
+      background: var(--dst-track) !important;
+      box-shadow: 0 0 0 1px var(--dst-track-border) !important;
+    }
+    :host(.dst-flat) #dst-seg-thumb[data-tone]::before { background: #fff; }
+    :host(.dst-flat) #dst-seg-thumb[data-tone="pos"]::before { box-shadow: 0 0 0 2px rgba(46, 125, 50, .85); }
+    :host(.dst-flat) #dst-seg-thumb[data-tone="neg"]::before { box-shadow: 0 0 0 2px rgba(198, 40, 40, .85); }
+    :host(.dst-flat) #dst-seg-thumb.dst-flash[data-tone="pos"]::before { animation-name: dst-flat-flash-pos; }
+    :host(.dst-flat) #dst-seg-thumb.dst-flash[data-tone="neg"]::before { animation-name: dst-flat-flash-neg; }
+    @keyframes dst-flat-flash-pos {
+      0%   { box-shadow: 0 0 0 2px rgba(46, 125, 50, .85), 0 0 0 9px rgba(46, 125, 50, .3); }
+      100% { box-shadow: 0 0 0 2px rgba(46, 125, 50, .85), 0 0 0 2px rgba(46, 125, 50, 0); }
+    }
+    @keyframes dst-flat-flash-neg {
+      0%   { box-shadow: 0 0 0 2px rgba(198, 40, 40, .85), 0 0 0 9px rgba(198, 40, 40, .3); }
+      100% { box-shadow: 0 0 0 2px rgba(198, 40, 40, .85), 0 0 0 2px rgba(198, 40, 40, 0); }
+    }
+    :host(.dst-flat) .dst-mode-bar > span,
+    :host(.dst-flat) .dst-vch-bar,
+    :host(.dst-flat) dst-posting[data-dst-tile] dst-posting--ratinglog button > div > div { box-shadow: none; }
+    :host(.dst-flat) main.forum--main dst-posting.posting {
+      box-shadow: 0 0 0 1px color-mix(in srgb, var(--theme--base, #e6e6e6) 80%, #000) !important;
+    }
+    :host(.dst-flat) #dst-voter-card {
+      background: var(--dst-track);
+      box-shadow: 0 0 0 1px var(--dst-track-border);
+    }
+    :host(.dst-flat) #dst-voter-head { background: #fff; box-shadow: 0 1px 0 var(--dst-track-border); }
+    :host(.dst-flat) .dst-voter-list { box-shadow: none; }
   `;
 
   let sortEnabled = true;
@@ -2780,6 +2831,7 @@
   const COFFEE_SLOT = 38 + 3 + 13;
 
   function injectSortBadge(shadowRoot) {
+    if (shadowRoot.host) shadowRoot.host.classList.toggle('dst-flat', flatDesign);
     const header = shadowRoot.querySelector('.forum--header');
     if (!header) return;
 
@@ -3622,8 +3674,10 @@
   // ── Storage: persist enabled state & sort mode ─────────────────
   function loadState(callback) {
     if (chrome?.storage?.sync) {
-      chrome.storage.sync.get([SORT_KEY, MODE_KEY, 'sortByPositive', 'dstTintEdge'], (data) => {
+      chrome.storage.sync.get([SORT_KEY, MODE_KEY, FLAT_KEY, 'sortByPositive', 'dstTintEdge'], (data) => {
         data = data || {};
+        flatDesign = data[FLAT_KEY] === true;
+        applyFlat();
         // v4.10.1: setting of the removed "Farbmarkierung" option
         if ('dstTintEdge' in data) chrome.storage.sync.remove('dstTintEdge');
         sortEnabled = data[SORT_KEY] !== false;

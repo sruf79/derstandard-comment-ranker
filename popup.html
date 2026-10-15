@@ -144,6 +144,39 @@
       .toggle.flash { animation: none; }
     }
     
+    /* v4.18.0: design switch, a neutral pill (it is a choice, not a state) */
+    .design-btn {
+      width: 100%;
+      justify-content: center;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    body.kbd .design-btn:focus-visible { outline: 2px solid #333; outline-offset: 3px; }
+    .design-btn:focus-visible { outline: none; }
+
+    /* v4.18.0: flat design — the same pills without domes, highlights and
+       drop shadows */
+    body.flat {
+      --pill-bg: var(--track);
+      --pill-shadow: 0 0 0 1px var(--track-border);
+      --gold-ring: 0 0 0 2px rgba(230, 170, 0, .95);
+    }
+    body.flat .toggle { background: #fff; box-shadow: 0 0 0 2px rgba(198, 40, 40, .85); }
+    body.flat .toggle[aria-pressed="true"] { box-shadow: 0 0 0 2px rgba(46, 125, 50, .85); }
+    body.flat .toggle::after { box-shadow: none; }
+    body.flat .toggle.flash { animation-name: flat-flash-off; }
+    body.flat .toggle.flash[aria-pressed="true"] { animation-name: flat-flash-on; }
+    @keyframes flat-flash-on {
+      0%   { box-shadow: 0 0 0 2px rgba(46, 125, 50, .85), 0 0 0 9px rgba(46, 125, 50, .3); }
+      100% { box-shadow: 0 0 0 2px rgba(46, 125, 50, .85), 0 0 0 2px rgba(46, 125, 50, 0); }
+    }
+    @keyframes flat-flash-off {
+      0%   { box-shadow: 0 0 0 2px rgba(198, 40, 40, .85), 0 0 0 9px rgba(198, 40, 40, .3); }
+      100% { box-shadow: 0 0 0 2px rgba(198, 40, 40, .85), 0 0 0 2px rgba(198, 40, 40, 0); }
+    }
+
     /* Review badge (store link, chosen per browser) */
     .review-badge {
       justify-content: center;
@@ -314,6 +347,9 @@
   <div class="toggles no-anim">
     <button type="button" class="toggle" id="btnExt" aria-pressed="true" aria-label="Erweiterung" title="Klicken zum Ein- oder Ausschalten">Erweiterung ist an</button>
   </div>
+
+  <!-- v4.18.0: glass look or flat design -->
+  <button type="button" class="badge-box design-btn" id="btnDesign" aria-pressed="false" title="Zwischen Glaslook und flachem Design wechseln">Design: Glas</button>
 
   <!-- Review — store link per browser (Chrome Web Store / Firefox AMO) -->
   <a class="badge-box review-badge" id="reviewBtn" href="#" target="_blank" rel="noopener">

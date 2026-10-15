@@ -1,4 +1,4 @@
-// popup.js — derStandard Comment Ranker v4.17.1
+// popup.js — derStandard Comment Ranker v4.18.0
 // Popup: header (logo + title), on/off switch, review (browser-aware store
 // link with a delayed golden ring) and coffee (donate).
 //
@@ -55,6 +55,23 @@ btnExt.addEventListener('click', function() {
   btnExt.classList.add('flash');
   chrome.storage.sync.set({ [SORT_KEY]: on });
   sendMessageToTab({ action: 'toggle', enabled: on });
+});
+
+// v4.18.0: glass look or flat design (applies to the popup and the site)
+var FLAT_KEY = 'dstFlat';
+var btnDesign = document.getElementById('btnDesign');
+function showFlat(flat) {
+  btnDesign.setAttribute('aria-pressed', String(flat));
+  btnDesign.textContent = flat ? 'Design: Flach' : 'Design: Glas';
+  document.body.classList.toggle('flat', flat);
+}
+chrome.storage.sync.get([FLAT_KEY], function(data) {
+  showFlat((data || {})[FLAT_KEY] === true);
+});
+btnDesign.addEventListener('click', function() {
+  var flat = btnDesign.getAttribute('aria-pressed') !== 'true';
+  showFlat(flat);
+  chrome.storage.sync.set({ [FLAT_KEY]: flat });   // the page follows via storage.onChanged
 });
 
 // Coffee button — click handling + recurring pulse live in the IIFE below (v2.4.5).
