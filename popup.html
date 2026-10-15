@@ -177,6 +177,17 @@
       100% { box-shadow: 0 0 0 2px rgba(198, 40, 40, .85), 0 0 0 2px rgba(198, 40, 40, 0); }
     }
 
+    /* v4.19.0: a quiet line at the bottom with the feedback address */
+    .feedback {
+      margin: 2px 0 0;
+      text-align: center;
+      font-size: 12.5px;
+      color: #555;
+    }
+    .feedback a { color: #333; font-weight: 600; text-decoration: none; }
+    .feedback a:hover { text-decoration: underline; }
+    body.kbd .feedback a:focus-visible { outline: 2px solid #333; outline-offset: 2px; border-radius: 3px; }
+
     /* Review badge (store link, chosen per browser) */
     .review-badge {
       justify-content: center;
@@ -371,6 +382,9 @@
       </span>
     </span>
   </a>
+  <!-- v4.19.0: contact for feedback; the address stays readable for webmail users -->
+  <p class="feedback">Feedback oder Ideen?
+    <a href="mailto:neosky.cat@icloud.com?subject=Feedback%20derStandard%20Comment%20Ranker" target="_blank" rel="noopener">neosky.cat@icloud.com</a></p>
   <script src="popup.js"></script>
 </body>
 </html>
