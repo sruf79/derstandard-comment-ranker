@@ -1071,6 +1071,11 @@
   // who manually re-expands a thread. WeakSet keyed on the posting element is
   // robust because the CSS-order sort never recreates posting nodes.
   const autoCollapsedPostings = new WeakSet();
+  // v4.19.1: postings whose replies the reader opened or closed by hand
+  // (by posting id, so both copies of a pinned posting count). The initial
+  // collapse never touches them again: before, a thread the reader had just
+  // opened was closed by the next re-sort, and the page jumped.
+  const userToggledIds = new Set();
 
   // v1.9.20 — track pinned postings we've auto-EXPANDED. When the user turns on
   // the gear's "Antworten ausgeklappt", derStandard expands normal postings but
@@ -2275,6 +2280,23 @@
   // We click the real native control (button.answers) so derStandard's own
   // expand/collapse state stays in sync and the original forum functionality
   // (re-expanding on click) keeps working perfectly.
+  // v4.19.1: is this posting a reply inside a thread the reader opened? A
+  // thread is the <section class="thread"> right after its posting, nested
+  // threads sit inside it; walk up and check each thread's posting.
+  function insideUserThread(posting) {
+    if (!userToggledIds.size) return false;
+    let sec = posting.parentElement && posting.parentElement.closest('section.thread');
+    while (sec) {
+      const owner = sec.previousElementSibling;
+      if (owner && owner.matches('dst-posting')) {
+        const pid = getPostingId(owner);
+        if (pid && userToggledIds.has(pid)) return true;
+      }
+      sec = sec.parentElement && sec.parentElement.closest('section.thread');
+    }
+    return false;
+  }
+
   function collapseReplyThreads(main) {
     if (!main) return;
     if (userPrefersExpandedThreads()) return; // respect the gear's "Antworten ausgeklappt"
@@ -2299,6 +2321,7 @@
       // Second DOM copy of a pinned posting we already collapsed: do NOT click
       // again (that would re-expand it). Just remember the node and move on.
       const pid = getPostingId(posting);
+      if ((pid && userToggledIds.has(pid)) || insideUserThread(posting)) { autoCollapsedPostings.add(posting); return; }
       if (pid) {
         if (processedIds.has(pid)) {
           autoCollapsedPostings.add(posting);
@@ -3561,6 +3584,14 @@
     const start = () => {
       if (sortInitialized) return;
       sortInitialized = true;
+      // v4.19.1: remember threads the reader toggles (only real clicks)
+      shadowRoot.addEventListener('click', function (e) {
+        if (!e.isTrusted) return;
+        const btn = e.target && e.target.closest && e.target.closest('button.answers');
+        const posting = btn && btn.closest('dst-posting');
+        const pid = posting && getPostingId(posting);
+        if (pid) userToggledIds.add(pid);
+      }, true);
       waitForRatingsAndSort(shadowRoot);
     };
     if (ready()) { start(); return; }
