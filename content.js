@@ -139,12 +139,16 @@
        sort, shifting everything the reader was looking at. Inline style.order
        from the sorter always overrides this rule. */
     main.forum--main > * { order: 999999; }
+    /* v4.19.2: the browser picks its scroll anchor in DOM order, which is
+       not the order on screen here. Opening a thread then moved that anchor
+       and the page jumped down to the last reply. */
+    main.forum--main { overflow-anchor: none; }
 
     /* NOTE: Reply thread sections (SECTION.thread) are now attached as siblings
        of their parent posting groups and move together during sorting.
        This preserves the expand/collapse ("Antworten") functionality.
-       We do NOT hide section.thread elements — derstandard.at manages their
-       visibility natively via the "collapsed" CSS class. */
+       derstandard.at manages their visibility natively via the "collapsed"
+       CSS class; v4.19.2 only hides closed top level threads (dst-fold). */
 
     /* ═══ v3.1.0 SORT BAR: one segmented control in derStandard's own look ═══
        Track and text colours come from derStandard's theme variables, which
@@ -576,6 +580,10 @@
       padding-left: var(--dst-ind); position: relative;
     }
     main.forum--main > .thread:not(.collapsed) { margin-bottom: 20px; }
+    /* v4.19.2: replies closed until the reader opens them (markOpenThreads);
+       the bubble shows closed like derStandard's own */
+    :host(.dst-fold) main.forum--main > dst-posting:not([data-dst-open]) + .thread { display: none !important; }
+    :host(.dst-fold) main.forum--main > dst-posting:not([data-dst-open]) .answers { --answers-filled: 1 !important; --answers-outline: 0 !important; }
     main.forum--main .thread > dst-posting { position: relative; }
     /* v4.13.6: deleted postings too keep 8px to the card above, so the
        lines (which start 2px below it) never reach into that card */
@@ -1065,17 +1073,10 @@
   // v1.6.10: Removed ratingChangeDebounce — we no longer observe rating attribute changes
   // This prevents the extension from interfering with derStandard.at's vote processing
 
-  // v1.9.19 — Fix 1: Reply threads must stay COLLAPSED by default.
-  // We collapse each expanded thread exactly ONCE (via the native toggle), and
-  // track which postings we've already auto-collapsed so we never fight a user
-  // who manually re-expands a thread. WeakSet keyed on the posting element is
-  // robust because the CSS-order sort never recreates posting nodes.
-  const autoCollapsedPostings = new WeakSet();
-  // v4.19.1: postings whose replies the reader opened or closed by hand
-  // (by posting id, so both copies of a pinned posting count). The initial
-  // collapse never touches them again: before, a thread the reader had just
-  // opened was closed by the next re-sort, and the page jumped.
-  const userToggledIds = new Set();
+  // v4.19.2: postings whose replies the reader opened (by posting id, so
+  // both copies of a pinned posting count). All other reply threads stay
+  // hidden by CSS; see markOpenThreads.
+  const openThreadIds = new Set();
 
   // v1.9.20 — track pinned postings we've auto-EXPANDED. When the user turns on
   // the gear's "Antworten ausgeklappt", derStandard expands normal postings but
@@ -2275,79 +2276,38 @@
     return false;
   }
 
-  // Collapse every reply thread that derStandard rendered as expanded, so that
-  // replies are hidden until the user clicks the native "Antworten" toggle.
-  // We click the real native control (button.answers) so derStandard's own
-  // expand/collapse state stays in sync and the original forum functionality
-  // (re-expanding on click) keeps working perfectly.
-  // v4.19.1: is this posting a reply inside a thread the reader opened? A
-  // thread is the <section class="thread"> right after its posting, nested
-  // threads sit inside it; walk up and check each thread's posting.
-  function insideUserThread(posting) {
-    if (!userToggledIds.size) return false;
-    let sec = posting.parentElement && posting.parentElement.closest('section.thread');
-    while (sec) {
-      const owner = sec.previousElementSibling;
-      if (owner && owner.matches('dst-posting')) {
-        const pid = getPostingId(owner);
-        if (pid && userToggledIds.has(pid)) return true;
-      }
-      sec = sec.parentElement && sec.parentElement.closest('section.thread');
-    }
-    return false;
+  // v4.19.2: reply threads stay closed until the reader opens one. Only CSS
+  // hides them (:host(.dst-fold), data-dst-open); we never click
+  // derStandard's toggle any more. Those clicks re-rendered hundreds of
+  // threads at once, opened replies everywhere and made the page jump.
+  function markOpenThreads(shadowRoot, main) {
+    const fold = !userPrefersExpandedThreads(); // the gear's "Antworten ausgeklappt"
+    if (shadowRoot.host) shadowRoot.host.classList.toggle('dst-fold', fold);
+    if (!fold) return;
+    main.querySelectorAll(':scope > dst-posting').forEach((posting) => {
+      const pid = getPostingId(posting);
+      posting.toggleAttribute('data-dst-open', !!pid && openThreadIds.has(pid));
+    });
   }
 
-  function collapseReplyThreads(main) {
-    if (!main) return;
-    if (userPrefersExpandedThreads()) return; // respect the gear's "Antworten ausgeklappt"
-
-    const expanded = main.querySelectorAll('dst-posting.posting-has-thread-expanded');
-    let collapsedCount = 0;
-
-    // v1.9.20 — Fix 1: treat pinned ("angeheftete") postings exactly like normal
-    // ones. derStandard renders a pinned posting TWICE (two DOM nodes that share
-    // the same postingId). The collapse/expand state is keyed by postingId, so if
-    // we click the native toggle on BOTH copies the two toggles cancel out and the
-    // thread snaps back to expanded — which is why the setting previously only
-    // worked for normal (non-duplicated) postings. We therefore toggle each
-    // logical posting at most ONCE per postingId.
-    const processedIds = new Set();
-
-    expanded.forEach((posting) => {
-      // Only auto-collapse a given posting ONCE — never re-collapse a thread the
-      // user has deliberately re-opened after our initial collapse.
-      if (autoCollapsedPostings.has(posting)) return;
-
-      // Second DOM copy of a pinned posting we already collapsed: do NOT click
-      // again (that would re-expand it). Just remember the node and move on.
-      const pid = getPostingId(posting);
-      if ((pid && userToggledIds.has(pid)) || insideUserThread(posting)) { autoCollapsedPostings.add(posting); return; }
-      if (pid) {
-        if (processedIds.has(pid)) {
-          autoCollapsedPostings.add(posting);
-          return;
-        }
-        processedIds.add(pid);
-      }
-
-      const toggle = posting.querySelector('button.answers');
-      if (!toggle) return;
-
-      // The native toggle marks the posting "is-active-posting" (focus highlight).
-      // Remove that purely-visual side-effect if we added it, so the page doesn't
-      // look like dozens of postings are selected after a bulk collapse.
-      const hadActive = posting.classList.contains('is-active-posting');
-      toggle.click();
-      if (!hadActive) posting.classList.remove('is-active-posting');
-
-      autoCollapsedPostings.add(posting);
-      collapsedCount++;
-    });
-
-    if (collapsedCount > 0) {
-      log('[DST Sorter] Collapsed ' + collapsedCount +
-        ' reply thread(s) — pinned & normal treated equally (v1.9.20)');
+  // A real click on a top level toggle. A thread hidden only by us opens
+  // without derStandard (it is open natively), everything else stays native.
+  function onThreadToggle(shadowRoot, e) {
+    if (!e.isTrusted || !shadowRoot.host || !shadowRoot.host.classList.contains('dst-fold')) return;
+    const btn = e.target && e.target.closest && e.target.closest('button.answers');
+    const posting = btn && btn.closest('dst-posting');
+    const main = posting && posting.parentElement;
+    if (!main || !main.matches('main.forum--main')) return;
+    const pid = getPostingId(posting);
+    if (!pid) return;
+    const expanded = posting.classList.contains('posting-has-thread-expanded');
+    if (openThreadIds.has(pid)) {
+      if (expanded) openThreadIds.delete(pid); // derStandard closes it
+    } else {
+      openThreadIds.add(pid);
+      if (expanded) { e.stopPropagation(); e.preventDefault(); }
     }
+    markOpenThreads(shadowRoot, main);
   }
 
   // v1.9.20 — Fix 1 (expand side): when the user enabled "Antworten ausgeklappt"
@@ -2586,6 +2546,7 @@
     try {
       const main = shadowRoot.querySelector('main.forum--main');
       if (!main) return;
+      markOpenThreads(shadowRoot, main);
 
       const { groups: allGroups, formElements } = collectPostingGroups(main);
       if (allGroups.length === 0) return;
@@ -2733,14 +2694,8 @@
 
       log('[DST Sorter] CSS-ORDER sorting complete! No DOM elements were removed or moved.');
 
-      // v1.9.19 — Fix 1: After (re)sorting, keep reply threads collapsed by
-      // default. The observer is disconnected here, so the native toggle clicks
-      // below cannot trigger a re-sort loop. Each posting is collapsed at most
-      // once and the user's "Antworten ausgeklappt" gear choice is respected.
-      collapseReplyThreads(main);
-      // ...and, when the gear wants threads expanded, make pinned postings match
-      // the normal ones (derStandard leaves pinned collapsed). Both helpers guard
-      // on the gear setting internally, so exactly one of them does work.
+      // When the gear wants threads expanded, make pinned postings match the
+      // normal ones (derStandard leaves pinned collapsed).
       expandPinnedThreads(main);
     } finally {
       isSorting = false;
@@ -3584,14 +3539,7 @@
     const start = () => {
       if (sortInitialized) return;
       sortInitialized = true;
-      // v4.19.1: remember threads the reader toggles (only real clicks)
-      shadowRoot.addEventListener('click', function (e) {
-        if (!e.isTrusted) return;
-        const btn = e.target && e.target.closest && e.target.closest('button.answers');
-        const posting = btn && btn.closest('dst-posting');
-        const pid = posting && getPostingId(posting);
-        if (pid) userToggledIds.add(pid);
-      }, true);
+      shadowRoot.addEventListener('click', function (e) { onThreadToggle(shadowRoot, e); }, true);
       waitForRatingsAndSort(shadowRoot);
     };
     if (ready()) { start(); return; }
