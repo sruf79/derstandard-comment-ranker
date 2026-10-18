@@ -584,6 +584,8 @@
        the bubble shows closed like derStandard's own */
     :host(.dst-fold) main.forum--main > dst-posting:not([data-dst-open]) + .thread { display: none !important; }
     :host(.dst-fold) main.forum--main > dst-posting:not([data-dst-open]) .answers { --answers-filled: 1 !important; --answers-outline: 0 !important; }
+    /* derStandard hides the number while a thread is open (v4.19.3) */
+    :host(.dst-fold) main.forum--main > dst-posting:not([data-dst-open]) .answers:not([data-dst-n]) span { display: block !important; }
     main.forum--main .thread > dst-posting { position: relative; }
     /* v4.13.6: deleted postings too keep 8px to the card above, so the
        lines (which start 2px below it) never reach into that card */
