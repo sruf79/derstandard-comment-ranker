@@ -582,7 +582,8 @@
     /* v4.19.4: the same 20px above every posting. derStandard put the gap
        below postings without replies and below open threads only, so
        postings with closed replies stuck to the next one. */
-    main.forum--main > dst-posting { margin: 20px 0 0 !important; }
+    main.forum--main > dst-posting,
+    main.forum--main > dst-posting-box { margin: 20px 0 0 !important; } /* v4.19.5: the comment box too */
     main.forum--main > .thread { margin-bottom: 0 !important; }
     /* v4.19.2: replies closed until the reader opens them, on every level
        (markOpenThreads); the bubble shows closed like derStandard's own */
