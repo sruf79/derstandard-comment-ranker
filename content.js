@@ -579,13 +579,20 @@
       background: none !important; border: 0 !important; border-radius: 0 !important;
       padding-left: var(--dst-ind); position: relative;
     }
-    main.forum--main > .thread:not(.collapsed) { margin-bottom: 20px; }
-    /* v4.19.2: replies closed until the reader opens them (markOpenThreads);
-       the bubble shows closed like derStandard's own */
-    :host(.dst-fold) main.forum--main > dst-posting:not([data-dst-open]) + .thread { display: none !important; }
-    :host(.dst-fold) main.forum--main > dst-posting:not([data-dst-open]) .answers { --answers-filled: 1 !important; --answers-outline: 0 !important; }
+    /* v4.19.4: the same 20px above every posting. derStandard put the gap
+       below postings without replies and below open threads only, so
+       postings with closed replies stuck to the next one. */
+    main.forum--main > dst-posting { margin: 20px 0 0 !important; }
+    main.forum--main > .thread { margin-bottom: 0 !important; }
+    /* v4.19.2: replies closed until the reader opens them, on every level
+       (markOpenThreads); the bubble shows closed like derStandard's own */
+    :host(.dst-fold) main.forum--main dst-posting:not([data-dst-open]) + .thread { display: none !important; }
+    :host(.dst-fold) main.forum--main dst-posting:not([data-dst-open]) .answers { --answers-filled: 1 !important; --answers-outline: 0 !important; }
     /* derStandard hides the number while a thread is open (v4.19.3) */
-    :host(.dst-fold) main.forum--main > dst-posting:not([data-dst-open]) .answers:not([data-dst-n]) span { display: block !important; }
+    :host(.dst-fold) main.forum--main dst-posting:not([data-dst-open]) .answers:not([data-dst-n]) span { display: block !important; }
+    /* v4.19.4: deleted replies without replies of their own are hidden, like
+       deleted postings at the top */
+    main.forum--main .thread > dst-posting.posting-deleted:not(.posting-with-thread) { display: none !important; }
     main.forum--main .thread > dst-posting { position: relative; }
     /* v4.13.6: deleted postings too keep 8px to the card above, so the
        lines (which start 2px below it) never reach into that card */
@@ -618,14 +625,14 @@
     /* when more replies follow, one straight trunk runs on past this reply
        (the bend branches off it, like on Reddit); the line colour is opaque,
        so the overlapping pieces join seamlessly */
-    main.forum--main .thread > dst-posting:has(~ dst-posting)::after {
+    main.forum--main .thread > dst-posting:has(~ dst-posting:not(.posting-deleted:not(.posting-with-thread)))::after {
       content: '' !important;
       top: -6px; bottom: -8px; width: 0 !important; height: auto !important;
       border-left: 2px solid var(--dst-line);
     }
     /* … and past a nested thread between two replies */
-    main.forum--main .thread > .thread:has(~ dst-posting)::before {
-      content: ''; top: 0; bottom: 0; width: 0;
+    main.forum--main .thread > .thread:has(~ dst-posting:not(.posting-deleted:not(.posting-with-thread)))::before {
+      content: ''; top: 0; bottom: -8px; width: 0; /* on to the next reply's line */
       left: calc(var(--dst-ind) / -2) !important; /* a section has no 1px frame */
       border-left: 2px solid var(--dst-line);
     }
@@ -2286,20 +2293,20 @@
     const fold = !userPrefersExpandedThreads(); // the gear's "Antworten ausgeklappt"
     if (shadowRoot.host) shadowRoot.host.classList.toggle('dst-fold', fold);
     if (!fold) return;
-    main.querySelectorAll(':scope > dst-posting').forEach((posting) => {
+    main.querySelectorAll('dst-posting').forEach((posting) => {
       const pid = getPostingId(posting);
       posting.toggleAttribute('data-dst-open', !!pid && openThreadIds.has(pid));
     });
   }
 
-  // A real click on a top level toggle. A thread hidden only by us opens
+  // A real click on a toggle, on any level. A thread hidden only by us opens
   // without derStandard (it is open natively), everything else stays native.
   function onThreadToggle(shadowRoot, e) {
     if (!e.isTrusted || !shadowRoot.host || !shadowRoot.host.classList.contains('dst-fold')) return;
     const btn = e.target && e.target.closest && e.target.closest('button.answers');
     const posting = btn && btn.closest('dst-posting');
-    const main = posting && posting.parentElement;
-    if (!main || !main.matches('main.forum--main')) return;
+    const main = posting && posting.closest('main.forum--main');
+    if (!main) return;
     const pid = getPostingId(posting);
     if (!pid) return;
     const expanded = posting.classList.contains('posting-has-thread-expanded');
