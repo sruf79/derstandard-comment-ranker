@@ -595,6 +595,16 @@
        deleted postings at the top */
     main.forum--main .thread > dst-posting.posting-deleted:not(.posting-with-thread) { display: none !important; }
     main.forum--main .thread > dst-posting { position: relative; }
+    /* v4.19.7: the reply box as wide on every level as on the first
+       (widenReplyBox); above the thread lines it now covers. derStandard's
+       depth arrows (6px per level) go too: the thread lines show the level. */
+    main.forum--main .thread > .posting-new {
+      margin-left: calc((1 - var(--dst-depth, 1)) * var(--dst-ind)) !important;
+      position: relative; z-index: 1;
+      --marker-width: 0px !important;
+    }
+    main.forum--main .thread > .posting-new::before,
+    main.forum--main .thread > .posting-new::after { content: none !important; }
     /* v4.13.6: deleted postings too keep 8px to the card above, so the
        lines (which start 2px below it) never reach into that card */
     main.forum--main .thread > dst-posting:not([data-dst-tile]) { margin-top: 8px; }
@@ -1718,6 +1728,15 @@
     updateTile(p);
   }
 
+  // v4.19.7: derStandard puts the reply box into the thread of the posting
+  // it answers, so it got narrower with every level. Each thread indents by
+  // --dst-ind; the box is pulled back to the width of a first level reply.
+  function widenReplyBox(box) {
+    let depth = 0;
+    for (let s = box.closest('section.thread'); s; s = s.parentElement && s.parentElement.closest('section.thread')) depth++;
+    box.style.setProperty('--dst-depth', String(depth));
+  }
+
   // Watches new postings (they get their icons right away, also while the
   // rest is still loading in the background). Only OUR
   // additions are updated here — nothing is sorted and
@@ -1737,6 +1756,7 @@
         if (m.type === 'childList') {
           m.addedNodes.forEach(function (n) {
             if (n.nodeType !== 1) return;
+            if (n.classList.contains('posting-new')) widenReplyBox(n);
             if (n.tagName === 'DST-POSTING') pending.add(n);
             else if (n.querySelectorAll) n.querySelectorAll('dst-posting').forEach(function (q) { pending.add(q); });
           });
