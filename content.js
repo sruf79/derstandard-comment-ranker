@@ -602,6 +602,7 @@
       margin-left: calc((1 - var(--dst-depth, 1)) * var(--dst-ind)) !important;
       position: relative; z-index: 1;
       --marker-width: 0px !important;
+      border-top: 0 !important; /* v4.19.8: derStandard's separator line */
     }
     main.forum--main .thread > .posting-new::before,
     main.forum--main .thread > .posting-new::after { content: none !important; }
