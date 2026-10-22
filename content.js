@@ -2304,6 +2304,17 @@
   // without derStandard (it is open natively), everything else stays native.
   function onThreadToggle(shadowRoot, e) {
     if (!e.isTrusted || !shadowRoot.host || !shadowRoot.host.classList.contains('dst-fold')) return;
+    // v4.19.6: "Antworten" puts derStandard's reply box into the thread right
+    // after the posting (a new one if there is none), which our CSS hid. Open
+    // that thread first, so the box and the reply sent from it show.
+    const reply = e.target && e.target.closest && e.target.closest('button.answer-button');
+    const replyTo = reply && reply.closest('dst-posting');
+    const replyPid = replyTo && getPostingId(replyTo);
+    if (replyPid) {
+      openThreadIds.add(replyPid);
+      markOpenThreads(shadowRoot, replyTo.closest('main.forum--main'));
+      return;
+    }
     const btn = e.target && e.target.closest && e.target.closest('button.answers');
     const posting = btn && btn.closest('dst-posting');
     const main = posting && posting.closest('main.forum--main');
