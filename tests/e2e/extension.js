@@ -9,8 +9,12 @@ const fixture = (name) => fs.readFileSync(path.join(__dirname, '..', 'fixtures',
 const ARTICLE_URL = 'https://www.derstandard.at/story/3000000999999/testartikel';
 
 const test = base.extend({
-  context: async ({}, use) => {
+  // Extra context options per test file, e.g. a mobile viewport:
+  //   test.use({ ctxOptions: { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true } })
+  ctxOptions: [{}, { option: true }],
+  context: async ({ ctxOptions }, use) => {
     const context = await chromium.launchPersistentContext('', {
+      ...ctxOptions,
       // Extensions need the full Chromium build (not the headless shell).
       channel: 'chromium',
       headless: !process.env.HEADED,

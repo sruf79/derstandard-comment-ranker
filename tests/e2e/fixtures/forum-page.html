@@ -2,6 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Testartikel – derStandard (Fixture)</title>
 <style>
   body { font: 14px sans-serif; margin: 0; }
@@ -16,17 +17,44 @@
 // asynchronously into an open shadow root, with native-like pagination and the
 // model properties the extension's MAIN-world bridge (forum-hook.js) reads.
 (function () {
-  const INITIAL = [
+  // Generated mode for scroll and performance tests:
+  //   ?gen=N           N initial root postings with pseudo-random ratings
+  //   &batches=B&size=S  B more batches of S postings via "Weitere Postings laden"
+  //   &delay=MS        latency of one pagination round trip (default 150)
+  //   &article=PX      height of the article above the forum (default 400)
+  //   &moreAfter=MS    keep "Weitere Postings laden" disabled for the first MS
+  //   &keepMore=1      keep the (disabled) button after the last batch instead of removing it
+  const params = new URLSearchParams(location.search);
+  const LOAD_DELAY = Number(params.get('delay') || 150);
+  if (params.has('article')) document.querySelector('article').style.height = params.get('article') + 'px';
+  let seed = 42;
+  const rnd = (max) => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed % max; };
+  const gen = (from, count) => Array.from({ length: count }, (_, i) => {
+    const n = from + i;
+    return {
+      id: 'G' + n, legacy: 50000 + n, pos: rnd(200), neg: rnd(80),
+      time: new Date(Date.UTC(2026, 9, 28, 12) - n * 60000).toISOString(),
+      replies: n % 7 === 0 ? 2 : 0
+    };
+  });
+
+  let INITIAL = [
     { id: 'E1', legacy: 9001, pos: 3, neg: 1, time: '2026-10-28T09:00:00Z' },
     { id: 'E2', legacy: 9002, pos: 40, neg: 5, time: '2026-10-28T08:00:00Z', replies: 2 },
     { id: 'E3', legacy: 9003, pos: 0, neg: 12, time: '2026-10-28T10:00:00Z' },
     { id: 'E4', legacy: 9004, pos: 12, neg: 0, time: '2026-10-27T10:00:00Z' }
   ];
-  const BATCHES = [
+  let BATCHES = [
     [{ id: 'E5', legacy: 9005, pos: 100, neg: 1, time: '2026-10-26T10:00:00Z' },
      { id: 'E6', legacy: 9006, pos: 1, neg: 30, time: '2026-10-28T11:00:00Z' }],
     [{ id: 'E7', legacy: 9007, pos: 7, neg: 7, time: '2026-10-25T10:00:00Z' }]
   ];
+  if (params.has('gen')) {
+    const n = Number(params.get('gen'));
+    const size = Number(params.get('size') || 20);
+    INITIAL = gen(0, n);
+    BATCHES = Array.from({ length: Number(params.get('batches') || 0) }, (_, b) => gen(n + b * size, size));
+  }
   const ALL = INITIAL.concat(...BATCHES);
 
   function postingEl(p) {
@@ -123,9 +151,19 @@
           this.addPostings(this.batches.shift() || []);
           this.threadsByForumQuery.data.getForumRootPostingsV2.pageInfo.nextCursor = 'c' + window.__loadMoreClicks;
           this.isLoading = false;
-          if (!this.hasMorePostings()) more.remove();
-        }, 150);
+          if (!this.hasMorePostings()) {
+            if (params.has('keepMore')) more.disabled = true;
+            else more.remove();
+          }
+        }, LOAD_DELAY);
       });
+      // moreAfter: the button is there but disabled at first (like while the
+      // native forum is still busy), so the layout does not change.
+      const moreAfter = Number(params.get('moreAfter') || 0);
+      if (moreAfter) {
+        more.disabled = true;
+        setTimeout(() => { more.disabled = false; }, moreAfter);
+      }
       this.shadowRoot.appendChild(more);
 
       // The real forum loads its data via GraphQL; forum-hook.js listens to it.
@@ -137,5 +175,6 @@
 })();
 </script>
 <dst-forum></dst-forum>
+<footer id="page-footer" style="height:1200px;background:#eee">Footer</footer>
 </body>
 </html>
