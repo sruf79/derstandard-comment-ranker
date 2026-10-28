@@ -1,4 +1,4 @@
-// popup.js — derStandard Comment Ranker v2.4.11
+// popup.js — derStandard Comment Ranker v2.5.0
 // 4-box popup: Header (icon + title), Toggle (enable/disable), Review
 // (browser-aware store link with a delayed golden pulse), and Coffee (donate).
 //
@@ -10,11 +10,14 @@
 //   • Clicking the badge stores the flag, permanently stops the pulse, and shows
 //     a brief "Danke!" confirmation.
 //
-// v2.4.5 recurring donation pulse (privacy-respecting, no analytics):
-//   • The coffee badge auto-pulses (same look as hover) after 15 days of usage,
-//     then again at exponentially growing intervals (see dstNextPulseDay below).
-//   • Clicking the badge opens the donation page and "acknowledges" the current
-//     15-day window, so the pulse only returns at the next +15-day boundary.
+// v2.5.0 recurring donation pulse (privacy-respecting, no analytics):
+//   • The coffee badge auto-pulses (same look as hover) after 10 USAGE days
+//     (days on which content.js sorted a forum), then again at exponentially
+//     growing intervals (see dstNextPulseDay below).
+//   • Never together with a review request: not while the review badge pulses
+//     and not on a day the on-page review bar (rating.js) was shown.
+//   • Clicking the badge opens the donation page and increments the counter n,
+//     so the pulse only returns at the next calculated usage day.
 //   • This runs regardless of whether the user donated → even past donors get a
 //     gentle nudge again after a while (we can't detect actual donations).
 
@@ -128,21 +131,29 @@ var PULSE_DELAY_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
   });
 })();
 
-// ── Donation pulse: exponential growth with b=1.5 (v2.4.6) ──────────────────
-// Storage keys:
-//   • dstInstallTimestamp : chrome.storage.local (device-local; shared w/ review logic)
-//   • dstDonateAckN       : chrome.storage.sync  (how many times acknowledged, counter n)
-// Pulse formula: Tag(n) = 30 · (1.5^n - 1)
-//   → 1st pulse: day 15; 2nd: day 37.5; 3rd: day 71.25; 4th: day 121.875; …
+// ── Donation pulse: usage days, exponential growth with b=1.5 (v2.5.0) ───────
+// Storage keys (shared with content.js / rating.js):
+//   • dstUsageDays             : chrome.storage.local (usage days on this device)
+//   • dstDonateAckN            : chrome.storage.sync  (how many times acknowledged, counter n)
+//   • dstRanker_reviewShownDay : chrome.storage.sync  (day the on-page review bar was shown)
+// Pulse formula: usage day(n) = 20 · (1.5^n - 1)
+//   → 1st pulse: day 10; 2nd: day 25; 3rd: day 47.5; 4th: day 81.25; …
 // A click increments n, so the pulse only returns at the next calculated day.
 var DONATE_URL    = 'https://buymeacoffee.com/diversion';
 var DONATE_ACK_N_KEY = 'dstDonateAckN'; // SYNC — pulse counter n
+var USAGE_DAYS_KEY = 'dstUsageDays';    // LOCAL — written by content.js
+var REVIEW_SHOWN_DAY_KEY = 'dstRanker_reviewShownDay'; // SYNC — written by rating.js
 var DONATE_BASE   = 1.5; // growth factor b
-var DONATE_DAY_MS = 24 * 60 * 60 * 1000;
 
 function dstNextPulseDay(n) {
-  // Day for the (n+1)-th pulse = 30 · (1.5^(n+1) - 1)
-  return 30 * (Math.pow(DONATE_BASE, n + 1) - 1);
+  // Usage day for the (n+1)-th pulse = 20 · (1.5^(n+1) - 1)
+  return 20 * (Math.pow(DONATE_BASE, n + 1) - 1);
+}
+
+function dstToday() {
+  var d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0');
 }
 
 (function() {
@@ -168,27 +179,25 @@ function dstNextPulseDay(n) {
 
   if (!localStore || !syncStore) return; // can't track → never pulse (safe default)
 
-  localStore.get([INSTALL_TS_KEY], function(localData) {
+  localStore.get([USAGE_DAYS_KEY, INSTALL_TS_KEY], function(localData) {
     if (chrome.runtime && chrome.runtime.lastError) return;
     localData = localData || {};
-
-    // Record install time on first use (review logic may also set this key).
+    var usageDays = (typeof localData[USAGE_DAYS_KEY] === 'number') ? localData[USAGE_DAYS_KEY] : 0;
     var installedAt = localData[INSTALL_TS_KEY];
-    if (typeof installedAt !== 'number') {
-      installedAt = Date.now();
-      try { localStore.set({ [INSTALL_TS_KEY]: installedAt }); } catch (e) { /* noop */ }
-    }
 
-    var usageDays = Math.floor((Date.now() - installedAt) / DONATE_DAY_MS);
-
-    syncStore.get([DONATE_ACK_N_KEY], function(syncData) {
+    syncStore.get([DONATE_ACK_N_KEY, REVIEWED_KEY, REVIEW_SHOWN_DAY_KEY], function(syncData) {
       if (chrome.runtime && chrome.runtime.lastError) return;
       syncData = syncData || {};
       var n = (typeof syncData[DONATE_ACK_N_KEY] === 'number') ? syncData[DONATE_ACK_N_KEY] : 0;
-      var nextPulseDay = dstNextPulseDay(n);
+
+      // One request at a time: the review badge pulses (same rule as above),
+      // or the on-page review bar was shown today → keep the coffee calm.
+      var reviewPulsing = syncData[REVIEWED_KEY] !== true &&
+        typeof installedAt === 'number' && Date.now() - installedAt >= PULSE_DELAY_MS;
+      if (reviewPulsing || syncData[REVIEW_SHOWN_DAY_KEY] === dstToday()) return;
 
       // Pulse when current usage >= next calculated pulse day.
-      if (usageDays >= nextPulseDay) {
+      if (usageDays >= dstNextPulseDay(n)) {
         donateBtn.classList.add('prompting');
       }
     });

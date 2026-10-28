@@ -97,33 +97,68 @@ describe('review badge', () => {
   });
 });
 
-describe('donation badge', () => {
-  it('dstNextPulseDay follows 30·(1.5^(n+1) − 1)', async () => {
+// Local calendar day of the fake "now", as content.js / rating.js / popup.js write it.
+function localDay(ts) {
+  const d = new Date(ts);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+describe('donation badge (v2.5.0: usage days, one request at a time)', () => {
+  const pulsing = ($) => $('#donateBtn').classList.contains('prompting');
+
+  it('dstNextPulseDay follows 20·(1.5^(n+1) − 1) usage days', async () => {
     const { env } = await openPopup();
     const f = env.window.dstNextPulseDay;
-    expect([0, 1, 2, 3].map(f)).toEqual([15, 37.5, 71.25, 121.875]);
+    expect([0, 1, 2, 3].map(f)).toEqual([10, 25, 47.5, 81.25]);
     for (let n = 0; n < 10; n++) expect(f(n + 1)).toBeGreaterThan(f(n));
   });
 
   it.each([
-    [0, 14, false],
-    [0, 15, true],
-    [1, 37, false],
-    [1, 38, true],
-    [2, 71, false],
-    [2, 72, true]
-  ])('n=%i, day %i → pulsing=%s', async (n, days, pulsing) => {
+    [0, 9, false],
+    [0, 10, true],
+    [1, 24, false],
+    [1, 25, true],
+    [2, 47, false],
+    [2, 48, true]
+  ])('n=%i, %i usage days → pulsing=%s', async (n, days, expected) => {
     const { $ } = await openPopup({
-      local: { dstInstallTimestamp: NOW - days * DAY },
+      local: { dstUsageDays: days },
       sync: n ? { dstDonateAckN: n } : {}
     });
-    expect($('#donateBtn').classList.contains('prompting')).toBe(pulsing);
+    expect(pulsing($)).toBe(expected);
+  });
+
+  it('calendar age alone does not trigger it any more', async () => {
+    const { $ } = await openPopup({
+      local: { dstInstallTimestamp: NOW - 400 * DAY, dstUsageDays: 3 },
+      sync: { dstRanker_ratingGiven: true }
+    });
+    expect(pulsing($)).toBe(false);
+  });
+
+  it('stays calm while the review badge pulses', async () => {
+    const { $ } = await openPopup({ local: { dstInstallTimestamp: NOW - 10 * DAY, dstUsageDays: 30 } });
+    expect($('#reviewBtn').classList.contains('pulsing')).toBe(true);
+    expect(pulsing($)).toBe(false);
+  });
+
+  it('pulses once the user has reviewed', async () => {
+    const { $ } = await openPopup({
+      local: { dstInstallTimestamp: NOW - 10 * DAY, dstUsageDays: 30 },
+      sync: { dstRanker_ratingGiven: true }
+    });
+    expect(pulsing($)).toBe(true);
+  });
+
+  it('stays calm on a day the on-page review bar was shown', async () => {
+    const today = await openPopup({ local: { dstUsageDays: 30 }, sync: { dstRanker_reviewShownDay: localDay(NOW) } });
+    expect(pulsing(today.$)).toBe(false);
+    const yesterday = await openPopup({ local: { dstUsageDays: 30 }, sync: { dstRanker_reviewShownDay: localDay(NOW - DAY) } });
+    expect(pulsing(yesterday.$)).toBe(true);
   });
 
   it('click acknowledges (n+1) and opens the donation page', async () => {
-    const { env, $, sync } = await openPopup({
-      local: { dstInstallTimestamp: NOW - 20 * DAY }, sync: { dstDonateAckN: 0 }
-    });
+    const { env, $, sync } = await openPopup({ local: { dstUsageDays: 20 }, sync: { dstDonateAckN: 0 } });
     const btn = $('#donateBtn');
     expect(btn.classList.contains('prompting')).toBe(true);
     btn.click();
@@ -138,6 +173,12 @@ describe('donation badge', () => {
     $('#donateBtn').click();
     await env.flush();
     expect(sync.dstDonateAckN).toBe(1);
+  });
+
+  it('does not count usage days itself (only content.js does)', async () => {
+    const { local } = await openPopup({ local: { dstUsageDays: 4 } });
+    expect(local.dstUsageDays).toBe(4);
+    expect(local.dstLastUsageDay).toBeUndefined();
   });
 });
 

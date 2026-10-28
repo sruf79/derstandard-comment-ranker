@@ -200,27 +200,184 @@ describe('badge bar', () => {
   });
 });
 
-describe('coffee badge pulse (same schedule as the popup)', () => {
-  it.each([[0, 14, false], [0, 15, true], [1, 37, false], [1, 38, true]])(
-    'n=%i, day %i → pulsing=%s', async (n, days, pulsing) => {
-      const { env, shadow } = await boot({
-        postings: BASIC,
-        local: { dstInstallTimestamp: NOW - days * DAY },
-        sync: { dstDonateAckN: n }
-      });
-      await env.flush();
-      expect(shadow.querySelector('.dst-coffee-btn').classList.contains('dst-pulsing')).toBe(pulsing);
+describe('coffee badge pulse (v2.5.0)', () => {
+  const localDay = (ts) => {
+    const d = new Date(ts);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  };
+  const TODAY = localDay(NOW);
+  const YESTERDAY = localDay(NOW - DAY);
+  const isPulsing = (shadow) => shadow.querySelector('.dst-coffee-btn').classList.contains('dst-pulsing');
+  // 9 usage days so far, last one yesterday → today is usage day 10 = first pulse due.
+  const DUE = { dstUsageDays: 9, dstLastUsageDay: YESTERDAY };
+
+  async function clickBadge(ctx, group = 'likes') {
+    ctx.badge(group).click();
+    await ctx.env.flush();
+  }
+
+  describe('(A) usage days', () => {
+    it('counts each day the extension sorted a forum once', async () => {
+      const first = await boot({ postings: BASIC, local: { dstUsageDays: 4, dstLastUsageDay: YESTERDAY } });
+      expect(first.env.chrome.storage.local.data).toMatchObject({ dstUsageDays: 5, dstLastUsageDay: TODAY });
+      // Another article later the same day does not count again.
+      const second = await boot({ postings: BASIC, local: { dstUsageDays: 5, dstLastUsageDay: TODAY } });
+      expect(second.env.chrome.storage.local.data.dstUsageDays).toBe(5);
     });
 
-  it('click acknowledges and opens the donation page', async () => {
-    const { env, shadow } = await boot({ postings: BASIC, local: { dstInstallTimestamp: NOW - 20 * DAY } });
-    await env.flush();
-    const btn = shadow.querySelector('.dst-coffee-btn');
+    it('starts at 1 for existing users (no usage history yet) and keeps the install time for the review logic', async () => {
+      const { env } = await boot({ postings: BASIC });
+      expect(env.chrome.storage.local.data).toMatchObject({ dstUsageDays: 1, dstLastUsageDay: TODAY, dstInstallTimestamp: NOW });
+    });
+
+    it('does not count pages where the extension is disabled', async () => {
+      const { env } = await boot({ postings: BASIC, sync: { dstSorterEnabled: false } });
+      expect(env.chrome.storage.local.data.dstUsageDays).toBeUndefined();
+    });
+
+    it.each([
+      [0, 8, false], [0, 9, true],     // today becomes usage day 9 / 10 → due at 10
+      [1, 23, false], [1, 24, true]    // due at 25
+    ])('n=%i, %i earlier usage days → pulsing after a helpful moment = %s', async (n, before, expected) => {
+      const ctx = await boot({
+        postings: BASIC,
+        local: { dstUsageDays: before, dstLastUsageDay: YESTERDAY },
+        sync: { dstDonateAckN: n }
+      });
+      await clickBadge(ctx);
+      expect(isPulsing(ctx.shadow)).toBe(expected);
+    });
+
+    it('calendar age alone does not trigger it', async () => {
+      const ctx = await boot({ postings: BASIC, local: { dstInstallTimestamp: NOW - 400 * DAY, dstUsageDays: 2, dstLastUsageDay: YESTERDAY } });
+      await clickBadge(ctx);
+      expect(isPulsing(ctx.shadow)).toBe(false);
+    });
+  });
+
+  describe('(C) only right after the extension helped', () => {
+    it('does not pulse on page load', async () => {
+      const ctx = await boot({ postings: BASIC, local: DUE });
+      await ctx.env.tick(5000);
+      expect(isPulsing(ctx.shadow)).toBe(false);
+    });
+
+    it('pulses after the user re-sorted with a badge, and keeps pulsing across re-renders', async () => {
+      const ctx = await boot({ postings: BASIC, local: DUE });
+      await clickBadge(ctx, 'timeline');
+      expect(isPulsing(ctx.shadow)).toBe(true);
+      ctx.env.chrome.sendRuntimeMessage({ action: 'setMode', mode: 'balance-top' }); // rebuilds the badge bar
+      expect(isPulsing(ctx.shadow)).toBe(true);
+    });
+
+    it('pulses after "✓ Alle … Postings geladen!"', async () => {
+      const ctx = await boot({
+        autoLoad: true,
+        postings: [{ id: 'p1' }, { id: 'p2' }],
+        local: DUE,
+        extraScripts: ['forum-hook.js'],
+        before: (env, { forum }) => Object.assign(forum, {
+          forumModel: new Map([['p1', {}], ['p2', {}]]),
+          threadsByForumQuery: { data: { getForumRootPostingsV2: { pageInfo: { nextCursor: '' } } } },
+          _totalPostingCount: 2,
+          hasMorePostings: () => false,
+          isLoading: false,
+          activeFilter: 0,
+          sortField: 'ByTime',
+          sortDirection: 'descending'
+        })
+      });
+      expect(isPulsing(ctx.shadow)).toBe(false);
+      await ctx.env.tick(250);
+      expect(ctx.shadow.querySelector('#dst-progress-container').textContent).toBe('✓ Alle 2 Postings geladen!');
+      await ctx.env.tick(2000); // progress bar gone, badges visible again
+      expect(isPulsing(ctx.shadow)).toBe(true);
+    });
+
+    it('pulses after the complete voter list was shown', async () => {
+      const ctx = await boot({
+        postings: [{ id: 'ENC1', pos: 1 }],
+        local: DUE,
+        before: (env) => {
+          env.window.fetch = async () => ({ ok: true, text: async () => readFixture('ratinglog-page.html').replace(/data-communityidentityid="\d+"/g, '') });
+        }
+      });
+      ctx.env.window.dispatchEvent(new ctx.env.window.CustomEvent('dst-voter-idmap', { detail: JSON.stringify({ ENC1: '1' }) }));
+      ctx.main.querySelector('dst-posting--ratinglog').click();
+      await ctx.env.tick(2000);
+      expect(ctx.shadow.querySelector('.dst-voter-progress--done')).not.toBeNull();
+      expect(isPulsing(ctx.shadow)).toBe(true);
+    });
+
+    it('a failed voter list is not a helpful moment', async () => {
+      const ctx = await boot({
+        postings: [{ id: 'ENC1', pos: 1 }],
+        local: DUE,
+        before: (env) => { env.window.fetch = async () => ({ ok: false, status: 500 }); }
+      });
+      ctx.env.window.dispatchEvent(new ctx.env.window.CustomEvent('dst-voter-idmap', { detail: JSON.stringify({ ENC1: '1' }) }));
+      ctx.main.querySelector('dst-posting--ratinglog').click();
+      await ctx.env.tick(2000);
+      expect(isPulsing(ctx.shadow)).toBe(false);
+    });
+  });
+
+  describe('(E) never on the same day as the review request', () => {
+    it('stays calm if the review bar was shown earlier today', async () => {
+      const ctx = await boot({ postings: BASIC, local: DUE, sync: { dstRanker_reviewShownDay: TODAY } });
+      await clickBadge(ctx);
+      expect(isPulsing(ctx.shadow)).toBe(false);
+    });
+
+    it('a review bar shown yesterday does not block today', async () => {
+      const ctx = await boot({ postings: BASIC, local: DUE, sync: { dstRanker_reviewShownDay: YESTERDAY } });
+      await clickBadge(ctx);
+      expect(isPulsing(ctx.shadow)).toBe(true);
+    });
+
+    it('the review bar appearing on this page switches the pulse off and records the day', async () => {
+      const ctx = await boot({
+        postings: BASIC,
+        local: DUE,
+        sync: { dstRanker_installDate: NOW - 10 * DAY, dstRanker_v1915Reset: true, dstRanker_v1916Reset: true }
+      });
+      await clickBadge(ctx);
+      expect(isPulsing(ctx.shadow)).toBe(true);
+      ctx.env.load('rating.js');
+      await ctx.env.tick(1500);
+      expect(ctx.shadow.querySelector('#dst-feedback-bar')).not.toBeNull();
+      expect(isPulsing(ctx.shadow)).toBe(false);
+      expect(ctx.env.chrome.storage.sync.data.dstRanker_reviewShownDay).toBe(TODAY);
+      // ...and it stays off for the rest of the page, even after the bar is gone.
+      ctx.shadow.querySelector('#dst-feedback-bar .dst-fdbk-dismiss').click();
+      await ctx.env.tick(500);
+      await clickBadge(ctx, 'timeline');
+      expect(isPulsing(ctx.shadow)).toBe(false);
+    });
+  });
+
+  it('click acknowledges (n+1), opens the donation page and ends the pulse', async () => {
+    const ctx = await boot({ postings: BASIC, local: DUE });
+    await clickBadge(ctx);
+    const btn = ctx.shadow.querySelector('.dst-coffee-btn');
+    expect(btn.classList.contains('dst-pulsing')).toBe(true);
     btn.click();
-    await env.flush();
+    await ctx.env.flush();
     expect(btn.classList.contains('dst-pulsing')).toBe(false);
-    expect(env.chrome.storage.sync.data.dstDonateAckN).toBe(1);
-    expect(env.window.open).toHaveBeenCalledWith('https://buymeacoffee.com/diversion', '_blank');
+    expect(ctx.env.chrome.storage.sync.data.dstDonateAckN).toBe(1);
+    expect(ctx.env.window.open).toHaveBeenCalledWith('https://buymeacoffee.com/diversion', '_blank');
+    await clickBadge(ctx, 'timeline');
+    expect(isPulsing(ctx.shadow)).toBe(false);
+  });
+
+  it('fails safe (no pulse) when storage cannot be read', async () => {
+    const ctx = await boot({
+      postings: BASIC,
+      local: DUE,
+      before: (env) => { env.chrome.storage.local.failNextGet = new Error('boom'); }
+    });
+    await clickBadge(ctx);
+    expect(isPulsing(ctx.shadow)).toBe(false);
   });
 });
 

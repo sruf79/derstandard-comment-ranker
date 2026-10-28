@@ -1040,6 +1040,7 @@
       // v2.0.5: no "Keine … Bewertungen" placeholder — an empty column simply
       // stays empty.
       updateStatus();
+      markCoffeeMoment(); // v2.5.0: the complete voter list was shown
     }
 
     await loadAllPages();
@@ -1944,6 +1945,7 @@
 
       lastSortSignature = sig;
       injectSortBadge(shadowRoot);
+      recordUsageDay();
 
       // Log top 5
       const groups = [...pinnedGroups, ...regularGroups];
@@ -2006,9 +2008,89 @@
     });
   }
 
-  // v2.4.10: Ergebnis der Kaffee-Puls-Pruefung wird pro Seitenaufruf nur einmal
-  // aus dem Storage gelesen (vorher bei JEDER Sortierung zwei Storage-Abfragen).
-  let coffeePulseCache = null; // null = noch nicht geprueft, sonst true/false
+  // ── v2.5.0: coffee (donation) pulse ───────────────────────────────
+  // The coffee badge pulses only when ALL of these hold:
+  //   (A) a pulse is due by USAGE days — days on which the extension sorted a
+  //       forum (counted per device) — instead of calendar days since install;
+  //   (C) the extension has just visibly helped on this page: all postings
+  //       loaded, a sort badge used, or the voter list fully loaded;
+  //   (E) the review prompt (rating.js) is not shown on the same day.
+  // Schedule (shared with popup.js): pulse #(n+1) is due at
+  // 20 · (1.5^(n+1) − 1) usage days → 10, 25, 47.5, 81.25, …
+  // A click opens the donation page and increments n (synced).
+  const DST_DONATE_ACK_N_KEY = 'dstDonateAckN';                 // sync
+  const DST_INSTALL_TS_KEY = 'dstInstallTimestamp';             // local (review pulse in popup.js)
+  const DST_USAGE_DAYS_KEY = 'dstUsageDays';                    // local
+  const DST_LAST_USAGE_DAY_KEY = 'dstLastUsageDay';             // local, 'YYYY-MM-DD'
+  const DST_REVIEW_SHOWN_DAY_KEY = 'dstRanker_reviewShownDay';  // sync, written by rating.js
+
+  function dstToday() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' +
+      String(d.getDate()).padStart(2, '0');
+  }
+
+  function dstNextPulseDay(n) {
+    return 20 * (Math.pow(1.5, n + 1) - 1);
+  }
+
+  let coffeeDue = false;      // (A) + (E) from storage, decided once per page view
+  let coffeeMoment = false;   // (C)
+  let usageRecorded = false;
+
+  // (E) The review prompt appeared on this page → no pulse for the rest of it.
+  let reviewShownHere = false;
+  document.addEventListener('dst-review-shown', function () {
+    reviewShownHere = true;
+    applyCoffeePulse();
+  });
+
+  function applyCoffeePulse() {
+    const forum = document.querySelector('dst-forum');
+    const sr = forum && forum.shadowRoot;
+    if (!sr) return;
+    if (reviewShownHere || sr.querySelector('#dst-feedback-bar')) coffeeDue = false;
+    const btn = sr.querySelector('.dst-coffee-btn');
+    if (btn) btn.classList.toggle('dst-pulsing', coffeeDue && coffeeMoment);
+  }
+
+  function markCoffeeMoment() {
+    coffeeMoment = true;
+    applyCoffeePulse();
+  }
+
+  // Counts today as a usage day (once per page view) and decides whether a
+  // pulse is due. Fail-safe: no pulse on any storage error.
+  function recordUsageDay() {
+    if (usageRecorded) return;
+    usageRecorded = true;
+    try {
+      if (!chrome?.storage?.local || !chrome?.storage?.sync) return;
+      chrome.storage.local.get([DST_USAGE_DAYS_KEY, DST_LAST_USAGE_DAY_KEY, DST_INSTALL_TS_KEY], (local) => {
+        if (chrome.runtime && chrome.runtime.lastError) return;
+        local = local || {};
+        const today = dstToday();
+        let days = (typeof local[DST_USAGE_DAYS_KEY] === 'number') ? local[DST_USAGE_DAYS_KEY] : 0;
+        const update = {};
+        if (local[DST_LAST_USAGE_DAY_KEY] !== today) {
+          days++;
+          update[DST_USAGE_DAYS_KEY] = days;
+          update[DST_LAST_USAGE_DAY_KEY] = today;
+        }
+        if (typeof local[DST_INSTALL_TS_KEY] !== 'number') update[DST_INSTALL_TS_KEY] = Date.now();
+        if (Object.keys(update).length) {
+          try { chrome.storage.local.set(update); } catch (err) { /* noop */ }
+        }
+        chrome.storage.sync.get([DST_DONATE_ACK_N_KEY, DST_REVIEW_SHOWN_DAY_KEY], (sync) => {
+          if (chrome.runtime && chrome.runtime.lastError) return;
+          sync = sync || {};
+          const n = (typeof sync[DST_DONATE_ACK_N_KEY] === 'number') ? sync[DST_DONATE_ACK_N_KEY] : 0;
+          coffeeDue = days >= dstNextPulseDay(n) && sync[DST_REVIEW_SHOWN_DAY_KEY] !== today;
+          applyCoffeePulse();
+        });
+      });
+    } catch (err) { /* noop */ }
+  }
 
   function injectSortBadge(shadowRoot) {
     const header = shadowRoot.querySelector('.forum--header');
@@ -2100,7 +2182,8 @@
         groupSelection[group.id] = targetMode;
 
         // Re-sort with the new mode (this re-renders the badge bar too).
-        changeSortMode(targetMode, shadowRoot);
+        // v2.5.0: actively re-sorting is a moment where the extension helped.
+        changeSortMode(targetMode, shadowRoot).then(markCoffeeMoment, function () {});
 
         // After re-render, find the new active badge and animate it
         setTimeout(() => {
@@ -2163,25 +2246,12 @@
         }, 7500);
       });
     })();
-    // ── v2.4.6: recurring donation pulse (exponential growth, b=1.5, same as popup) ──
-    // Keys shared with popup.js: install time in storage.local, acknowledged counter n in sync.
-    // Pulse formula: Tag(n) = 30 · (1.5^n - 1) → 1st: day 15, 2nd: day 37.5, 3rd: day 71.25, …
-    // A click increments n, so the pulse only returns at the next calculated day.
-    const DST_DONATE_ACK_N_KEY = 'dstDonateAckN';
-    const DST_INSTALL_TS_KEY = 'dstInstallTimestamp';
-    const DST_DONATE_BASE = 1.5;
-    const DST_DONATE_DAY_MS = 24 * 60 * 60 * 1000;
-
-    function dstNextPulseDay(n) {
-      // Day for the (n+1)-th pulse = 30 · (1.5^(n+1) - 1)
-      return 30 * (Math.pow(DST_DONATE_BASE, n + 1) - 1);
-    }
-
+    // v2.5.0: when the pulse shows is decided by applyCoffeePulse() (see above).
     coffeeBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      // Acknowledge by incrementing n, so pulse returns only at the next calculated day.
+      // Acknowledge by incrementing n, so the pulse returns only at the next due day.
+      coffeeDue = false;
       coffeeBtn.classList.remove('dst-pulsing');
-      coffeePulseCache = false;
       try {
         if (chrome?.storage?.sync) {
           chrome.storage.sync.get([DST_DONATE_ACK_N_KEY], (res) => {
@@ -2193,37 +2263,6 @@
       } catch (err) { /* noop */ }
       window.open('https://buymeacoffee.com/diversion', '_blank');
     });
-
-    // Decide whether to auto-pulse this time (fail-safe: no pulse on any error).
-    if (coffeePulseCache !== null) {
-      if (coffeePulseCache) coffeeBtn.classList.add('dst-pulsing');
-    } else try {
-      if (chrome?.storage?.local && chrome?.storage?.sync) {
-        coffeePulseCache = false; // bis zur Antwort: kein Puls, keine Doppelabfrage
-        chrome.storage.local.get([DST_INSTALL_TS_KEY], (localData) => {
-          if (chrome.runtime && chrome.runtime.lastError) return;
-          localData = localData || {};
-          let installedAt = localData[DST_INSTALL_TS_KEY];
-          if (typeof installedAt !== 'number') {
-            installedAt = Date.now();
-            try { chrome.storage.local.set({ [DST_INSTALL_TS_KEY]: installedAt }); } catch (err) { /* noop */ }
-          }
-          const usageDays = Math.floor((Date.now() - installedAt) / DST_DONATE_DAY_MS);
-          chrome.storage.sync.get([DST_DONATE_ACK_N_KEY], (syncData) => {
-            if (chrome.runtime && chrome.runtime.lastError) return;
-            syncData = syncData || {};
-            const n = (typeof syncData[DST_DONATE_ACK_N_KEY] === 'number') ? syncData[DST_DONATE_ACK_N_KEY] : 0;
-            const nextPulseDay = dstNextPulseDay(n);
-            if (usageDays >= nextPulseDay) {
-              coffeePulseCache = true;
-              // Die Leiste kann inzwischen neu gebaut worden sein.
-              const live = shadowRoot.querySelector('.dst-coffee-btn');
-              if (live) live.classList.add('dst-pulsing');
-            }
-          });
-        });
-      }
-    } catch (err) { /* noop */ }
 
     bar.appendChild(coffeeBtn);
 
@@ -2241,6 +2280,7 @@
     } else {
       header.appendChild(bar);
     }
+    applyCoffeePulse();
   }
 
   function removeSortBadge(shadowRoot) {
@@ -2482,6 +2522,7 @@
       outer.appendChild(textEl);
       container.appendChild(outer);
     }
+    markCoffeeMoment(); // v2.5.0: the whole forum is loaded and sorted
 
     // After 1.5s, hide progress and show badges again
     setTimeout(function() { hideProgressBar(shadowRoot); }, 1500);

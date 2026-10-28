@@ -45,6 +45,9 @@
     V1915_RESET:     'dstRanker_v1915Reset',
     // One-time reset marker for v1.9.16 — see runV1916Reset()
     V1916_RESET:     'dstRanker_v1916Reset',
+    // v2.5.0: day ('YYYY-MM-DD') the bar was last shown. content.js and
+    // popup.js keep the coffee badge calm on that day (one request at a time).
+    SHOWN_DAY:       'dstRanker_reviewShownDay',
   };
 
   const DELAY_FIRST_PROMPT  = 3 * 24 * 60 * 60 * 1000;  // 3 days in ms
@@ -720,6 +723,14 @@
     // (content.js) would push the bar to the very end of the forum.
     feedbackBar.style.order = '-1';
     badgeBar.insertAdjacentElement('afterend', feedbackBar);
+
+    // 11. v2.5.0: never ask for a review and a coffee on the same day.
+    const d = new Date();
+    const today = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' +
+      String(d.getDate()).padStart(2, '0');
+    // content.js listens and keeps the coffee badge calm for the rest of the page.
+    document.dispatchEvent(new Event('dst-review-shown'));
+    await storageSet({ [KEYS.SHOWN_DAY]: today });
   }
 
   // ── Run when DOM is ready ───────────────────────────────────────
