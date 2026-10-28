@@ -34,16 +34,24 @@ describe('parseRelativeTime', () => {
       expect(c.parseRelativeTime(text)).toBe(0);
     });
 
-  // Known gaps: these phrasings yield 0 (= "unknown time") today. If derStandard
-  // renders them, Timeline sorting falls back to DOM order for those postings.
-  // `it.fails` turns green→red once the parser learns them, so update the test then.
-  it.fails('KNOWN GAP: understands spelled-out "vor einer Stunde"', async () => {
+  it.each([
+    ['vor einer Stunde', HOUR],
+    ['vor einem Tag', DAY],
+    ['vor einer Woche', 7 * DAY],
+    ['vor einem Monat', 30 * DAY],
+    ['vor einem Jahr', 365 * DAY],
+    ['vor 3 Std.', 3 * HOUR],
+    ['vor 5 Min.', 5 * MIN],
+    ['vor 20 Sek.', 20 * 1000],
+    ['vor 2 Wo.', 14 * DAY]
+  ])('understands spelled-out numbers and abbreviations: %s', async (text, ago) => {
     const { c } = await loadContent();
-    expect(c.parseRelativeTime('vor einer Stunde')).toBe(DEFAULT_NOW - HOUR);
+    expect(c.parseRelativeTime(text)).toBe(DEFAULT_NOW - ago);
   });
-  it.fails('KNOWN GAP: understands abbreviated "vor 3 Std."', async () => {
+
+  it('does not read "vor ein paar Minuten" as a concrete time', async () => {
     const { c } = await loadContent();
-    expect(c.parseRelativeTime('vor 3 Std.')).toBe(DEFAULT_NOW - 3 * HOUR);
+    expect(c.parseRelativeTime('vor ein paar Minuten')).toBe(0);
   });
 });
 
@@ -106,10 +114,7 @@ describe('getPostingTimestamp', () => {
     expect(c.getPostingTimestamp(p)).toBe(Date.parse('2026-05-05T05:05:05Z'));
   });
 
-  // KNOWN GAP: a <time> without datetime attribute is skipped (strategy 1 needs
-  // time[datetime], strategy 4 only scans <span>s), so the posting sorts as
-  // "unknown time" in Timeline modes.
-  it.fails('KNOWN GAP: reads relative text of a <time> without datetime attribute', async () => {
+  it('reads relative text of a <time> without datetime attribute', async () => {
     const { c, env } = await loadContent();
     const p = createPosting(env.document, { timeText: 'vor 5 Stunden' });
     expect(c.getPostingTimestamp(p)).toBe(DEFAULT_NOW - 5 * HOUR);

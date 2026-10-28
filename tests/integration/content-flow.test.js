@@ -188,7 +188,7 @@ describe('badge bar', () => {
       postings: [
         { id: 'old', time: '2026-10-27T08:00:00Z', pos: 99 },
         { id: 'new', time: '2026-10-28T11:00:00Z' },
-        { id: 'mid', time: 'null', timeText: 'vor 5 Stunden' }
+        { id: 'mid', timeText: 'vor 5 Stunden' } // <time> without datetime
       ]
     });
     badge('timeline').click();
@@ -536,14 +536,14 @@ describe('voter popup', () => {
     expect(calls).toHaveLength(2);
   });
 
-  // KNOWN BUG (content.js loadAllPages): the partial-failure message is set and
-  // then immediately overwritten by the final updateStatus() call, so the reader
-  // sees "3 Bewertungen geladen" as if the list were complete.
-  it.fails('KNOWN BUG: tells the reader that further data could not be loaded', async () => {
+  it('tells the reader that further data could not be loaded', async () => {
     const { env, rating, shadow } = await withPopup({ fetchImpl: failSecondPage });
     rating('ENC1').click();
     await env.tick(1000);
-    expect(shadow.querySelector('.dst-voter-progress-text').textContent).toMatch(/weitere Daten konnten nicht geladen werden/);
+    expect(shadow.querySelector('.dst-voter-progress-text').textContent)
+      .toBe('3 geladen \u2013 weitere Daten konnten nicht geladen werden.');
+    expect(shadow.querySelector('#dst-voter-body').style.display).toBe('flex');
+    expect(shadow.querySelector('.dst-voter-progress--done')).not.toBeNull();
   });
 
   it('stops when the cursor does not advance (no infinite loop)', async () => {

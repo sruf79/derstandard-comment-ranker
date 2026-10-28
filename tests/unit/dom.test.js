@@ -53,13 +53,18 @@ describe('isPinnedPosting', () => {
     expect(c.isPinnedPosting(html(env.document, markup))).toBe(false);
   });
 
-  // KNOWN GAP (content.js, "for (const child of posting.children)"): a direct
-  // child whose whole text is "angeheftet" pins the posting, even when it is
-  // user content such as a quote or a one-word paragraph. `it.fails` flips to
-  // red once this is fixed; then turn it into a normal test.
-  it.fails('KNOWN GAP: a one-word user paragraph "Angeheftet" does not pin', async () => {
+  it.each([
+    '<dst-posting><p>Angeheftet</p></dst-posting>',
+    '<dst-posting><div><p>Angeheftet</p></div></dst-posting>',
+    '<dst-posting><blockquote>pinned</blockquote></dst-posting>'
+  ])('a one-word user text "Angeheftet" does not pin: %s', async (markup) => {
     const { c, env } = await loadContent();
-    expect(c.isPinnedPosting(html(env.document, '<dst-posting><p>Angeheftet</p></dst-posting>'))).toBe(false);
+    expect(c.isPinnedPosting(html(env.document, markup))).toBe(false);
+  });
+
+  it('a bare label element directly in the posting still pins', async () => {
+    const { c, env } = await loadContent();
+    expect(c.isPinnedPosting(html(env.document, '<dst-posting><div>Angeheftet</div></dst-posting>'))).toBe(true);
   });
 });
 

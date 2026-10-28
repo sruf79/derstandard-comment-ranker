@@ -27,9 +27,9 @@ captured from the live site — refresh them if the live test starts failing.
 
 ## Known gaps (`it.fails`)
 
-Tests named `KNOWN BUG` / `KNOWN GAP` document current misbehaviour. They pass
-while the problem exists and turn red once it is fixed — then turn them into
-normal tests.
+Use `it.fails` with a `KNOWN BUG` / `KNOWN GAP` name to document misbehaviour
+that is not fixed yet: it passes while the problem exists and turns red once
+it is fixed — then turn it into a normal test.
 
 ## Live test
 

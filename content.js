@@ -999,7 +999,10 @@
           pb.fill.classList.remove('dst-voter-progress-fill--loading');
           pb.bar.classList.add('dst-voter-progress--done');
           pb.txt.textContent = (loadedPos + loadedNeg) + ' geladen \u2013 weitere Daten konnten nicht geladen werden.';
-          break;
+          // Return instead of break: the final updateStatus() below would
+          // overwrite this message with "N Bewertungen geladen".
+          revealBodyOnce();
+          return;
         }
 
         if (isStale()) return;
@@ -1115,17 +1118,18 @@
   function parseRelativeTime(text) {
     if (!text) return 0;
     const now = Date.now();
-    // Match patterns like "vor 5 Stunden", "vor 2 Tagen", "vor 30 Minuten", "vor 1 Monat"
-    const match = text.match(/vor\s+(\d+)\s+(Sekunde|Minute|Stunde|Tag|Woche|Monat|Jahr)n?/i);
+    // Match patterns like "vor 5 Stunden", "vor 2 Tagen", "vor einer Stunde",
+    // "vor einem Monat" and abbreviations like "vor 3 Std." / "vor 5 Min."
+    const match = text.match(/vor\s+(\d+|einer|einem|einen|ein)\s+(Sekunde|Sek|Minute|Min|Stunde|Std|Tag|Woche|Wo|Monat|Jahr)/i);
     if (!match) return 0;
-    const value = parseInt(match[1], 10);
+    const value = /^\d+$/.test(match[1]) ? parseInt(match[1], 10) : 1;
     const unit = match[2].toLowerCase();
     let ms = 0;
-    if (unit.startsWith('sekunde')) ms = value * 1000;
-    else if (unit.startsWith('minute')) ms = value * 60 * 1000;
-    else if (unit.startsWith('stunde')) ms = value * 60 * 60 * 1000;
+    if (unit.startsWith('sek')) ms = value * 1000;
+    else if (unit.startsWith('min')) ms = value * 60 * 1000;
+    else if (unit.startsWith('stunde') || unit === 'std') ms = value * 60 * 60 * 1000;
     else if (unit.startsWith('tag')) ms = value * 24 * 60 * 60 * 1000;
-    else if (unit.startsWith('woche')) ms = value * 7 * 24 * 60 * 60 * 1000;
+    else if (unit.startsWith('wo')) ms = value * 7 * 24 * 60 * 60 * 1000;
     else if (unit.startsWith('monat')) ms = value * 30 * 24 * 60 * 60 * 1000;
     else if (unit.startsWith('jahr')) ms = value * 365 * 24 * 60 * 60 * 1000;
     return ms > 0 ? (now - ms) : 0;
@@ -1133,8 +1137,9 @@
 
   // ── Extract timestamp from a posting for chronological sort ────
   function getPostingTimestamp(posting) {
-    // Strategy 1: <time datetime="..."> with a valid ISO date
-    let timeEl = posting.querySelector('time[datetime]');
+    // Strategy 1: <time datetime="..."> with a valid ISO date (or, without the
+    // attribute, its relative text)
+    let timeEl = posting.querySelector('time[datetime]') || posting.querySelector('time');
     if (timeEl) {
       const dtAttr = timeEl.getAttribute('datetime');
       if (dtAttr && dtAttr !== 'null' && dtAttr !== 'undefined') {
@@ -1148,7 +1153,7 @@
 
     // Strategy 2: Check shadow DOM of the posting
     if (posting.shadowRoot) {
-      timeEl = posting.shadowRoot.querySelector('time[datetime]');
+      timeEl = posting.shadowRoot.querySelector('time[datetime]') || posting.shadowRoot.querySelector('time');
       if (timeEl) {
         const dtAttr = timeEl.getAttribute('datetime');
         if (dtAttr && dtAttr !== 'null' && dtAttr !== 'undefined') {
@@ -1259,6 +1264,8 @@
     if (lightPinElements.length > 0) return true;
 
     for (const child of posting.children) {
+      // Skip the user's own text (a posting that just says "Angeheftet").
+      if (child.matches('p, blockquote, li, ul, ol') || child.querySelector('p, blockquote, li')) continue;
       const text = child.textContent?.trim().toLowerCase() || '';
       if (text === 'angeheftet' || text === 'pinned') return true;
     }
