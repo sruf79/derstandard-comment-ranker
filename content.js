@@ -999,7 +999,7 @@
           pb.fill.classList.remove('dst-voter-progress-fill--loading');
           pb.bar.classList.add('dst-voter-progress--done');
           pb.txt.textContent = (loadedPos + loadedNeg) + ' geladen \u2013 weitere Daten konnten nicht geladen werden.';
-          // Return instead of break: the final updateStatus() below would
+          // v2.4.11: return instead of break — the final updateStatus() below would
           // overwrite this message with "N Bewertungen geladen".
           revealBodyOnce();
           return;
@@ -1118,7 +1118,7 @@
   function parseRelativeTime(text) {
     if (!text) return 0;
     const now = Date.now();
-    // Match patterns like "vor 5 Stunden", "vor 2 Tagen", "vor einer Stunde",
+    // Match patterns like "vor 5 Stunden", "vor 2 Tagen" and (v2.4.11) "vor einer Stunde",
     // "vor einem Monat" and abbreviations like "vor 3 Std." / "vor 5 Min."
     const match = text.match(/vor\s+(\d+|einer|einem|einen|ein)\s+(Sekunde|Sek|Minute|Min|Stunde|Std|Tag|Woche|Wo|Monat|Jahr)/i);
     if (!match) return 0;
@@ -1137,8 +1137,8 @@
 
   // ── Extract timestamp from a posting for chronological sort ────
   function getPostingTimestamp(posting) {
-    // Strategy 1: <time datetime="..."> with a valid ISO date (or, without the
-    // attribute, its relative text)
+    // Strategy 1: <time datetime="..."> with a valid ISO date (v2.4.11: or,
+    // without the attribute, its relative text)
     let timeEl = posting.querySelector('time[datetime]') || posting.querySelector('time');
     if (timeEl) {
       const dtAttr = timeEl.getAttribute('datetime');
@@ -1264,7 +1264,7 @@
     if (lightPinElements.length > 0) return true;
 
     for (const child of posting.children) {
-      // Skip the user's own text (a posting that just says "Angeheftet").
+      // v2.4.11: skip the user's own text (a posting that just says "Angeheftet").
       if (child.matches('p, blockquote, li, ul, ol') || child.querySelector('p, blockquote, li')) continue;
       const text = child.textContent?.trim().toLowerCase() || '';
       if (text === 'angeheftet' || text === 'pinned') return true;
