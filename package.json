@@ -1,0 +1,17 @@
+{
+  "name": "derstandard-comment-ranker",
+  "private": true,
+  "description": "Test suite for the derStandard Comment Ranker browser extension",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test --config tests/e2e/playwright.config.js",
+    "test:live": "DST_LIVE=1 playwright test --config tests/e2e/playwright.config.js live.spec.js"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@sinonjs/fake-timers": "^14.0.0",
+    "jsdom": "^26.1.0",
+    "vitest": "^5.0.5"
+  }
+}

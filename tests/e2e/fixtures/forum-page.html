@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Testartikel – derStandard (Fixture)</title>
+<style>
+  body { font: 14px sans-serif; margin: 0; }
+  article { height: 400px; }
+</style>
+</head>
+<body>
+<article><h1>Testartikel</h1><p>Fixture page served for www.derstandard.at/story/… in E2E tests.</p></article>
+
+<script>
+// Minimal stand-in for derStandard's Lit forum (<dst-forum>), rendered
+// asynchronously into an open shadow root, with native-like pagination and the
+// model properties the extension's MAIN-world bridge (forum-hook.js) reads.
+(function () {
+  const INITIAL = [
+    { id: 'E1', legacy: 9001, pos: 3, neg: 1, time: '2026-10-28T09:00:00Z' },
+    { id: 'E2', legacy: 9002, pos: 40, neg: 5, time: '2026-10-28T08:00:00Z', replies: 2 },
+    { id: 'E3', legacy: 9003, pos: 0, neg: 12, time: '2026-10-28T10:00:00Z' },
+    { id: 'E4', legacy: 9004, pos: 12, neg: 0, time: '2026-10-27T10:00:00Z' }
+  ];
+  const BATCHES = [
+    [{ id: 'E5', legacy: 9005, pos: 100, neg: 1, time: '2026-10-26T10:00:00Z' },
+     { id: 'E6', legacy: 9006, pos: 1, neg: 30, time: '2026-10-28T11:00:00Z' }],
+    [{ id: 'E7', legacy: 9007, pos: 7, neg: 7, time: '2026-10-25T10:00:00Z' }]
+  ];
+  const ALL = INITIAL.concat(...BATCHES);
+
+  function postingEl(p) {
+    const el = document.createElement('dst-posting');
+    el.setAttribute('data-level', '0');
+    el.className = p.replies ? 'posting-with-thread' : '';
+    const r = document.createElement('dst-posting--ratinglog');
+    r.setAttribute('postingid', p.id);
+    r.setAttribute('positiveratings', String(p.pos));
+    r.setAttribute('negativeratings', String(p.neg));
+    r.textContent = '+' + p.pos + ' / -' + p.neg;
+    // derStandard's own handler (paywall); the extension must win the click.
+    r.addEventListener('click', () => { window.__paywallClicks = (window.__paywallClicks || 0) + 1; });
+    const t = document.createElement('time');
+    t.setAttribute('datetime', p.time);
+    t.textContent = p.time;
+    const body = document.createElement('p');
+    body.textContent = 'Posting ' + p.id;
+    el.append(r, ' ', t, body);
+    if (p.replies) {
+      const b = document.createElement('button');
+      b.className = 'answers';
+      b.textContent = 'Antworten';
+      b.addEventListener('click', () => {
+        el.classList.toggle('posting-has-thread-expanded');
+        window.__replyToggles = (window.__replyToggles || 0) + 1;
+      });
+      el.appendChild(b);
+    }
+    return el;
+  }
+
+  class DstForum extends HTMLElement {
+    constructor() {
+      super();
+      this.attachShadow({ mode: 'open' });
+      this.forumModel = new Map();
+      this.stickyPostingsModel = new Map();
+      this.threadsByForumQuery = { data: { getForumRootPostingsV2: { pageInfo: { nextCursor: 'c0' } } } };
+      this._totalPostingCount = ALL.length;
+      this.isLoading = false;
+      this.activeFilter = 0;
+      this.sortField = 'ByTime';
+      this.sortDirection = 'descending';
+      this.isPermalink = false;
+      this.isFolloweeTabChange = false;
+      this.batches = BATCHES.slice();
+    }
+    hasMorePostings() { return this.batches.length > 0; }
+    connectedCallback() {
+      // Lit renders asynchronously.
+      setTimeout(() => this.render(), 300);
+    }
+    addPostings(list) {
+      for (const p of list) {
+        this.main.appendChild(postingEl(p));
+        this.forumModel.set(p.id, p);
+        if (p.replies) {
+          const s = document.createElement('section');
+          s.className = 'thread collapsed';
+          for (let i = 0; i < p.replies; i++) {
+            const r = document.createElement('dst-posting');
+            r.setAttribute('data-level', '1');
+            r.textContent = 'Antwort ' + i;
+            s.appendChild(r);
+          }
+          this.main.appendChild(s);
+        }
+      }
+    }
+    render() {
+      const style = document.createElement('style');
+      style.textContent = 'dst-posting{display:block;min-height:40px;border-bottom:1px solid #ccc}' +
+        'dst-posting--ratinglog{cursor:pointer;font-weight:bold}';
+      const header = document.createElement('header');
+      header.className = 'forum--header';
+      const count = document.createElement('span');
+      count.className = 'forum--postingcount';
+      count.textContent = ALL.length + ' Postings und Antworten';
+      header.appendChild(count);
+      this.main = document.createElement('main');
+      this.main.className = 'forum--main';
+      this.main.appendChild(document.createElement('dst-posting-box'));
+      this.shadowRoot.append(style, header, this.main);
+      this.addPostings(INITIAL);
+
+      const more = document.createElement('button');
+      more.className = 'thread--more';
+      more.textContent = 'Weitere Postings laden';
+      more.addEventListener('click', () => {
+        window.__loadMoreClicks = (window.__loadMoreClicks || 0) + 1;
+        this.isLoading = true;
+        setTimeout(() => {
+          this.addPostings(this.batches.shift() || []);
+          this.threadsByForumQuery.data.getForumRootPostingsV2.pageInfo.nextCursor = 'c' + window.__loadMoreClicks;
+          this.isLoading = false;
+          if (!this.hasMorePostings()) more.remove();
+        }, 150);
+      });
+      this.shadowRoot.appendChild(more);
+
+      // The real forum loads its data via GraphQL; forum-hook.js listens to it.
+      fetch('https://capi.ds.at/forum-serve-graphql', { method: 'POST', body: '{}' }).catch(() => {});
+    }
+  }
+  customElements.define('dst-forum', DstForum);
+  window.__FIXTURE_POSTINGS__ = ALL;
+})();
+</script>
+<dst-forum></dst-forum>
+</body>
+</html>
