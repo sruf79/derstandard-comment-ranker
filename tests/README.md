@@ -14,9 +14,9 @@ npm run test:live   # opt-in smoke test against derstandard.at (see below)
 | --- | --- | --- |
 | `unit/` | Pure logic of every script: sort comparator, storage migration, time and ratinglog parsing, pinned/duplicate detection, rating prompt state machine, popup pulses, `forum-hook.js` wrappers, manifest/store hygiene | jsdom per test, fake timers, in-memory `chrome.*` mock |
 | `integration/` | `content.js` booted end to end against a simulated `<dst-forum>`: CSS order, badge bar, persistence, observers, background loading, voter popup, interplay with `rating.js` | same |
-| `e2e/extension.spec.js` | The unpacked extension in Chromium; derStandard URLs are routed to `e2e/fixtures/forum-page.html` | Playwright |
+| `e2e/extension.spec.js` | The unpacked extension in Chromium; derStandard URLs are routed to `e2e/fixtures/forum-page.html`. Sorting, reply threads with real clicks, cards, voter popup, popup switches | Playwright |
 | `e2e/scroll.spec.js` | The reader's position (in the article, inside the forum, below the forum) stays put while postings load and re-sort — desktop and mobile viewport, sampled every frame | Playwright |
-| `e2e/perf.spec.js` | Re-sorting 2000 postings never blocks the page for more than 400 ms (Long Tasks API) | Playwright |
+| `e2e/perf.spec.js` | Re-sorting 2000 postings never blocks the page for more than 600 ms (Long Tasks API; v4.19.8 measured 260–400 ms) | Playwright |
 | `e2e/live.spec.js` | Early warning when derstandard.at changes its forum DOM | Playwright, opt-in |
 
 The extension files are not modified for testing. `helpers/env.js` evaluates
@@ -29,7 +29,7 @@ fixtures in `fixtures/` are reconstructed from the parser's selectors, not
 captured from the live site — refresh them if the live test starts failing.
 
 The fixture forum takes URL parameters for generated content (`?gen=N`,
-`&batches=B&size=S`, `&delay=MS`, `&article=PX`, `&moreAfter=MS`, `&keepMore=1`);
+`&batches=B&size=S`, `&delay=MS`, `&article=PX`, `&moreAfter=MS`, `&keepMore=1`, `&expanded=1`);
 see the comment at the top of `e2e/fixtures/forum-page.html`.
 
 ## Known gaps (`it.fails` / `test.fail()`)
@@ -39,11 +39,11 @@ Use `it.fails` (Vitest) or `test.fail()` (Playwright) with a `KNOWN BUG` /
 while the problem exists and turns red once it is fixed — then turn it into a
 normal test.
 
-Currently open: `e2e/scroll.spec.js` › *footer also stays when the load-more
-button disappears* — a reader below the forum moves up by the button height
-(~21 px) when the native button vanishes after the last batch, because the
-extension anchors the bottom of `main.forum--main` and the fixture button sits
-outside it. Whether the live site places the button there is unverified.
+Currently none is open.
+
+Reply folding (v4.19.x) only reacts to real (trusted) clicks, which jsdom
+cannot produce: unit tests call `onThreadToggle` with a trusted-like event,
+the E2E tests click for real.
 
 ## Live test
 

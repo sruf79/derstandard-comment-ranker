@@ -194,7 +194,7 @@ export async function createEnv({
   const clock = FakeTimers.withGlobal(window).install({
     now,
     toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date',
-      'requestAnimationFrame', 'cancelAnimationFrame']
+      'requestAnimationFrame', 'cancelAnimationFrame', 'performance']
   });
 
   const env = {

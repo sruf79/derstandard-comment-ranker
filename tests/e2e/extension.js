@@ -86,4 +86,21 @@ function shadow(page, selector) {
   return page.locator('dst-forum').locator(selector);
 }
 
-module.exports = { test, expect: require('@playwright/test').expect, visualOrder, shadow, ARTICLE_URL };
+// The sort segments in the bar: Pure · Balance · Timeline (v3.13.0).
+const SEGMENTS = ['likes', 'balance', 'timeline'];
+function segment(page, group) {
+  return shadow(page, '#dst-seg > .dst-badge-btn:not(.dst-coffee-btn)').nth(SEGMENTS.indexOf(group));
+}
+
+function coffee(page) {
+  return shadow(page, '#dst-seg .dst-coffee-btn');
+}
+
+// Background loading is over once the ring has left the coffee slot.
+async function waitLoaded(page, timeout = 30000) {
+  await expect(shadow(page, '#dst-badge-bar')).toBeVisible({ timeout });
+  await expect(coffee(page)).not.toHaveClass(/dst-loading/, { timeout });
+}
+
+const { expect } = require('@playwright/test');
+module.exports = { test, expect, visualOrder, shadow, segment, coffee, waitLoaded, ARTICLE_URL };

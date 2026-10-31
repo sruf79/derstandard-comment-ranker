@@ -1,32 +1,45 @@
 // Performance guard for large forums: re-sorting must not freeze the page.
 // Measured with the Long Tasks API (tasks > 50 ms block input and scrolling).
-// Reference (headless Chromium, 2000 postings): ~70–100 ms longest task.
-// The budget leaves room for slower CI machines but catches gross
-// regressions such as per-comparison DOM queries on real-sized postings.
+// Reference, headless Chromium, 2000 postings:
+//   v2.4.10 ~70–100 ms, v4.19.8 ~260–400 ms longest task.
+// The 4.x cards make the layout after a re-sort about 3–4× more expensive;
+// profiling shows the time is layout itself (forced first by fitSortBar,
+// otherwise by the scroll anchor or the next frame), not a single CSS rule.
+// The budget catches gross regressions such as per-comparison DOM queries.
 // (That the sort key is computed once per group is unit-tested exactly in
 // tests/unit/sorting.test.js.)
-const { test, expect, shadow } = require('./extension');
+const { test, expect, shadow, segment, waitLoaded } = require('./extension');
 
 const POSTINGS = 2000;
-const BUDGET_MS = 400;
+const BUDGET_MS = 600;
 
-async function sortedBy(page, attr) {
-  return page.evaluate((attr) => {
+// Pure order check: postings with votes of the chosen side first, by fewest
+// votes of the other side; postings without votes of the chosen side last.
+async function pureSorted(page, side) {
+  return page.evaluate((side) => {
     const main = document.querySelector('dst-forum').shadowRoot.querySelector('main.forum--main');
-    const vals = Array.from(main.querySelectorAll(':scope > dst-posting[data-level="0"]'))
-      .map((el) => ({ top: el.getBoundingClientRect().top, v: +el.querySelector('dst-posting--ratinglog').getAttribute(attr) }))
-      .sort((a, b) => a.top - b.top)
-      .map((x) => x.v);
-    return vals.length && vals.every((v, i) => i === 0 || v <= vals[i - 1]);
-  }, attr);
+    const rows = Array.from(main.querySelectorAll(':scope > dst-posting[data-level="0"]'))
+      .map((el) => {
+        const r = el.querySelector('dst-posting--ratinglog');
+        const pos = +r.getAttribute('positiveratings'), neg = +r.getAttribute('negativeratings');
+        return { top: el.getBoundingClientRect().top, mine: side === 'pos' ? pos : neg, other: side === 'pos' ? neg : pos };
+      })
+      .sort((a, b) => a.top - b.top);
+    let seenNone = false;
+    for (let i = 0; i < rows.length; i++) {
+      if (rows[i].mine === 0) { seenNone = true; continue; }
+      if (seenNone) return false;                                        // "none" must be last
+      if (i > 0 && rows[i - 1].mine !== 0 && rows[i].other < rows[i - 1].other) return false;
+    }
+    return rows.length > 0;
+  }, side);
 }
 
 test(`re-sorting ${POSTINGS} postings stays within ${BUDGET_MS} ms per task`, async ({ context, site }) => {
   test.setTimeout(120000);
   const page = await context.newPage();
   await page.goto(`${site.ARTICLE_URL}?gen=${POSTINGS}`);
-  await expect(shadow(page, '#dst-badge-bar .dst-badge-btn[data-group]').first()).toBeVisible({ timeout: 60000 });
-  await expect(shadow(page, '#dst-progress-container')).toHaveCount(0, { timeout: 60000 });
+  await waitLoaded(page, 60000);
   await page.waitForTimeout(3500); // initial load, sort and delayed re-check are done
 
   await page.evaluate(() => {
@@ -37,11 +50,11 @@ test(`re-sorting ${POSTINGS} postings stays within ${BUDGET_MS} ms per task`, as
   });
 
   const results = [];
-  for (const [group, check] of [['likes', 'positiveratings'], ['likes', 'negativeratings'], ['timeline', null], ['balance', null]]) {
+  for (const [group, check] of [['likes', 'pos'], ['likes', 'neg'], ['timeline', null], ['balance', null]]) {
     await page.evaluate(() => { window.__longTasks = []; });
-    await shadow(page, `.dst-badge-btn[data-group="${group}"]`).click();
-    await expect(shadow(page, '#dst-progress-container')).toHaveCount(0, { timeout: 30000 });
-    if (check) await expect.poll(() => sortedBy(page, check)).toBe(true);
+    await segment(page, group).click();
+    await page.waitForTimeout(500); // the re-sort starts after the slide (460 ms)
+    if (check) await expect.poll(() => pureSorted(page, check)).toBe(true);
     await page.waitForTimeout(300);
     const tasks = await page.evaluate(() => window.__longTasks);
     results.push({ group, longest: Math.max(0, ...tasks) });

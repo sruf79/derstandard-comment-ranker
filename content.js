@@ -3252,6 +3252,16 @@
         // a nested element — that's a childList mutation on a CHILD node, not on main.
         // We only care about new DST-POSTING elements being added to main directly.
         if (mutation.type === 'childList' && mutation.target === main) {
+          // v4.20.0: a new reply thread (e.g. derStandard's reply box after
+          // "Antworten" on a posting without replies) takes its posting's order
+          // at once. Without an order it showed at the very end of the forum
+          // until the debounced re-sort below moved it (~300 ms later).
+          for (const node of mutation.addedNodes) {
+            if (node.nodeType === 1 && node.tagName === 'SECTION' && !node.style.order) {
+              const prev = node.previousElementSibling;
+              if (prev && prev.style.order) node.style.order = prev.style.order;
+            }
+          }
           // Check if any added node is a posting (new comment loaded)
           for (const node of mutation.addedNodes) {
             if (node.nodeType === 1 && (

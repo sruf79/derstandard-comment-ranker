@@ -24,6 +24,7 @@
   //   &article=PX      height of the article above the forum (default 400)
   //   &moreAfter=MS    keep "Weitere Postings laden" disabled for the first MS
   //   &keepMore=1      keep the (disabled) button after the last batch instead of removing it
+  //   &expanded=1      reply threads rendered open by derStandard (gear "Antworten ausgeklappt")
   const params = new URLSearchParams(location.search);
   const LOAD_DELAY = Number(params.get('delay') || 150);
   if (params.has('article')) document.querySelector('article').style.height = params.get('article') + 'px';
@@ -57,10 +58,23 @@
   }
   const ALL = INITIAL.concat(...BATCHES);
 
-  function postingEl(p) {
+  // "dd.mm.yyyy, HH:MM" in local time, like derStandard's <time data-date>.
+  function dataDate(iso) {
+    const d = new Date(iso);
+    const z = (n) => String(n).padStart(2, '0');
+    return z(d.getDate()) + '.' + z(d.getMonth() + 1) + '.' + d.getFullYear() + ', ' + z(d.getHours()) + ':' + z(d.getMinutes());
+  }
+
+  // The thread section right after a posting (derStandard's structure).
+  function threadOf(el) {
+    const next = el.nextElementSibling;
+    return next && next.tagName === 'SECTION' && next.classList.contains('thread') ? next : null;
+  }
+
+  function postingEl(p, level = 0) {
     const el = document.createElement('dst-posting');
-    el.setAttribute('data-level', '0');
-    el.className = p.replies ? 'posting-with-thread' : '';
+    el.setAttribute('data-level', String(level));
+    el.className = 'posting' + (p.replies ? ' posting-with-thread' : '');
     const r = document.createElement('dst-posting--ratinglog');
     r.setAttribute('postingid', p.id);
     r.setAttribute('positiveratings', String(p.pos));
@@ -69,21 +83,50 @@
     // derStandard's own handler (paywall); the extension must win the click.
     r.addEventListener('click', () => { window.__paywallClicks = (window.__paywallClicks || 0) + 1; });
     const t = document.createElement('time');
-    t.setAttribute('datetime', p.time);
-    t.textContent = p.time;
+    t.setAttribute('data-date', dataDate(p.time));
+    t.textContent = dataDate(p.time);
     const body = document.createElement('p');
     body.textContent = 'Posting ' + p.id;
     el.append(r, ' ', t, body);
+
+    const footer = document.createElement('dst-posting-footer');
+    // "Antworten": derStandard puts its reply box into the thread right
+    // after the posting (a new thread if there is none).
+    const reply = document.createElement('button');
+    reply.className = 'answer-button';
+    reply.textContent = 'Antworten';
+    reply.addEventListener('click', () => {
+      let thread = threadOf(el);
+      if (!thread) {
+        thread = document.createElement('section');
+        thread.className = 'thread';
+        el.after(thread);
+      }
+      thread.classList.remove('collapsed');
+      if (!thread.querySelector(':scope > dst-posting-box')) {
+        const box = document.createElement('dst-posting-box');
+        box.className = 'posting-new';
+        box.textContent = 'Antwort schreiben …';
+        thread.prepend(box);
+      }
+    });
+    footer.appendChild(reply);
     if (p.replies) {
+      // native toggle: open/close the thread
       const b = document.createElement('button');
       b.className = 'answers';
-      b.textContent = 'Antworten';
+      const n = document.createElement('span');
+      n.textContent = String(p.replies);
+      b.appendChild(n);
       b.addEventListener('click', () => {
         el.classList.toggle('posting-has-thread-expanded');
+        const thread = threadOf(el);
+        if (thread) thread.classList.toggle('collapsed', !el.classList.contains('posting-has-thread-expanded'));
         window.__replyToggles = (window.__replyToggles || 0) + 1;
       });
-      el.appendChild(b);
+      footer.appendChild(b);
     }
+    el.appendChild(footer);
     return el;
   }
 
@@ -110,16 +153,17 @@
     }
     addPostings(list) {
       for (const p of list) {
-        this.main.appendChild(postingEl(p));
+        const el = postingEl(p);
+        this.main.appendChild(el);
         this.forumModel.set(p.id, p);
         if (p.replies) {
+          // &expanded=1: derStandard renders threads open (gear setting)
+          const open = params.has('expanded');
+          if (open) el.classList.add('posting-has-thread-expanded');
           const s = document.createElement('section');
-          s.className = 'thread collapsed';
+          s.className = 'thread' + (open ? '' : ' collapsed');
           for (let i = 0; i < p.replies; i++) {
-            const r = document.createElement('dst-posting');
-            r.setAttribute('data-level', '1');
-            r.textContent = 'Antwort ' + i;
-            s.appendChild(r);
+            s.appendChild(postingEl({ id: p.id + '-r' + i, pos: 1, neg: 0, time: p.time }, 1));
           }
           this.main.appendChild(s);
         }
@@ -128,6 +172,7 @@
     render() {
       const style = document.createElement('style');
       style.textContent = 'dst-posting{display:block;min-height:40px;border-bottom:1px solid #ccc}' +
+        '.thread{display:block;padding-left:16px}.thread.collapsed{display:none}' +
         'dst-posting--ratinglog{cursor:pointer;font-weight:bold}';
       const header = document.createElement('header');
       header.className = 'forum--header';

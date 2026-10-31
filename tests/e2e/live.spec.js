@@ -81,13 +81,16 @@ test('extension still understands the live forum DOM', async ({ context }) => {
   expect(dom.count, 'posting count element').toBe(true);
 
   // Likes: Top must produce non-increasing positive ratings in visual order.
-  await page.locator('dst-forum').locator('.dst-badge-btn[data-group="likes"]').click();
+  // Balance (default): balance (likes − dislikes) must not increase in visual order.
   await page.waitForTimeout(1500);
   const positives = await page.evaluate(() => {
     const main = document.querySelector('dst-forum').shadowRoot.querySelector('main.forum--main');
     return Array.from(main.querySelectorAll(':scope > dst-posting[data-level="0"]'))
       .filter((el) => getComputedStyle(el).display !== 'none' && !el.hasAttribute('pinned'))
-      .map((el) => ({ top: el.getBoundingClientRect().top, pos: +el.querySelector('dst-posting--ratinglog').getAttribute('positiveratings') }))
+      .map((el) => {
+        const r = el.querySelector('dst-posting--ratinglog');
+        return { top: el.getBoundingClientRect().top, pos: +r.getAttribute('positiveratings') - +r.getAttribute('negativeratings') };
+      })
       .sort((a, b) => a.top - b.top)
       .map((x) => x.pos)
       .slice(0, 30);
@@ -102,5 +105,6 @@ test('extension still understands the live forum DOM', async ({ context }) => {
   await expect(overlay).toBeVisible();
   await expect(page.locator('dst-forum').locator('.dst-voter-error'), 'voter popup failed (GraphQL ids or ratinglog changed?)')
     .toHaveCount(0, { timeout: 10000 });
-  await expect(page.locator('dst-forum').locator('.dst-voter-progress--done')).toBeVisible({ timeout: 30000 });
+  // done: the footer with the progress bar hides once everything is loaded
+  await expect(page.locator('dst-forum').locator('#dst-voter-foot')).toBeHidden({ timeout: 30000 });
 });

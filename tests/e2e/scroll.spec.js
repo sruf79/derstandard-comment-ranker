@@ -1,7 +1,7 @@
 // Scroll stability: while the extension loads more postings in the background
 // and re-sorts, whatever the reader is looking at must not move. Positions are
 // sampled every animation frame, so short jumps are caught as well.
-const { test, expect, shadow } = require('./extension');
+const { test, expect, shadow, coffee } = require('./extension');
 
 const BASE = 'https://www.derstandard.at/story/3000000999999/testartikel';
 // 30 postings rendered, 3 more batches of 20 loaded in the background.
@@ -62,7 +62,7 @@ async function scrollPostingTo(page, id, y) {
 
 async function waitForLoadingDone(page) {
   await expect.poll(() => page.evaluate(() => window.__loadMoreClicks || 0), { timeout: 30000 }).toBe(3);
-  await expect(shadow(page, '#dst-progress-container')).toHaveCount(0, { timeout: 30000 });
+  await expect(coffee(page)).not.toHaveClass(/dst-loading/, { timeout: 30000 });
   await expect.poll(() => page.evaluate(() => document.querySelector('dst-forum').shadowRoot
     .querySelectorAll('main.forum--main > dst-posting[data-level="0"]').length)).toBe(90);
   await page.waitForTimeout(3500); // final re-sort + delayed rating re-check (3 s)
@@ -75,12 +75,15 @@ for (const [name, ctxOptions] of [
   test.describe(`scroll stability (${name})`, () => {
     test.use({ ctxOptions });
 
-    test('reader inside the forum keeps their posting in place while everything loads and re-sorts', async ({ context, site }) => {
+    // A re-sort gives postings new neighbours, so not everything on screen can
+    // stay put: the extension keeps the topmost visible element in place
+    // (captureScrollAnchor), i.e. where the reader's eyes enter the screen.
+    test('reader inside the forum: the posting at the top of the screen stays while everything loads and re-sorts', async ({ context, site }) => {
       const page = await context.newPage();
       await page.goto(BASE + LOADING);
       await expect(shadow(page, '#dst-badge-bar')).toBeVisible({ timeout: 20000 });
       const id = await postingAtRank(page, 12);
-      await scrollPostingTo(page, id, 150);
+      await scrollPostingTo(page, id, 5);
       await track(page, { posting: id });
 
       await waitForLoadingDone(page);
@@ -105,6 +108,8 @@ for (const [name, ctxOptions] of [
     });
 
     // Reader below the forum: background loading appends postings above them.
+    // In v4.x the browser's own scroll anchoring (outside main.forum--main)
+    // already keeps the footer in place; these tests guard the visible result.
     // The reader reaches the footer before loading starts (the extension
     // deliberately does not compensate if the reader scrolls while a batch is
     // in flight).
@@ -123,13 +128,9 @@ for (const [name, ctxOptions] of [
       expect(t.maxDelta, JSON.stringify(t)).toBeLessThanOrEqual(TOLERANCE);
     });
 
-    // KNOWN GAP: when the native "Weitere Postings laden" button disappears
-    // after the last batch, a reader below the forum moves up by its height
-    // (~21 px). The extension anchors the bottom of main.forum--main, and in
-    // this fixture the button sits outside it. Unverified where the live site
-    // puts the button. test.fail() turns red once this is compensated.
-    test('KNOWN GAP: footer also stays when the load-more button disappears', async ({ context, site }) => {
-      test.fail();
+    // v4.x: also when derStandard's "Weitere Postings laden" button disappears
+    // after the last batch (in 2.4.10 the reader moved up by its height).
+    test('footer also stays when the load-more button disappears', async ({ context, site }) => {
       const t = await footerRun(await context.newPage(), '');
       expect(t.maxDelta, JSON.stringify(t)).toBeLessThanOrEqual(TOLERANCE);
     });
