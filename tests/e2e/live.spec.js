@@ -64,20 +64,31 @@ test('extension still understands the live forum DOM', async ({ context }) => {
     const forum = document.querySelector('dst-forum');
     const sr = forum.shadowRoot;
     const main = sr.querySelector('main.forum--main');
-    const roots = main ? main.querySelectorAll(':scope > dst-posting[data-level="0"]') : [];
-    const rated = Array.from(roots).filter((p) => p.querySelector('dst-posting--ratinglog[postingid][positiveratings][negativeratings]'));
+    const roots = main ? main.querySelectorAll(':scope > dst-posting') : [];
+    // A rating element exists only once a posting has votes; deleted postings
+    // ("Posting durch Poster:in gelöscht") have none. Every other posting has
+    // a rendered head with its time (hasRatingData relies on that).
+    const rated = Array.from(roots).filter((p) => p.classList.contains('posting-deleted') ||
+      p.querySelector('dst-posting--ratinglog[postingid][positiveratings][negativeratings]') ||
+      p.querySelector('dst-posting-head time'));
+    const dated = Array.from(roots).filter((p) => p.classList.contains('posting-deleted') ||
+      /^\d{1,2}\.\d{1,2}\.\d{4},?\s+\d{1,2}:\d{2}/.test((p.querySelector('time[data-date]') || { getAttribute: () => '' }).getAttribute('data-date')));
     return {
       header: !!sr.querySelector('.forum--header'),
       main: !!main,
       roots: roots.length,
       rated: rated.length,
+      dated: dated.length,
+      cls: Array.from(roots).every((p) => p.classList.contains('posting')),
       count: !!(sr.querySelector('.forum--postingcount') || document.querySelector('.js-forum-postingcount, .article-postingcount'))
     };
   });
   expect(dom.header, '.forum--header').toBe(true);
   expect(dom.main, 'main.forum--main').toBe(true);
   expect(dom.roots, 'root postings').toBeGreaterThan(0);
-  expect(dom.rated, 'postings with dst-posting--ratinglog').toBe(dom.roots);
+  expect(dom.rated, 'postings with a rating element or a rendered head (or deleted)').toBe(dom.roots);
+  expect(dom.dated, 'postings with <time data-date="dd.mm.yyyy, HH:MM">').toBe(dom.roots);
+  expect(dom.cls, 'dst-posting.posting').toBe(true);
   expect(dom.count, 'posting count element').toBe(true);
 
   // Likes: Top must produce non-increasing positive ratings in visual order.
@@ -85,8 +96,8 @@ test('extension still understands the live forum DOM', async ({ context }) => {
   await page.waitForTimeout(1500);
   const positives = await page.evaluate(() => {
     const main = document.querySelector('dst-forum').shadowRoot.querySelector('main.forum--main');
-    return Array.from(main.querySelectorAll(':scope > dst-posting[data-level="0"]'))
-      .filter((el) => getComputedStyle(el).display !== 'none' && !el.hasAttribute('pinned'))
+    return Array.from(main.querySelectorAll(':scope > dst-posting'))
+      .filter((el) => getComputedStyle(el).display !== 'none' && el.querySelector('dst-posting--ratinglog') && !el.hasAttribute('pinned'))
       .map((el) => {
         const r = el.querySelector('dst-posting--ratinglog');
         return { top: el.getBoundingClientRect().top, pos: +r.getAttribute('positiveratings') - +r.getAttribute('negativeratings') };
@@ -96,6 +107,31 @@ test('extension still understands the live forum DOM', async ({ context }) => {
       .slice(0, 30);
   });
   for (let i = 1; i < positives.length; i++) expect(positives[i]).toBeLessThanOrEqual(positives[i - 1]);
+
+  // Reply threads are closed until the reader opens one (v4.19.x), real clicks.
+  const thread = await page.evaluate(() => {
+    const main = document.querySelector('dst-forum').shadowRoot.querySelector('main.forum--main');
+    const p = Array.from(main.querySelectorAll(':scope > dst-posting.posting-with-thread'))
+      .find((el) => getComputedStyle(el).display !== 'none' && el.querySelector('.answers'));
+    if (!p) return null;
+    const r = p.querySelector('dst-posting--ratinglog');
+    return r && r.getAttribute('postingid');
+  });
+  if (thread) {
+    const posting = page.locator('dst-forum').locator(`dst-posting:has(> dst-posting-head dst-posting--ratinglog[postingid="${thread}"]), dst-posting:has(dst-posting--ratinglog[postingid="${thread}"])`).first();
+    const visibleReplies = () => page.evaluate((id) => {
+      const r = document.querySelector('dst-forum').shadowRoot.querySelector(`dst-posting--ratinglog[postingid="${id}"]`);
+      const p = r.closest('dst-posting');
+      const t = p.nextElementSibling;
+      return t && t.tagName === 'SECTION' ? Array.from(t.querySelectorAll('dst-posting')).filter((x) => x.getBoundingClientRect().height > 0).length : 0;
+    }, thread);
+    expect(await visibleReplies(), 'replies closed by default').toBe(0);
+    await posting.scrollIntoViewIfNeeded();
+    await posting.locator('dst-posting-footer .answers').first().click();
+    await expect.poll(visibleReplies, { message: 'replies open after 💬', timeout: 15000 }).toBeGreaterThan(0);
+    await posting.locator('dst-posting-footer .answers').first().click();
+    await expect.poll(visibleReplies, { message: 'replies closed again', timeout: 15000 }).toBe(0);
+  }
 
   // The voter popup needs the GraphQL id mapping captured by forum-hook.js.
   const rating = page.locator('dst-forum').locator('dst-posting--ratinglog').first();

@@ -403,6 +403,19 @@ describe('late forum rendering', () => {
     expect(renderedOrder(main)).toEqual(['top', 'mid', 'zero', 'low']);
   });
 
+  it('a fresh article with unvoted postings (no rating element, live DOM) sorts at once (v4.20.0)', async () => {
+    const { shadow, order } = await boot({
+      postings: [
+        { id: 'a', pos: 2, date: '31.10.2026, 18:00' },
+        { id: 'b', ratings: false, date: '31.10.2026, 18:05' },
+        { id: 'c', ratings: false, date: '31.10.2026, 18:06' },
+        { id: 'd', ratings: false, date: '31.10.2026, 18:07' }
+      ]
+    });
+    expect(shadow.querySelector('#dst-badge-bar')).not.toBeNull();
+    expect(order()[0]).toBe('a');
+  });
+
   it('sorts anyway after ~15 s if ratings never show up', async () => {
     const { env, shadow } = await boot({
       postings: [{ id: 'a', ratings: false }, { id: 'b', ratings: false }, { id: 'c', pos: 3 }]

@@ -2499,9 +2499,12 @@
     if (postings.length === 0) return false;
     // For the timeline modes we don't need ratings at all
     if (sortMode.indexOf('chronological') === 0) return true;
+    // v4.20.0: postings without any vote have no rating element at all (live
+    // DOM, Oct 2026). A posting counts once its head with the time is rendered;
+    // otherwise fresh articles waited the full 15 s before the first sort.
     let withRatings = 0;
     postings.forEach((p) => {
-      if (p.querySelector('dst-posting--ratinglog')) withRatings++;
+      if (p.querySelector('dst-posting--ratinglog, time')) withRatings++;
     });
     return withRatings >= Math.min(3, postings.length) ||
            withRatings >= postings.length * 0.5;

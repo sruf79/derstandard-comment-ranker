@@ -380,6 +380,14 @@ describe('hasRatingData', () => {
     expect(c.hasRatingData(main)).toBe(true);
   });
 
+  it('an unvoted posting (no rating element) counts once its time is rendered', async () => {
+    const { c, env } = await loadContent();
+    const { main } = buildForum(env.document, {
+      postings: [{ ratings: false, date: '31.10.2026, 18:00' }, { ratings: false, date: '31.10.2026, 18:01' }, { ratings: false }]
+    });
+    expect(c.hasRatingData(main)).toBe(true);
+  });
+
   it('Timeline modes never wait for ratings', async () => {
     const { c, env } = await loadContent();
     const { main } = buildForum(env.document, { postings: [{ ratings: false }] });
