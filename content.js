@@ -1490,6 +1490,7 @@
       // v2.0.5: no "Keine … Bewertungen" placeholder — an empty column simply
       // stays empty.
       updateStatus();
+      markCoffeeMoment(); // v4.20.0: the complete voter list was shown
     }
 
     await loadAllPages();
@@ -1806,17 +1807,18 @@
   function parseRelativeTime(text) {
     if (!text) return 0;
     const now = Date.now();
-    // Match patterns like "vor 5 Stunden", "vor 2 Tagen", "vor 30 Minuten", "vor 1 Monat"
-    const match = text.match(/vor\s+(\d+)\s+(Sekunde|Minute|Stunde|Tag|Woche|Monat|Jahr)n?/i);
+    // Match patterns like "vor 5 Stunden", "vor 2 Tagen" and (v4.20.0) "vor einer Stunde",
+    // "vor einem Monat" and abbreviations like "vor 3 Std." / "vor 5 Min."
+    const match = text.match(/vor\s+(\d+|einer|einem|einen|ein)\s+(Sekunde|Sek|Minute|Min|Stunde|Std|Tag|Woche|Wo|Monat|Jahr)/i);
     if (!match) return 0;
-    const value = parseInt(match[1], 10);
+    const value = /^\d+$/.test(match[1]) ? parseInt(match[1], 10) : 1;
     const unit = match[2].toLowerCase();
     let ms = 0;
-    if (unit.startsWith('sekunde')) ms = value * 1000;
-    else if (unit.startsWith('minute')) ms = value * 60 * 1000;
-    else if (unit.startsWith('stunde')) ms = value * 60 * 60 * 1000;
+    if (unit.startsWith('sek')) ms = value * 1000;
+    else if (unit.startsWith('min')) ms = value * 60 * 1000;
+    else if (unit.startsWith('stunde') || unit === 'std') ms = value * 60 * 60 * 1000;
     else if (unit.startsWith('tag')) ms = value * 24 * 60 * 60 * 1000;
-    else if (unit.startsWith('woche')) ms = value * 7 * 24 * 60 * 60 * 1000;
+    else if (unit.startsWith('wo')) ms = value * 7 * 24 * 60 * 60 * 1000;
     else if (unit.startsWith('monat')) ms = value * 30 * 24 * 60 * 60 * 1000;
     else if (unit.startsWith('jahr')) ms = value * 365 * 24 * 60 * 60 * 1000;
     return ms > 0 ? (now - ms) : 0;
@@ -1841,8 +1843,9 @@
       const t = parseDataDate(dated.getAttribute('data-date'));
       if (t > 0) return t;
     }
-    // Strategy 1: <time datetime="..."> with a valid ISO date
-    let timeEl = posting.querySelector('time[datetime]');
+    // Strategy 1: <time datetime="..."> with a valid ISO date (v4.20.0: or,
+    // without the attribute, its relative text)
+    let timeEl = posting.querySelector('time[datetime]') || posting.querySelector('time');
     if (timeEl) {
       const dtAttr = timeEl.getAttribute('datetime');
       if (dtAttr && dtAttr !== 'null' && dtAttr !== 'undefined') {
@@ -1856,7 +1859,7 @@
 
     // Strategy 2: Check shadow DOM of the posting
     if (posting.shadowRoot) {
-      timeEl = posting.shadowRoot.querySelector('time[datetime]');
+      timeEl = posting.shadowRoot.querySelector('time[datetime]') || posting.shadowRoot.querySelector('time');
       if (timeEl) {
         const dtAttr = timeEl.getAttribute('datetime');
         if (dtAttr && dtAttr !== 'null' && dtAttr !== 'undefined') {
@@ -1967,6 +1970,8 @@
     if (lightPinElements.length > 0) return true;
 
     for (const child of posting.children) {
+      // v4.20.0: skip the user's own text (a posting that just says "Angeheftet").
+      if (child.matches('p, blockquote, li, ul, ol') || child.querySelector('p, blockquote, li')) continue;
       const text = child.textContent?.trim().toLowerCase() || '';
       if (text === 'angeheftet' || text === 'pinned') return true;
     }
@@ -2721,6 +2726,7 @@
 
       lastSortSignature = sig;
       injectSortBadge(shadowRoot);
+      recordUsageDay();
 
       // Log top 5
       const groups = [...pinnedGroups, ...regularGroups];
@@ -2777,9 +2783,94 @@
     });
   }
 
-  // v2.4.10: Ergebnis der Kaffee-Puls-Pruefung wird pro Seitenaufruf nur einmal
-  // aus dem Storage gelesen (vorher bei JEDER Sortierung zwei Storage-Abfragen).
-  let coffeePulseCache = null; // null = noch nicht geprueft, sonst true/false
+  // ── v4.20.0: coffee (donation) pulse ──────────────────────────────
+  // The coffee badge pulses only when ALL of these hold:
+  //   (A) a pulse is due by USAGE days — days on which the extension sorted a
+  //       forum (counted per device) — instead of calendar days since install;
+  //   (C) the extension has just visibly helped on this page: a sort segment
+  //       used, all postings loaded (ring with check), or the voter list
+  //       fully loaded;
+  //   (E) the review prompt (rating.js) is not shown on the same day.
+  // While the loading ring occupies the coffee slot, the pulse waits.
+  // Schedule (shared with popup.js): pulse #(n+1) is due at
+  // 20 · (1.5^(n+1) − 1) usage days → 10, 25, 47.5, 81.25, …
+  // A click opens the donation page and increments n (synced).
+  const DST_DONATE_ACK_N_KEY = 'dstDonateAckN';                 // sync
+  const DST_INSTALL_TS_KEY = 'dstInstallTimestamp';             // local (review pulse in popup.js)
+  const DST_USAGE_DAYS_KEY = 'dstUsageDays';                    // local
+  const DST_LAST_USAGE_DAY_KEY = 'dstLastUsageDay';             // local, 'YYYY-MM-DD'
+  const DST_REVIEW_SHOWN_DAY_KEY = 'dstRanker_reviewShownDay';  // sync, written by rating.js
+
+  function dstToday() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' +
+      String(d.getDate()).padStart(2, '0');
+  }
+
+  function dstNextPulseDay(n) {
+    return 20 * (Math.pow(1.5, n + 1) - 1);
+  }
+
+  let coffeeDue = false;      // (A) + (E) from storage, decided once per page view
+  let coffeeMoment = false;   // (C)
+  let usageRecorded = false;
+
+  // (E) The review prompt appeared on this page → no pulse for the rest of it.
+  let reviewShownHere = false;
+  document.addEventListener('dst-review-shown', function () {
+    reviewShownHere = true;
+    applyCoffeePulse();
+  });
+
+  function applyCoffeePulse() {
+    const forum = document.querySelector('dst-forum');
+    const sr = forum && forum.shadowRoot;
+    if (!sr) return;
+    if (reviewShownHere || sr.querySelector('#dst-feedback-bar')) coffeeDue = false;
+    const btn = sr.querySelector('.dst-coffee-btn');
+    if (btn) {
+      btn.classList.toggle('dst-pulsing',
+        coffeeDue && coffeeMoment && !btn.classList.contains('dst-loading'));
+    }
+  }
+
+  function markCoffeeMoment() {
+    coffeeMoment = true;
+    applyCoffeePulse();
+  }
+
+  // Counts today as a usage day (once per page view) and decides whether a
+  // pulse is due. Fail-safe: no pulse on any storage error.
+  function recordUsageDay() {
+    if (usageRecorded) return;
+    usageRecorded = true;
+    try {
+      if (!chrome?.storage?.local || !chrome?.storage?.sync) return;
+      chrome.storage.local.get([DST_USAGE_DAYS_KEY, DST_LAST_USAGE_DAY_KEY, DST_INSTALL_TS_KEY], (local) => {
+        if (chrome.runtime && chrome.runtime.lastError) return;
+        local = local || {};
+        const today = dstToday();
+        let days = (typeof local[DST_USAGE_DAYS_KEY] === 'number') ? local[DST_USAGE_DAYS_KEY] : 0;
+        const update = {};
+        if (local[DST_LAST_USAGE_DAY_KEY] !== today) {
+          days++;
+          update[DST_USAGE_DAYS_KEY] = days;
+          update[DST_LAST_USAGE_DAY_KEY] = today;
+        }
+        if (typeof local[DST_INSTALL_TS_KEY] !== 'number') update[DST_INSTALL_TS_KEY] = Date.now();
+        if (Object.keys(update).length) {
+          try { chrome.storage.local.set(update); } catch (err) { /* noop */ }
+        }
+        chrome.storage.sync.get([DST_DONATE_ACK_N_KEY, DST_REVIEW_SHOWN_DAY_KEY], (sync) => {
+          if (chrome.runtime && chrome.runtime.lastError) return;
+          sync = sync || {};
+          const n = (typeof sync[DST_DONATE_ACK_N_KEY] === 'number') ? sync[DST_DONATE_ACK_N_KEY] : 0;
+          coffeeDue = days >= dstNextPulseDay(n) && sync[DST_REVIEW_SHOWN_DAY_KEY] !== today;
+          applyCoffeePulse();
+        });
+      });
+    } catch (err) { /* noop */ }
+  }
 
   // Label + mode bar of one segment (v3.1.2: also used to update a
   // segment in place on click, before the re-sort re-creates the bar).
@@ -2975,7 +3066,9 @@
         const sortNow = () => {
           if (token !== pendingClick) return;
           pendingMode = null;
-          changeSortMode(targetMode, shadowRoot);   // re-renders the bar too
+          // re-renders the bar too; v4.20.0: actively re-sorting is a moment
+          // where the extension helped
+          changeSortMode(targetMode, shadowRoot).then(markCoffeeMoment, function () {});
         };
         // v3.4.1: flash right away (while sliding); re-sort once slide and
         // flash are over — a large forum's re-sort blocks the page and would
@@ -3053,20 +3146,7 @@
         }, 7500);
       });
     })();
-    // ── v2.4.6: recurring donation pulse (exponential growth, b=1.5, same as popup) ──
-    // Keys shared with popup.js: install time in storage.local, acknowledged counter n in sync.
-    // Pulse formula: day(n) = 30 · (1.5^(n+1) - 1) → 1st: day 15, 2nd: day 37.5, 3rd: day 71.25, …
-    // A click increments n, so the pulse only returns at the next calculated day.
-    const DST_DONATE_ACK_N_KEY = 'dstDonateAckN';
-    const DST_INSTALL_TS_KEY = 'dstInstallTimestamp';
-    const DST_DONATE_BASE = 1.5;
-    const DST_DONATE_DAY_MS = 24 * 60 * 60 * 1000;
-
-    function dstNextPulseDay(n) {
-      // Day for the (n+1)-th pulse = 30 · (1.5^(n+1) - 1)
-      return 30 * (Math.pow(DST_DONATE_BASE, n + 1) - 1);
-    }
-
+    // v4.20.0: when the pulse shows is decided by applyCoffeePulse() (see above).
     coffeeBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       // v3.7.0: golden click flash like the sort segments' flash
@@ -3074,8 +3154,8 @@
       coffeeBtn.classList.remove('dst-flash');
       if (!reduceMotion) requestAnimationFrame(() => coffeeBtn.classList.add('dst-flash'));
       // Acknowledge by incrementing n, so pulse returns only at the next calculated day.
+      coffeeDue = false;
       coffeeBtn.classList.remove('dst-pulsing');
-      coffeePulseCache = false;
       try {
         if (chrome?.storage?.sync) {
           chrome.storage.sync.get([DST_DONATE_ACK_N_KEY], (res) => {
@@ -3092,37 +3172,6 @@
     coffeeBtn.addEventListener('animationend', (e) => {
       if (e.animationName === 'dst-coffee-flash') coffeeBtn.classList.remove('dst-flash');
     });
-
-    // Decide whether to auto-pulse this time (fail-safe: no pulse on any error).
-    if (coffeePulseCache !== null) {
-      if (coffeePulseCache) coffeeBtn.classList.add('dst-pulsing');
-    } else try {
-      if (chrome?.storage?.local && chrome?.storage?.sync) {
-        coffeePulseCache = false; // bis zur Antwort: kein Puls, keine Doppelabfrage
-        chrome.storage.local.get([DST_INSTALL_TS_KEY], (localData) => {
-          if (chrome.runtime && chrome.runtime.lastError) return;
-          localData = localData || {};
-          let installedAt = localData[DST_INSTALL_TS_KEY];
-          if (typeof installedAt !== 'number') {
-            installedAt = Date.now();
-            try { chrome.storage.local.set({ [DST_INSTALL_TS_KEY]: installedAt }); } catch (err) { /* noop */ }
-          }
-          const usageDays = Math.floor((Date.now() - installedAt) / DST_DONATE_DAY_MS);
-          chrome.storage.sync.get([DST_DONATE_ACK_N_KEY], (syncData) => {
-            if (chrome.runtime && chrome.runtime.lastError) return;
-            syncData = syncData || {};
-            const n = (typeof syncData[DST_DONATE_ACK_N_KEY] === 'number') ? syncData[DST_DONATE_ACK_N_KEY] : 0;
-            const nextPulseDay = dstNextPulseDay(n);
-            if (usageDays >= nextPulseDay) {
-              coffeePulseCache = true;
-              // Die Leiste kann inzwischen neu gebaut worden sein.
-              const live = shadowRoot.querySelector('.dst-coffee-btn');
-              if (live) live.classList.add('dst-pulsing');
-            }
-          });
-        });
-      }
-    } catch (err) { /* noop */ }
 
     // v3.7.0: inside the track, as its last (round) slot
     seg.appendChild(coffeeBtn);
@@ -3144,6 +3193,7 @@
 
     if (completeNotice) renderCompleteNotice(shadowRoot);
     else if (isLoadingAllPostings && lastProgress) showProgressBar(shadowRoot, ...lastProgress);
+    applyCoffeePulse();
   }
 
   // v4.8.0: when there is room right of the postings, the sort pill gets the
@@ -3295,6 +3345,7 @@
     const validTotal = (total && total >= loaded) ? total : 0;
     const pct = done ? 100 : (validTotal > 0 ? Math.min(99, Math.floor(loaded / validTotal * 100)) : 0);
     btn.classList.add('dst-loading');
+    btn.classList.remove('dst-pulsing');
     btn.style.setProperty('--dst-p', String(pct));
     btn.querySelector('.dst-load-pct').textContent = pct + '%';
     btn.title = done ? 'Alle ' + loaded + ' Postings geladen'
@@ -3308,6 +3359,7 @@
     btn.classList.remove('dst-loading', 'dst-load-done');
     btn.style.removeProperty('--dst-p');
     btn.removeAttribute('title');
+    applyCoffeePulse();
   }
 
 
@@ -3338,6 +3390,7 @@
     const notice = { total: totalPostings };
     completeNotice = notice;
     renderCompleteNotice(shadowRoot);
+    coffeeMoment = true; // v4.20.0: pulses once the ring is gone (hideProgressBar)
 
     // the 100% stays for a moment, then the cup comes back. Timed by frames:
     // right after loading the final sort keeps the page busy and delayed a

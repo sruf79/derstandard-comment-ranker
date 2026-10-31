@@ -34,14 +34,28 @@ describe('sortComparator', () => {
     expect(sortIds('balance-flop', SAMPLE)).toEqual(['e', 'b', 'd', 'c', 'a']);
   });
 
-  it('Likes: Top sorts by positive ratings only', async () => {
+  // v4.5.0 "Pure": first everything with at least one like, by fewest
+  // dislikes, then most likes; postings without any like come last.
+  it('Pure (likes) sorts by fewest dislikes, then most likes; no likes last', async () => {
     const { sortIds } = await setup();
-    expect(sortIds('positive-only', SAMPLE)).toEqual(['c', 'a', 'b', 'e', 'd']);
+    expect(sortIds('positive-only', SAMPLE)).toEqual(['a', 'b', 'c', 'e', 'd']);
   });
 
-  it('Likes: Low sorts by negative ratings only', async () => {
+  it('Pure (dislikes) is the mirror: fewest likes, then most dislikes; no dislikes last', async () => {
     const { sortIds } = await setup();
-    expect(sortIds('negative-only', SAMPLE)).toEqual(['e', 'c', 'b', 'a', 'd']);
+    expect(sortIds('negative-only', SAMPLE)).toEqual(['e', 'b', 'a', 'c', 'd']);
+  });
+
+  it('Pure steps: 0 dislikes before 1 before 2, most likes first within a step', async () => {
+    const { sortIds } = await setup();
+    expect(sortIds('positive-only', [
+      { id: 'one-big', pos: 90, neg: 1 },
+      { id: 'zero-small', pos: 2, neg: 0 },
+      { id: 'zero-big', pos: 40, neg: 0 },
+      { id: 'two', pos: 500, neg: 2 },
+      { id: 'none', pos: 0, neg: 0 },
+      { id: 'only-dislikes', pos: 0, neg: 7 }
+    ])).toEqual(['zero-big', 'zero-small', 'one-big', 'two', 'none', 'only-dislikes']);
   });
 
   it('Timeline: New / Old sort by posting timestamp', async () => {
@@ -55,13 +69,14 @@ describe('sortComparator', () => {
     expect(sortIds('chronological-old', specs)).toEqual(['old', 'mid', 'new']);
   });
 
-  it('treats the legacy "chronological" mode as Timeline: Old', async () => {
+  it('Timeline uses the exact local time from <time data-date> (derStandard DOM)', async () => {
     const { sortIds } = await setup();
     const specs = [
-      { id: 'b', time: '2026-10-28T10:00:00Z' },
-      { id: 'a', time: '2026-10-27T10:00:00Z' }
+      { id: '13:04', date: '28.10.2026, 13:04', timeText: 'vor 1 Stunde' },
+      { id: '13:05', date: '28.10.2026, 13:05', timeText: 'vor 1 Stunde' },
+      { id: 'yesterday', date: '27.10.2026, 23:59' }
     ];
-    expect(sortIds('chronological', specs)).toEqual(['a', 'b']);
+    expect(sortIds('chronological-new', specs)).toEqual(['13:05', '13:04', 'yesterday']);
   });
 
   it('keeps the original forum order for ties in every mode', async () => {
@@ -84,13 +99,19 @@ describe('sortComparator', () => {
     expect(ids).toEqual(['first', 'second', 'third']);
   });
 
-  it('breaks ties by domIndex, not by an unrelated secondary criterion', async () => {
+  it('Balance: equal balance → more votes first (v3.15.2), in both directions', async () => {
     const { sortIds } = await setup();
-    // Same positives, very different negatives: Likes: Top must ignore negatives.
-    expect(sortIds('positive-only', [
-      { id: 'x', pos: 4, neg: 50 },
-      { id: 'y', pos: 4, neg: 0 }
-    ])).toEqual(['x', 'y']);
+    const specs = [{ id: 'small', pos: 2, neg: 2 }, { id: 'big', pos: 5, neg: 5 }, { id: 'none' }];
+    expect(sortIds('balance-top', specs)).toEqual(['big', 'small', 'none']);
+    expect(sortIds('balance-flop', specs)).toEqual(['big', 'small', 'none']);
+  });
+
+  it('the legacy "chronological" mode is never sorted directly (it is migrated on load)', async () => {
+    const { sortIds } = await setup();
+    expect(sortIds('chronological', [
+      { id: 'b', time: '2026-10-28T10:00:00Z' },
+      { id: 'a', time: '2026-10-27T10:00:00Z' }
+    ])).toEqual(['b', 'a']);
   });
 
   it('leaves the order untouched for an unknown mode', async () => {
@@ -140,7 +161,7 @@ describe('readRatings / rating overrides', () => {
     const { c, doc } = await setup();
     const p = createPosting(doc, { pos: 7, neg: 3 });
     expect(c.readRatings(p)).toEqual({ pos: 7, neg: 3 });
-    expect(c.getNetRatings(p)).toBe(4);
+    expect(c.getPositiveRatings(p) - c.getNegativeRatings(p)).toBe(4);
   });
 
   it('returns zeros for missing or non-numeric attributes', async () => {
@@ -207,6 +228,8 @@ describe('migrateStorage', () => {
     [{ [MODE_KEY]: 'chronological' }, 'chronological-old'],
     [{ [MODE_KEY]: 'net' }, 'balance-top'],
     [{ [MODE_KEY]: 'positive' }, 'positive-only'],
+    [{ [MODE_KEY]: 'best' }, 'positive-only'],      // 3.2.0–3.4.1
+    [{ [MODE_KEY]: 'worst' }, 'negative-only'],
     [{ sortByPositive: true }, 'positive-only'],
     [{ sortByPositive: false }, 'balance-top'],
     [{}, 'balance-top'],
@@ -240,24 +263,56 @@ describe('mode groups', () => {
     expect(c.getGroupForMode('chronological')).toBeNull();
   });
 
-  it('dots indicator fills exactly the active sub-mode', async () => {
-    const { c } = await setup();
-    const group = c.BUTTON_GROUPS.find((g) => g.id === 'balance');
-    const dots = c.buildDotsIndicator(group, 'balance-flop').querySelectorAll('.dst-dot');
-    expect(dots).toHaveLength(2);
-    expect(dots[0].classList.contains('filled')).toBe(false);
-    expect(dots[1].classList.contains('filled')).toBe(true);
-    expect(c.buildDotsIndicator(group, 'positive-only').children).toHaveLength(0);
+  it('every mode has a direction bar under its label', async () => {
+    const { c } = await loadContent();
+    for (const mode of c.ALL_MODES) {
+      const bar = c.buildModeBar(mode);
+      expect(bar.className).toBe('dst-mode-bar');
+      expect(bar.children.length, mode).toBe(c.MODE_BARS[mode].length);
+    }
+    const flop = c.buildModeBar('balance-flop');
+    expect(Array.from(flop.children).map((x) => [x.className, x.style.flexGrow])).toEqual([['dst-mb-neg', '3'], ['dst-mb-pos', '1']]);
+  });
+
+  it('the direction is shared by all segments (v3.19.0)', async () => {
+    const { c } = await loadContent();
+    c.setDirectionAll('balance-flop');
+    expect({ ...c.groupSelection }).toEqual({ likes: 'negative-only', balance: 'balance-flop', timeline: 'chronological-old' });
+    c.setDirectionAll('chronological-new');
+    expect({ ...c.groupSelection }).toEqual({ likes: 'positive-only', balance: 'balance-top', timeline: 'chronological-new' });
+  });
+
+  it('labels: one fixed word per segment, a tooltip per direction', async () => {
+    const { c } = await loadContent();
+    expect(c.BUTTON_GROUPS.map((g) => [g.id, ...g.modes.map((m) => c.MODE_DEFS[m].label)])).toEqual([
+      ['likes', 'Pure', 'Pure'], ['balance', 'Balance', 'Balance'], ['timeline', 'Timeline', 'Timeline']
+    ]);
+    for (const m of c.ALL_MODES) expect(c.MODE_DEFS[m].title.length, m).toBeGreaterThan(10);
   });
 });
 
 describe('loadState', () => {
   it('reads settings from chrome.storage.sync and persists a migrated mode', async () => {
-    const { env, c } = await loadContent({ sync: { dstSorterMode: 'net', dstSorterAutoLoad: false } });
+    const { env, c } = await loadContent({ sync: { dstSorterMode: 'net', dstFlat: true } });
     expect(c.sortMode).toBe('balance-top');
     expect(c.sortEnabled).toBe(true);
-    expect(c.autoLoadEnabled).toBe(false);
+    expect(c.flatDesign).toBe(true);
     expect(env.chrome.storage.sync.data.dstSorterMode).toBe('balance-top');
+  });
+
+  it('removes the setting of the dropped "Farbmarkierung" option', async () => {
+    const { env } = await loadContent({ sync: { dstTintEdge: true } });
+    expect('dstTintEdge' in env.chrome.storage.sync.data).toBe(false);
+  });
+
+  it('follows a design switch made in the popup (storage.onChanged)', async () => {
+    const { env, c } = await loadContent();
+    const forum = env.document.createElement('dst-forum');
+    env.document.body.appendChild(forum);
+    env.chrome.storage.sync.set({ dstFlat: true });
+    await env.flush();
+    expect(c.flatDesign).toBe(true);
+    expect(forum.classList.contains('dst-flat')).toBe(true);
   });
 
   it('does not rewrite storage when the mode is already current', async () => {
@@ -270,13 +325,9 @@ describe('loadState', () => {
     expect(c.sortEnabled).toBe(false);
   });
 
-  it('falls back to localStorage without chrome.storage', async () => {
-    const { env, c } = await loadContent({ storage: false });
-    env.window.localStorage.setItem('dstSorterMode', 'positive');
-    env.window.localStorage.setItem('dstSorterEnabled', 'false');
-    c.loadState(() => {});
-    expect(c.sortMode).toBe('positive-only');
-    expect(c.sortEnabled).toBe(false);
-    expect(env.window.localStorage.getItem('dstSorterMode')).toBe('positive-only');
+  it('without chrome.storage it starts with the defaults', async () => {
+    const { c } = await loadContent({ storage: false });
+    expect(c.sortEnabled).toBe(true);
+    expect(c.sortMode).toBe('balance-top');
   });
 });

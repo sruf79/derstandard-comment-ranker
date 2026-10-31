@@ -38,6 +38,9 @@
     INSTALL_DATE:    'dstRanker_installDate',
     RATING_GIVEN:    'dstRanker_ratingGiven',
     LAST_DISMISSED:  'dstRanker_lastDismissed',
+    // v4.20.0: day ('YYYY-MM-DD') the bar was last shown. content.js and
+    // popup.js keep the coffee badge calm on that day (one request at a time).
+    SHOWN_DAY:       'dstRanker_reviewShownDay',
   };
 
   const DELAY_FIRST_PROMPT  = 3 * 24 * 60 * 60 * 1000;  // 3 days in ms
@@ -462,6 +465,14 @@
     // (content.js) would push the bar to the very end of the forum.
     feedbackBar.style.order = '-1';
     badgeBar.insertAdjacentElement('afterend', feedbackBar);
+
+    // 11. v4.20.0: never ask for a review and a coffee on the same day.
+    //     content.js listens and keeps the coffee badge calm for this page.
+    document.dispatchEvent(new Event('dst-review-shown'));
+    const d = new Date();
+    const today = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' +
+      String(d.getDate()).padStart(2, '0');
+    await storageSet({ [KEYS.SHOWN_DAY]: today });
   }
 
   // ── Run (document_idle) — a small delay lets content.js inject the bar ──

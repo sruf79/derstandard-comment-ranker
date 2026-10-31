@@ -20,27 +20,57 @@ async function openPopup({ sync = {}, local = {}, userAgent } = {}) {
   return { env, $, sync: env.chrome.storage.sync.data, local: env.chrome.storage.local.data };
 }
 
-describe('enable toggle', () => {
-  it('is checked by default and unchecked when disabled in storage', async () => {
-    expect((await openPopup()).$('#extensionEnabled').checked).toBe(true);
-    expect((await openPopup({ sync: { dstSorterEnabled: false } })).$('#extensionEnabled').checked).toBe(false);
+describe('on/off switch', () => {
+  const state = ($) => [$('#btnExt').getAttribute('aria-pressed'), $('#btnExt').textContent];
+
+  it('shows "an" by default and "aus" when disabled in storage', async () => {
+    expect(state((await openPopup()).$)).toEqual(['true', 'Erweiterung ist an']);
+    expect(state((await openPopup({ sync: { dstSorterEnabled: false } })).$)).toEqual(['false', 'Erweiterung ist aus']);
   });
 
-  it('persists the change and notifies the active tab', async () => {
+  it('a click persists the change, flashes and notifies the active tab', async () => {
     const { env, $, sync } = await openPopup();
-    const toggle = $('#extensionEnabled');
-    toggle.checked = false;
-    toggle.dispatchEvent(new env.window.Event('change'));
+    $('#btnExt').click();
+    expect(state($)).toEqual(['false', 'Erweiterung ist aus']);
+    expect($('#btnExt').classList.contains('flash')).toBe(true);
     expect(sync.dstSorterEnabled).toBe(false);
     expect(env.chrome.tabs.sendMessage).toHaveBeenCalledWith(7, { action: 'toggle', enabled: false });
+    $('#btnExt').click();
+    expect(sync.dstSorterEnabled).toBe(true);
   });
 
   it('does not throw when the tab has no content script', async () => {
     const { env, $ } = await openPopup();
     env.chrome.tabs.sendMessage.mockImplementation(() => Promise.reject(new Error('Receiving end does not exist')));
-    $('#extensionEnabled').dispatchEvent(new env.window.Event('change'));
+    $('#btnExt').click();
     await env.flush();
     expect(env.errors).toEqual([]);
+  });
+});
+
+describe('design switch (v4.18.0)', () => {
+  it('shows glass by default and flat when stored', async () => {
+    const glass = await openPopup();
+    expect(glass.$('#btnDesign').textContent).toBe('Design: Glas');
+    const flat = await openPopup({ sync: { dstFlat: true } });
+    expect(flat.$('#btnDesign').textContent).toBe('Design: Flach');
+    expect(flat.env.document.body.classList.contains('flat')).toBe(true);
+  });
+
+  it('a click stores the choice for the page', async () => {
+    const { $, sync } = await openPopup();
+    $('#btnDesign').click();
+    expect(sync.dstFlat).toBe(true);
+    expect($('#btnDesign').getAttribute('aria-pressed')).toBe('true');
+  });
+});
+
+describe('keyboard focus rings', () => {
+  it('appear only once Tab is used', async () => {
+    const { env } = await openPopup();
+    expect(env.document.body.classList.contains('kbd')).toBe(false);
+    env.document.dispatchEvent(new env.window.KeyboardEvent('keydown', { key: 'Tab' }));
+    expect(env.document.body.classList.contains('kbd')).toBe(true);
   });
 });
 
@@ -74,12 +104,11 @@ describe('review badge', () => {
     expect($('#reviewBtn').classList.contains('pulsing')).toBe(false);
   });
 
-  it('click stores the shared flag, thanks the user and opens the store', async () => {
+  it('click stores the shared flag and opens the store', async () => {
     const { env, $, sync } = await openPopup({ local: { dstInstallTimestamp: NOW - 30 * DAY } });
     const btn = $('#reviewBtn');
     btn.click();
     expect(btn.classList.contains('pulsing')).toBe(false);
-    expect(btn.classList.contains('thanked')).toBe(true);
     expect(sync.dstRanker_ratingGiven).toBe(true);
     expect(env.chrome.tabs.create).toHaveBeenCalledWith({ url: btn.getAttribute('href') });
   });

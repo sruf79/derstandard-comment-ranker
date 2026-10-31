@@ -27,30 +27,30 @@ export function readFixture(name) {
 // entries in STATE get a getter + setter so tests can drive module state.
 const EXPOSE = {
   'content.js': [
-    'MODE_DEFS', 'BUTTON_GROUPS', 'ALL_MODES', 'voterIdMap',
-    'getGroupForMode', 'buildDotsIndicator',
-    'parseRelativeTime', 'getPostingTimestamp',
-    'readRatings', 'getPositiveRatings', 'getNegativeRatings', 'getNetRatings',
+    'MODE_DEFS', 'BUTTON_GROUPS', 'ALL_MODES', 'MODE_BARS', 'voterIdMap', 'openThreadIds',
+    'getGroupForMode', 'buildModeBar', 'setDirectionAll', 'groupSelection',
+    'parseRelativeTime', 'parseDataDate', 'getPostingTimestamp', 'postingTimeOf',
+    'readRatings', 'getPositiveRatings', 'getNegativeRatings',
     'transferRatingsIfNewer', 'computeSortKey', 'sortComparator', 'buildSortSignature',
     'migrateStorage', 'loadState',
     'isPinnedPosting', 'getPostingId', 'getStablePostingId', 'isInputFormElement',
     'isRootPosting', 'isReplyThreadSection', 'collectPostingGroups',
-    'userPrefersExpandedThreads', 'collapseReplyThreads', 'expandPinnedThreads',
+    'userPrefersExpandedThreads', 'markOpenThreads', 'onThreadToggle', 'expandPinnedThreads',
     'hasRatingData', 'parseRatingLog', 'resolveNumericPostingId', 'fetchRatingLogPage',
-    'openVoterPopup', 'closeVoterPopup',
+    'openVoterPopup', 'closeVoterPopup', 'decorateTile', 'updateTile', 'widenReplyBox',
     'getTotalPostingCount', 'findLoadMoreButton', 'readForumLoadState',
     'showProgressBar', 'hideProgressBar', 'sortPostings', 'injectSortBadge',
-    'loadAllPostings', 'isArticlePage'
+    'loadAllPostings'
   ],
   'rating.js': [
     'KEYS', 'detectIsFirefox', 'getReviewURL', 'storageGet', 'storageSet',
-    'runV1915Reset', 'runV1916Reset', 'createFeedbackBar', 'main'
+    'createFeedbackBar', 'main'
   ],
   'forum-hook.js': ['collectPairs', 'relay', 'isForumGraphql']
 };
 
 const STATE = {
-  'content.js': ['sortMode', 'sortEnabled', 'autoLoadEnabled', 'lastSortSignature']
+  'content.js': ['sortMode', 'sortEnabled', 'lastSortSignature', 'allLoadDone', 'flatDesign']
 };
 
 function instrument(file, src) {
@@ -109,10 +109,12 @@ function createStorageArea(chrome, initial) {
 
 export function createChrome({ sync = {}, local = {}, storage = true } = {}) {
   const listeners = [];
+  const changeListeners = [];
   const chrome = {
     runtime: {
       lastError: undefined,
-      onMessage: { addListener: (fn) => listeners.push(fn) }
+      onMessage: { addListener: (fn) => listeners.push(fn) },
+      getURL: (p) => 'chrome-extension://test-extension-id/' + String(p).replace(/^\//, '')
     },
     tabs: {
       query: vi.fn((q, cb) => cb([{ id: 7 }])),
@@ -123,8 +125,20 @@ export function createChrome({ sync = {}, local = {}, storage = true } = {}) {
   if (storage) {
     chrome.storage = {
       sync: createStorageArea(chrome, sync),
-      local: createStorageArea(chrome, local)
+      local: createStorageArea(chrome, local),
+      onChanged: { addListener: (fn) => changeListeners.push(fn) }
     };
+    // Like chrome: set() notifies storage.onChanged listeners (asynchronously).
+    for (const area of ['sync', 'local']) {
+      const a = chrome.storage[area];
+      const origSet = a.set.getMockImplementation();
+      a.set.mockImplementation((obj, cb) => {
+        const changes = {};
+        for (const k of Object.keys(obj)) changes[k] = { oldValue: a.data[k], newValue: obj[k] };
+        origSet(obj, cb);
+        Promise.resolve().then(() => changeListeners.forEach((fn) => fn(changes, area)));
+      });
+    }
   }
   // Deliver a runtime message to every content-script listener.
   chrome.sendRuntimeMessage = (msg) => listeners.forEach((fn) => fn(msg));

@@ -16,6 +16,7 @@ describe('manifest.json', () => {
 
   it('references only files that exist', () => {
     const files = [
+      ...(manifest.web_accessible_resources || []).flatMap((r) => r.resources),
       ...manifest.content_scripts.flatMap((cs) => cs.js),
       manifest.action.default_popup,
       ...Object.values(manifest.icons),
@@ -41,6 +42,17 @@ describe('manifest.json', () => {
       for (const m of cs.matches) expect(m).toMatch(/^\*:\/\/\*\.derstandard\.(at|de)\/\*$/);
     }
     expect(manifest.permissions).toEqual(['storage']);
+  });
+
+  it('exposes only the coffee image to the page, and only on derStandard', () => {
+    expect(manifest.web_accessible_resources).toEqual([
+      { resources: ['icons/coffee.svg'], matches: ['*://*.derstandard.at/*', '*://*.derstandard.de/*'] }
+    ]);
+  });
+
+  it('the bundled coffee image carries its license notice', () => {
+    expect(readSource('icons/NOTICE.txt')).toMatch(/Apache License/);
+    expect(readSource('icons/coffee.svg')).not.toMatch(/<script|on[a-z]+=/i);
   });
 
   it('declares Firefox data collection as none', () => {
@@ -76,6 +88,7 @@ describe('store-review hygiene', () => {
     for (const file of SCRIPTS) {
       const urls = readSource(file).match(/https?:\/\/[^\s'"`)]+/g) || [];
       for (const u of urls) {
+        if (u === 'http://www.w3.org/2000/svg') continue; // SVG namespace, not a request
         expect(u, file).toMatch(/^https:\/\/((apps|www)\.derstandard\.at|capi\.ds\.at|chromewebstore\.google\.com|addons\.mozilla\.org|buymeacoffee\.com)\//);
       }
     }

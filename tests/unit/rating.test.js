@@ -16,9 +16,9 @@ const UA = {
   neutral: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/605.1.15 (KHTML, like Gecko)'
 };
 
-// Storage of an existing user who already went through both one-time migrations.
+// Storage of an existing user (v4.x has no one-time migrations any more).
 function migrated(extra) {
-  return { dstRanker_v1915Reset: true, dstRanker_v1916Reset: true, ...extra };
+  return { ...extra };
 }
 
 async function run({ sync = {}, badgeBar = true, url, userAgent, browserGlobal } = {}) {
@@ -40,9 +40,7 @@ describe('feedback bar timing', () => {
   it('first page load only records the install date', async () => {
     const { bar, data } = await run();
     expect(bar()).toBeNull();
-    expect(data.dstRanker_installDate).toBe(NOW + 1000);
-    expect(data.dstRanker_v1915Reset).toBe(true);
-    expect(data.dstRanker_v1916Reset).toBe(true);
+    expect(data).toEqual({ dstRanker_installDate: NOW + 1000 });
   });
 
   it('stays hidden during the first 3 days', async () => {
@@ -64,20 +62,26 @@ describe('feedback bar timing', () => {
     expect(bar()).toBeNull();
   });
 
-  it('honours the 3-day snooze after the first dismissal', async () => {
-    const base = { dstRanker_installDate: NOW - 30 * DAY, dstRanker_dismissCount: 1 };
-    expect((await run({ sync: migrated({ ...base, dstRanker_lastDismissed: NOW - 2 * DAY }) })).bar()).toBeNull();
-    const later = await run({ sync: migrated({ ...base, dstRanker_lastDismissed: NOW - 4 * DAY }) });
+  it('every dismissal snoozes the bar for 3 days (v3.1.0)', async () => {
+    const base = { dstRanker_installDate: NOW - 30 * DAY };
+    expect((await run({ sync: migrated({ ...base, dstRanker_lastDismissed: NOW - 3 * DAY + 60000 }) })).bar()).toBeNull();
+    const later = await run({ sync: migrated({ ...base, dstRanker_lastDismissed: NOW - 3 * DAY }) });
     expect(later.bar()).not.toBeNull();
-    expect(later.bar().querySelector('.dst-fdbk-dismiss')).not.toBeNull();
   });
 
-  it('after 2 dismissals the bar is permanent and has no dismiss button', async () => {
+  it('the dismiss button is always there, also after many dismissals', async () => {
     const { bar } = await run({ sync: migrated({
-      dstRanker_installDate: NOW - 30 * DAY, dstRanker_dismissCount: 2, dstRanker_lastDismissed: NOW - 60 * 1000
+      dstRanker_installDate: NOW - 30 * DAY, dstRanker_dismissCount: 7, dstRanker_lastDismissed: NOW - 10 * DAY
     }) });
-    expect(bar()).not.toBeNull();
-    expect(bar().querySelector('.dst-fdbk-dismiss')).toBeNull();
+    expect(bar().querySelector('.dst-fdbk-dismiss')).not.toBeNull();
+  });
+
+  it('stars are real buttons with labels (keyboard accessible)', async () => {
+    const { bar } = await run({ sync: migrated({ dstRanker_installDate: NOW - 30 * DAY }) });
+    const stars = Array.from(bar().querySelectorAll('.dst-fdbk-star'));
+    expect(stars.map((s) => s.tagName)).toEqual(Array(5).fill('BUTTON'));
+    expect(stars[0].getAttribute('aria-label')).toBe('1 Stern – Schlecht');
+    expect(stars[4].getAttribute('aria-label')).toBe('5 Sterne – Perfekt');
   });
 
   it('does nothing without a badge bar (extension inactive / no forum)', async () => {
@@ -143,23 +147,24 @@ describe('feedback bar interaction', () => {
     expect(env.window.open).toHaveBeenCalledTimes(1);
   });
 
-  it('dismiss increments the counter and stores the timestamp', async () => {
-    const { env, bar, data } = await shown({ sync: { dstRanker_dismissCount: 1 } });
+  it('dismiss stores the timestamp and removes the bar', async () => {
+    const { env, bar, data } = await shown();
     bar().querySelector('.dst-fdbk-dismiss').click();
     await env.flush();
-    expect(data.dstRanker_dismissCount).toBe(2);
     expect(data.dstRanker_lastDismissed).toBe(env.window.Date.now());
+    expect(data.dstRanker_ratingGiven).toBeUndefined();
     await env.tick(400);
     expect(bar()).toBeNull();
   });
 
-  it('hover shows the star label', async () => {
+  it('hover previews the stars up to the pointer', async () => {
     const { env, bar } = await shown();
-    const star = bar().querySelector('.dst-fdbk-star[data-value="2"]');
+    const star = bar().querySelector('.dst-fdbk-star[data-value="3"]');
     star.dispatchEvent(new env.window.Event('mouseenter'));
-    expect(bar().querySelector('.dst-fdbk-label').textContent).toBe('Geht so');
+    const preview = () => Array.from(bar().querySelectorAll('.dst-fdbk-star.hover-preview')).map((x) => x.dataset.value);
+    expect(preview()).toEqual(['1', '2', '3']);
     star.dispatchEvent(new env.window.Event('mouseleave'));
-    expect(bar().querySelector('.dst-fdbk-label').textContent).toBe('Zum Bewerten klicken');
+    expect(preview()).toEqual([]);
   });
 });
 
@@ -180,57 +185,11 @@ describe('review URL / browser detection', () => {
   });
 });
 
-describe('one-time migrations', () => {
-  it('v1.9.15 reset: brand-new install only sets the flag', async () => {
-    const env = track(await createEnv());
-    const r = env.load('rating.js');
-    expect(await r.runV1915Reset()).toBe(true);
-    expect(env.chrome.storage.sync.data).toEqual({ dstRanker_v1915Reset: true });
-  });
-
-  it('v1.9.15 reset: existing user gets a fresh chance to rate', async () => {
-    const env = track(await createEnv({ sync: {
-      dstRanker_installDate: NOW - 100 * DAY, dstRanker_ratingGiven: true, dstRanker_lastDismissed: NOW - DAY
-    } }));
-    const r = env.load('rating.js');
-    expect(await r.runV1915Reset()).toBe(true);
-    expect(env.chrome.storage.sync.data).toEqual({ dstRanker_installDate: NOW, dstRanker_v1915Reset: true });
-  });
-
-  it('v1.9.15 reset runs only once', async () => {
-    const env = track(await createEnv({ sync: { dstRanker_installDate: 1, dstRanker_ratingGiven: true, dstRanker_v1915Reset: true } }));
-    const r = env.load('rating.js');
-    await r.runV1915Reset();
-    expect(env.chrome.storage.sync.data.dstRanker_ratingGiven).toBe(true);
-    expect(env.chrome.storage.sync.set).not.toHaveBeenCalled();
-  });
-
-  it('v1.9.16 reset back-dates unrated users so the prompt is due immediately', async () => {
-    const env = track(await createEnv({ sync: { dstRanker_installDate: NOW - DAY, dstRanker_lastDismissed: NOW } }));
-    const r = env.load('rating.js');
-    expect(await r.runV1916Reset()).toBe(true);
-    const data = env.chrome.storage.sync.data;
-    expect(data.dstRanker_installDate).toBe(NOW - 4 * DAY);
-    expect(data.dstRanker_lastDismissed).toBeUndefined();
-    expect(data.dstRanker_v1916Reset).toBe(true);
-  });
-
-  it('v1.9.16 reset leaves rated users alone', async () => {
-    const env = track(await createEnv({ sync: { dstRanker_installDate: NOW - DAY, dstRanker_ratingGiven: true } }));
-    const r = env.load('rating.js');
-    await r.runV1916Reset();
-    expect(env.chrome.storage.sync.data).toEqual({
-      dstRanker_installDate: NOW - DAY, dstRanker_ratingGiven: true, dstRanker_v1916Reset: true
-    });
-  });
-
-  it('migrations report failure (and write nothing) when storage is unreadable', async () => {
-    const env = track(await createEnv({ sync: { dstRanker_installDate: 1 } }));
-    const r = env.load('rating.js');
-    env.chrome.storage.sync.failNextGet = new Error('x');
-    expect(await r.runV1915Reset()).toBe(false);
-    env.chrome.storage.sync.failNextGet = new Error('x');
-    expect(await r.runV1916Reset()).toBe(false);
-    expect(env.chrome.storage.sync.set).not.toHaveBeenCalled();
+describe('old storage keys', () => {
+  it('leftovers of the removed one-time migrations do not matter', async () => {
+    const { bar } = await run({ sync: {
+      dstRanker_installDate: NOW - 10 * DAY, dstRanker_v1915Reset: false, dstRanker_v1916Reset: false
+    } });
+    expect(bar()).not.toBeNull();
   });
 });

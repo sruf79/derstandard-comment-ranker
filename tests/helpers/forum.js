@@ -5,10 +5,12 @@
 //     <header class="forum--header">
 //     <main class="forum--main">
 //       <dst-posting-box>                       comment form
-//       <dst-posting data-level="0">            root posting (sortable)
+//       <dst-posting class="posting" data-level="0">   root posting (sortable)
 //         <dst-posting--ratinglog postingid=… positiveratings=… negativeratings=…>
-//         <time datetime=…>
-//         <button class="answers">              native reply toggle
+//         <time data-date="28.10.2026, 13:04">  exact local time (or datetime=…)
+//         <dst-posting-footer>
+//           <button class="answer-button">Antworten</button>   opens the reply box
+//           <button class="answers"><span>N</span></button>      native thread toggle
 //       <section class="thread">                replies of the posting above
 //       <slot>                                  ad container
 //     <button class="thread--more">             "Weitere Postings laden"
@@ -17,13 +19,15 @@ let autoId = 0;
 
 export function createPosting(doc, spec = {}) {
   const p = doc.createElement('dst-posting');
+  p.className = 'posting';
   const id = spec.id === undefined ? 'P' + (++autoId) : spec.id;
   p.setAttribute('data-level', spec.level === undefined ? '0' : String(spec.level));
   if (spec.level === null) p.removeAttribute('data-level');
   if (spec.pinned) p.setAttribute('pinned', '');
   if (spec.ariaLabel) p.setAttribute('aria-label', spec.ariaLabel);
-  if (spec.className) p.className = spec.className;
-  if (spec.hasThread) p.classList.add('posting-with-thread');
+  if (spec.className) p.classList.add(...spec.className.split(/\s+/));
+  if (spec.deleted) p.classList.add('posting-deleted');
+  if (spec.hasThread || spec.replies) p.classList.add('posting-with-thread');
   if (spec.expanded) p.classList.add('posting-has-thread-expanded');
 
   if (spec.ratings !== false) {
@@ -33,9 +37,10 @@ export function createPosting(doc, spec = {}) {
     r.setAttribute('negativeratings', String(spec.neg || 0));
     p.appendChild(r);
   }
-  if (spec.time !== undefined || spec.timeText !== undefined) {
+  if (spec.time !== undefined || spec.timeText !== undefined || spec.date !== undefined) {
     const t = doc.createElement('time');
     if (spec.time !== undefined) t.setAttribute('datetime', spec.time);
+    if (spec.date !== undefined) t.setAttribute('data-date', spec.date);
     t.textContent = spec.timeText || '';
     p.appendChild(t);
   }
@@ -44,17 +49,27 @@ export function createPosting(doc, spec = {}) {
     body.textContent = spec.text;
     p.appendChild(body);
   }
-  if (spec.hasThread || spec.expanded) {
-    const btn = doc.createElement('button');
-    btn.className = 'answers';
-    btn.textContent = 'Antworten';
-    // Native toggle: flips the expanded class and marks the posting active.
-    btn.addEventListener('click', () => {
-      p.classList.toggle('posting-has-thread-expanded');
-      p.classList.add('is-active-posting');
-      p.dataset.toggleClicks = String(Number(p.dataset.toggleClicks || 0) + 1);
-    });
-    p.appendChild(btn);
+  if (!spec.deleted && spec.footer !== false) {
+    const footer = doc.createElement('dst-posting-footer');
+    const reply = doc.createElement('button');
+    reply.className = 'answer-button';
+    reply.textContent = 'Antworten';
+    footer.appendChild(reply);
+    if (spec.hasThread || spec.expanded) {
+      const btn = doc.createElement('button');
+      btn.className = 'answers';
+      const n = doc.createElement('span');
+      n.textContent = String(spec.replyCount || spec.replies || 1);
+      btn.appendChild(n);
+      // Native toggle: flips the expanded class and marks the posting active.
+      btn.addEventListener('click', () => {
+        p.classList.toggle('posting-has-thread-expanded');
+        p.classList.add('is-active-posting');
+        p.dataset.toggleClicks = String(Number(p.dataset.toggleClicks || 0) + 1);
+      });
+      footer.appendChild(btn);
+    }
+    p.appendChild(footer);
   }
   return p;
 }
