@@ -159,6 +159,36 @@ test.describe('reply threads (v4.19.x, real clicks)', () => {
     await page.waitForTimeout(300);
     expect(Math.abs((await posting.boundingBox()).y - before)).toBeLessThanOrEqual(2);
   });
+
+  // Live bug (4.20.1): at the end of the forum, the browser's own scroll
+  // anchoring picked an element BELOW the forum (main has overflow-anchor:
+  // none) and kept it in place while the thread opened, so the clicked
+  // posting jumped out of view and its first reply sat in its place.
+  for (const [label, extra] of [['closed natively', ''], ['open natively (gear)', '&expanded=1']]) {
+    test(`opening a thread at the end of the forum keeps the clicked posting in place (${label})`, async ({ context, site }) => {
+      const page = await context.newPage();
+      await page.goto(site.ARTICLE_URL + '?gen=20&allReplies=1' + extra);
+      await waitLoaded(page);
+      const id = await page.evaluate(() => {
+        const main = document.querySelector('dst-forum').shadowRoot.querySelector('main.forum--main');
+        const roots = Array.from(main.querySelectorAll(':scope > dst-posting[data-level="0"]'))
+          .filter((p) => p.querySelector(':scope > dst-posting-footer .answers'))
+          .sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top);
+        const last = roots[roots.length - 1];
+        // the end of the forum (and what follows it) is on screen
+        window.scrollBy(0, main.getBoundingClientRect().bottom - (innerHeight - 60));
+        if (last.getBoundingClientRect().top < 0) throw new Error('posting not on screen');
+        return last.querySelector('dst-posting--ratinglog').getAttribute('postingid');
+      });
+      await page.waitForTimeout(300);
+      const posting = shadow(page, `dst-posting:has(> dst-posting--ratinglog[postingid="${id}"])`);
+      const before = (await posting.boundingBox()).y;
+      await posting.locator(':scope > dst-posting-footer .answers').click();
+      await expect.poll(() => visibleReplies(page, id)).toBe(2);
+      await page.waitForTimeout(500);
+      expect(Math.abs((await posting.boundingBox()).y - before)).toBeLessThanOrEqual(2);
+    });
+  }
 });
 
 test.describe('posting cards and voter popup', () => {

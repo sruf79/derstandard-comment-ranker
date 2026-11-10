@@ -2334,6 +2334,46 @@
     });
   }
 
+  // v4.20.2: the posting the reader clicked (💬 or "Antworten") stays where it
+  // is while its thread opens or closes. main has overflow-anchor: none, so at
+  // the end of the forum the browser anchored an element BELOW it (live: a
+  // decorative svg) and kept that in place instead: the clicked posting
+  // jumped out of view and its first reply took its place. Browser anchoring
+  // is suspended and the posting pinned until the thread has settled (derStandard
+  // may load the replies first); any scrolling by the reader ends it at once.
+  const HOLD_MS = 2500;
+  let holdStop = null;
+  function holdPosting(posting) {
+    if (holdStop) holdStop();
+    const root = document.documentElement;
+    const y = posting.getBoundingClientRect().top;
+    const t0 = performance.now();
+    let done = false, raf = 0;
+    const opts = { capture: true, passive: true };
+    const stop = function () {
+      if (done) return;
+      done = true;
+      cancelAnimationFrame(raf);
+      ['wheel', 'touchstart', 'keydown', 'mousedown'].forEach(function (t) { window.removeEventListener(t, stop, opts); });
+      if (holdStop === stop) holdStop = null;
+      if (--anchoringSuspended === 0) root.style.overflowAnchor = '';
+    };
+    const tick = function () {
+      if (done) return;
+      if (posting.isConnected) {
+        const delta = posting.getBoundingClientRect().top - y;
+        if (Math.abs(delta) >= 1) window.scrollBy(0, delta);
+      }
+      if (performance.now() - t0 > HOLD_MS) { stop(); return; }
+      raf = requestAnimationFrame(tick);
+    };
+    anchoringSuspended++;
+    root.style.overflowAnchor = 'none';
+    ['wheel', 'touchstart', 'keydown', 'mousedown'].forEach(function (t) { window.addEventListener(t, stop, opts); });
+    holdStop = stop;
+    raf = requestAnimationFrame(tick);
+  }
+
   // A real click on a toggle, on any level. A thread hidden only by us opens
   // without derStandard (it is open natively), everything else stays native.
   function onThreadToggle(shadowRoot, e) {
@@ -2345,6 +2385,7 @@
     const replyTo = reply && reply.closest('dst-posting');
     const replyPid = replyTo && getPostingId(replyTo);
     if (replyPid) {
+      holdPosting(replyTo);
       openThreadIds.add(replyPid);
       markOpenThreads(shadowRoot, replyTo.closest('main.forum--main'));
       return;
@@ -2356,6 +2397,7 @@
     const pid = getPostingId(posting);
     if (!pid) return;
     const expanded = posting.classList.contains('posting-has-thread-expanded');
+    holdPosting(posting);
     if (openThreadIds.has(pid)) {
       if (expanded) openThreadIds.delete(pid); // derStandard closes it
     } else {

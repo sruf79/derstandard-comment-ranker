@@ -25,6 +25,7 @@
   //   &moreAfter=MS    keep "Weitere Postings laden" disabled for the first MS
   //   &keepMore=1      keep the (disabled) button after the last batch instead of removing it
   //   &expanded=1      reply threads rendered open by derStandard (gear "Antworten ausgeklappt")
+  //   &allReplies=1    every generated posting has 2 replies (default: every 7th)
   const params = new URLSearchParams(location.search);
   const LOAD_DELAY = Number(params.get('delay') || 150);
   if (params.has('article')) document.querySelector('article').style.height = params.get('article') + 'px';
@@ -35,7 +36,7 @@
     return {
       id: 'G' + n, legacy: 50000 + n, pos: rnd(200), neg: rnd(80),
       time: new Date(Date.UTC(2026, 9, 28, 12) - n * 60000).toISOString(),
-      replies: n % 7 === 0 ? 2 : 0
+      replies: (params.has('allReplies') || n % 7 === 0) ? 2 : 0
     };
   });
 
@@ -211,6 +212,12 @@
         setTimeout(() => { more.disabled = false; }, moreAfter);
       }
       this.shadowRoot.appendChild(more);
+      // live: a decorative svg follows the forum inside the shadow root; it is
+      // the first scroll-anchor candidate after main (overflow-anchor: none)
+      const deco = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      deco.setAttribute('width', '40'); deco.setAttribute('height', '6');
+      deco.style.display = 'block';
+      this.shadowRoot.appendChild(deco);
 
       // The real forum loads its data via GraphQL; forum-hook.js listens to it.
       fetch('https://capi.ds.at/forum-serve-graphql', { method: 'POST', body: '{}' }).catch(() => {});
