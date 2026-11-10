@@ -242,6 +242,17 @@ test.describe('popup', () => {
     await expect(shadow(page, '#dst-badge-bar')).toHaveCount(0);
   });
 
+  test('"Weiterempfehlen" copies a text with both store links (v4.21.0)', async ({ context, extensionId }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    const page = await context.newPage();
+    await page.goto(`chrome-extension://${extensionId}/popup.html`);
+    await page.click('#shareBtn');
+    await expect(page.locator('#shareBtn .share-text')).toHaveText('Text mit Link kopiert ✓');
+    const text = await page.evaluate(() => navigator.clipboard.readText());
+    expect(text).toContain('https://chromewebstore.google.com/detail/kcnlkimhnhlacphcnigicjkkbenhfkeb');
+    expect(text).toContain('https://addons.mozilla.org/firefox/addon/derstandard-comment-ranker/');
+  });
+
   test('the design switch changes the page live', async ({ context, site, extensionId }) => {
     test.skip(!extensionId, 'extension id not resolvable in this Chromium build');
     const page = await context.newPage();

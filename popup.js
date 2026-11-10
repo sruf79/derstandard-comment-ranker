@@ -1,4 +1,4 @@
-// popup.js — derStandard Comment Ranker v4.20.2
+// popup.js — derStandard Comment Ranker v4.21.0
 // Popup: header (logo + title), on/off switch, review (browser-aware store
 // link with a delayed golden ring) and coffee (donate).
 //
@@ -8,6 +8,13 @@
 //     (same as rating.js) → clicking review in popup OR on-page stops prompts everywhere
 //   • After 3 days of usage the review badge starts a subtle golden pulse.
 //   • Clicking the badge stores the flag and permanently stops the pulse.
+//
+// v4.21.0 reach first: the review badge pulses after 5 USAGE days (same rule
+// as the on-page bar in rating.js, incl. its growing snooze and the stop
+// after 3 dismissals); the coffee only once the review request is settled
+// (rated or dismissed 3×), and a due coffee pulse lasts at most 3 usage days
+// (content.js then counts it as seen). New "Weiterempfehlen" button: copies
+// a short text with both store links (Android: the system share sheet).
 //
 // v4.20.0 recurring donation pulse (privacy-respecting, no analytics):
 //   • The coffee badge auto-pulses (same look as hover) after 10 USAGE days
@@ -107,9 +114,29 @@ var REVIEW_URL = detectIsFirefox() ? AMO_REVIEW_URL : CHROME_STORE_REVIEW_URL;
 // Storage keys:
 //   • dstInstallTimestamp: chrome.storage.local (device-local, not synced)
 //   • dstRanker_ratingGiven: chrome.storage.sync (shared with rating.js — unified flag)
-var INSTALL_TS_KEY = 'dstInstallTimestamp'; // ms epoch of first use (popup or forum page; local)
 var REVIEWED_KEY   = 'dstRanker_ratingGiven'; // boolean: user clicked review (SYNC, unified)
-var PULSE_DELAY_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
+var DISMISS_COUNT_KEY = 'dstRanker_dismissCount';   // SYNC — written by rating.js
+var DISMISSED_AT_KEY  = 'dstRanker_dismissedAtDay'; // LOCAL — written by rating.js
+var USAGE_DAYS_KEY_R  = 'dstUsageDays';             // LOCAL — written by content.js
+var REVIEW_FIRST_DAYS = 5;
+var REVIEW_SNOOZE_DAYS = [0, 7, 21];
+var REVIEW_MAX_DISMISS = 3;
+
+function num(v) { return typeof v === 'number' && isFinite(v) ? v : 0; }
+
+// Same rule as reviewDue() in rating.js.
+function reviewDue(usageDays, rated, dismissCount, dismissedAtDay) {
+  if (rated) return false;
+  if (dismissCount >= REVIEW_MAX_DISMISS) return false;
+  if (usageDays < REVIEW_FIRST_DAYS) return false;
+  if (dismissCount > 0 && usageDays < (dismissedAtDay || 0) + REVIEW_SNOOZE_DAYS[dismissCount]) return false;
+  return true;
+}
+
+// Rated, or asked often enough: the coffee may take its turn.
+function reviewSettled(rated, dismissCount) {
+  return rated === true || dismissCount >= REVIEW_MAX_DISMISS;
+}
 
 (function() {
   var reviewBtn = document.getElementById('reviewBtn');
@@ -135,28 +162,15 @@ var PULSE_DELAY_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
 
   if (!localStore || !syncStore) return; // can't track → never pulse (safe default)
 
-  // Read install timestamp from local storage, review status from sync storage
-  localStore.get([INSTALL_TS_KEY], function(localData) {
+  // v4.21.0: pulse when the review is due by usage days (as the on-page bar)
+  localStore.get([USAGE_DAYS_KEY_R, DISMISSED_AT_KEY], function(localData) {
     if (chrome.runtime && chrome.runtime.lastError) return; // read failed → no pulse
     localData = localData || {};
-
-    // Record the install timestamp on the very first popup open.
-    var installedAt = localData[INSTALL_TS_KEY];
-    if (typeof installedAt !== 'number') {
-      installedAt = Date.now();
-      try { localStore.set({ [INSTALL_TS_KEY]: installedAt }); } catch (e) { /* noop */ }
-    }
-
-    // Check if already reviewed (unified flag in sync storage)
-    syncStore.get([REVIEWED_KEY], function(syncData) {
+    syncStore.get([REVIEWED_KEY, DISMISS_COUNT_KEY], function(syncData) {
       if (chrome.runtime && chrome.runtime.lastError) return;
       syncData = syncData || {};
-
-      // Already reviewed → never pulse again.
-      if (syncData[REVIEWED_KEY] === true) return;
-
-      // Pulse only after 3 days of usage.
-      if (Date.now() - installedAt >= PULSE_DELAY_MS) {
+      if (reviewDue(num(localData[USAGE_DAYS_KEY_R]), syncData[REVIEWED_KEY] === true,
+        num(syncData[DISMISS_COUNT_KEY]), localData[DISMISSED_AT_KEY])) {
         reviewBtn.classList.add('pulsing');
       }
     });
@@ -176,6 +190,9 @@ var DONATE_ACK_N_KEY = 'dstDonateAckN'; // SYNC — pulse counter n
 var USAGE_DAYS_KEY = 'dstUsageDays';    // LOCAL — written by content.js
 var REVIEW_SHOWN_DAY_KEY = 'dstRanker_reviewShownDay'; // SYNC — written by rating.js
 var DONATE_BASE   = 1.5; // growth factor b
+var PULSE_N_KEY = 'dstDonatePulseN';      // LOCAL — written by content.js
+var PULSE_FROM_KEY = 'dstDonatePulseFrom'; // LOCAL — written by content.js
+var PULSE_DAYS = 3;
 
 function dstNextPulseDay(n) {
   // Usage day for the (n+1)-th pulse = 20 · (1.5^(n+1) - 1)
@@ -214,27 +231,26 @@ function dstToday() {
 
   if (!localStore || !syncStore) return; // can't track → never pulse (safe default)
 
-  localStore.get([USAGE_DAYS_KEY, INSTALL_TS_KEY], function(localData) {
+  localStore.get([USAGE_DAYS_KEY, PULSE_N_KEY, PULSE_FROM_KEY], function(localData) {
     if (chrome.runtime && chrome.runtime.lastError) return;
     localData = localData || {};
-    var usageDays = (typeof localData[USAGE_DAYS_KEY] === 'number') ? localData[USAGE_DAYS_KEY] : 0;
-    var installedAt = localData[INSTALL_TS_KEY];
+    var usageDays = num(localData[USAGE_DAYS_KEY]);
 
-    syncStore.get([DONATE_ACK_N_KEY, REVIEWED_KEY, REVIEW_SHOWN_DAY_KEY], function(syncData) {
+    syncStore.get([DONATE_ACK_N_KEY, REVIEWED_KEY, DISMISS_COUNT_KEY, REVIEW_SHOWN_DAY_KEY], function(syncData) {
       if (chrome.runtime && chrome.runtime.lastError) return;
       syncData = syncData || {};
-      var n = (typeof syncData[DONATE_ACK_N_KEY] === 'number') ? syncData[DONATE_ACK_N_KEY] : 0;
+      var n = num(syncData[DONATE_ACK_N_KEY]);
 
-      // One request at a time: the review badge pulses (same rule as above),
-      // or the on-page review bar was shown today → keep the coffee calm.
-      var reviewPulsing = syncData[REVIEWED_KEY] !== true &&
-        typeof installedAt === 'number' && Date.now() - installedAt >= PULSE_DELAY_MS;
-      if (reviewPulsing || syncData[REVIEW_SHOWN_DAY_KEY] === dstToday()) return;
-
-      // Pulse when current usage >= next calculated pulse day.
-      if (usageDays >= dstNextPulseDay(n)) {
-        donateBtn.classList.add('prompting');
-      }
+      // v4.21.0: the review request comes first; and never on a day the
+      // on-page review bar was shown.
+      if (!reviewSettled(syncData[REVIEWED_KEY], num(syncData[DISMISS_COUNT_KEY]))) return;
+      if (syncData[REVIEW_SHOWN_DAY_KEY] === dstToday()) return;
+      if (usageDays < dstNextPulseDay(n)) return;
+      // v4.21.0: the pulse window of this n is over after 3 usage days
+      // (content.js counts it as seen on the next page view)
+      if (localData[PULSE_N_KEY] === n && typeof localData[PULSE_FROM_KEY] === 'number' &&
+          usageDays >= localData[PULSE_FROM_KEY] + PULSE_DAYS) return;
+      donateBtn.classList.add('prompting');
     });
   });
 })();
@@ -267,5 +283,65 @@ function dstToday() {
         });
       }
     }, 7500);
+  });
+})();
+
+// ── v4.21.0: "Weiterempfehlen" — reach over donations ─────────────────────
+// Copies a short text with both store links (the friend may use the other
+// browser). On Android the system share sheet opens instead (WhatsApp, Signal,
+// …). Nothing is sent anywhere by the extension itself.
+var SHARE_TITLE = 'derStandard Comment Ranker';
+var SHARE_TEXT = 'derStandard Comment Ranker: Postings im derStandard-Forum sortieren ' +
+  'und sehen, wer wie bewertet hat. Gratis-Erweiterung für Chrome und Firefox (auch Android).\n' +
+  'Chrome: https://chromewebstore.google.com/detail/kcnlkimhnhlacphcnigicjkkbenhfkeb\n' +
+  'Firefox: https://addons.mozilla.org/firefox/addon/derstandard-comment-ranker/';
+
+function copyText(text) {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text).then(function() { return true; }, function() { return copyFallback(text); });
+    }
+  } catch (e) { /* noop */ }
+  return Promise.resolve(copyFallback(text));
+}
+
+function copyFallback(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  ta.setAttribute('readonly', '');
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  var ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) { /* noop */ }
+  ta.remove();
+  return ok;
+}
+
+(function() {
+  var shareBtn = document.getElementById('shareBtn');
+  if (!shareBtn) return;
+  var label = shareBtn.querySelector('.share-text');
+  var resetTO = null;
+  function confirm(text) {
+    label.textContent = text;
+    shareBtn.classList.add('done');
+    if (resetTO) clearTimeout(resetTO);
+    resetTO = setTimeout(function() {
+      label.textContent = 'Weiterempfehlen';
+      shareBtn.classList.remove('done');
+    }, 2500);
+  }
+  shareBtn.addEventListener('click', function() {
+    var ua = '';
+    try { ua = navigator.userAgent || ''; } catch (e) { /* noop */ }
+    if (/Android/i.test(ua) && navigator.share) {
+      navigator.share({ title: SHARE_TITLE, text: SHARE_TEXT }).catch(function() {});
+      return;
+    }
+    copyText(SHARE_TEXT).then(function(ok) {
+      confirm(ok ? 'Text mit Link kopiert ✓' : 'Kopieren nicht möglich');
+    });
   });
 })();

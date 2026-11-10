@@ -699,6 +699,8 @@ describe('voter popup', () => {
   });
 });
 
+const bootOuter = (...a) => boot(...a);
+
 describe('coffee reminder (v4.20.0)', () => {
   const localDay = (ts) => {
     const d = new Date(ts);
@@ -709,6 +711,9 @@ describe('coffee reminder (v4.20.0)', () => {
   // 9 usage days so far, last one yesterday → today is usage day 10 = first pulse due.
   const DUE = { dstUsageDays: 9, dstLastUsageDay: YESTERDAY };
   const isPulsing = (ctx) => ctx.coffee().classList.contains('dst-pulsing');
+  // v4.21.0: the review request comes first; these tests are about a user
+  // who has already rated (unless a test says otherwise).
+  const boot = (opts = {}) => bootOuter({ ...opts, sync: { dstRanker_ratingGiven: true, ...(opts.sync || {}) } });
 
   describe('(A) usage days', () => {
     it('counts each day the extension sorted a forum once', async () => {
@@ -825,20 +830,57 @@ describe('coffee reminder (v4.20.0)', () => {
       expect(isPulsing(ctx)).toBe(true);
     });
 
-    it('the review bar appearing on this page switches the pulse off and records the day', async () => {
-      const ctx = await boot({ postings: BASIC, local: DUE, sync: { dstRanker_installDate: NOW - 10 * DAY } });
+    it('a review request on this page switches the pulse off for the rest of it', async () => {
+      const ctx = await boot({ postings: BASIC, local: DUE });
       await ctx.clickBadge('likes');
       expect(isPulsing(ctx)).toBe(true);
-      ctx.env.load('rating.js');
-      await ctx.env.tick(1500);
-      expect(ctx.shadow.querySelector('#dst-feedback-bar')).not.toBeNull();
+      ctx.env.document.dispatchEvent(new ctx.env.window.Event('dst-review-shown'));
       expect(isPulsing(ctx)).toBe(false);
-      expect(ctx.env.chrome.storage.sync.data.dstRanker_reviewShownDay).toBe(TODAY);
-      // ...and it stays off for the rest of the page, even after the bar is gone.
-      ctx.shadow.querySelector('#dst-feedback-bar .dst-fdbk-dismiss').click();
-      await ctx.env.tick(500);
       await ctx.clickBadge('timeline');
       expect(isPulsing(ctx)).toBe(false);
+    });
+  });
+
+  describe('(R) the review request comes first (v4.21.0)', () => {
+    it.each([
+      [{ dstRanker_ratingGiven: false }, false],
+      [{ dstRanker_ratingGiven: false, dstRanker_dismissCount: 2 }, false],
+      [{ dstRanker_ratingGiven: false, dstRanker_dismissCount: 3 }, true],
+      [{ dstRanker_ratingGiven: true }, true]
+    ])('review state %j → pulsing = %s', async (sync, expected) => {
+      const ctx = await boot({ postings: BASIC, local: { dstUsageDays: 40, dstLastUsageDay: YESTERDAY }, sync });
+      await ctx.clickBadge('likes');
+      expect(isPulsing(ctx)).toBe(expected);
+    });
+  });
+
+  describe('(W) a due pulse shows on at most 3 usage days (v4.21.0)', () => {
+    it('the first due day starts the window', async () => {
+      const ctx = await boot({ postings: BASIC, local: DUE });
+      await ctx.clickBadge('likes');
+      expect(isPulsing(ctx)).toBe(true);
+      expect(ctx.env.chrome.storage.local.data).toMatchObject({ dstDonatePulseN: 0, dstDonatePulseFrom: 10 });
+    });
+
+    it('pulses on the 3rd usage day of the window', async () => {
+      const ctx = await boot({ postings: BASIC, local: { dstUsageDays: 11, dstLastUsageDay: YESTERDAY, dstDonatePulseN: 0, dstDonatePulseFrom: 10 } });
+      await ctx.clickBadge('likes');
+      expect(isPulsing(ctx)).toBe(true);
+      expect(ctx.env.chrome.storage.sync.data.dstDonateAckN).toBeUndefined();
+    });
+
+    it('after that it counts as seen (n + 1) and stays calm until the next pulse day', async () => {
+      const ctx = await boot({ postings: BASIC, local: { dstUsageDays: 12, dstLastUsageDay: YESTERDAY, dstDonatePulseN: 0, dstDonatePulseFrom: 10 } });
+      await ctx.clickBadge('likes');
+      expect(isPulsing(ctx)).toBe(false);
+      expect(ctx.env.chrome.storage.sync.data.dstDonateAckN).toBe(1);
+    });
+
+    it('the window of an earlier n does not count for the next pulse', async () => {
+      const ctx = await boot({ postings: BASIC, local: { dstUsageDays: 24, dstLastUsageDay: YESTERDAY, dstDonatePulseN: 0, dstDonatePulseFrom: 10 }, sync: { dstDonateAckN: 1 } });
+      await ctx.clickBadge('likes');
+      expect(isPulsing(ctx)).toBe(true);
+      expect(ctx.env.chrome.storage.local.data).toMatchObject({ dstDonatePulseN: 1, dstDonatePulseFrom: 25 });
     });
   });
 
@@ -868,11 +910,17 @@ describe('coffee reminder (v4.20.0)', () => {
 });
 
 describe('together with rating.js', () => {
-  it('the review bar is placed right below the sort bar', async () => {
-    const { env, shadow } = await boot({ postings: BASIC, sync: { dstRanker_installDate: NOW - 10 * DAY } });
-    env.load('rating.js');
-    await env.tick(1500);
-    const bar = shadow.querySelector('#dst-badge-bar');
+  const YESTERDAY_ = (() => { const d = new Date(NOW - DAY); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); })();
+
+  it('the review bar comes in a helpful moment, right below the sort bar (v4.21.0)', async () => {
+    const ctx = await boot({ postings: BASIC, local: { dstUsageDays: 4, dstLastUsageDay: YESTERDAY_ } });
+    ctx.env.load('rating.js');
+    await ctx.env.tick(1500);
+    expect(ctx.shadow.querySelector('#dst-feedback-bar')).toBeNull(); // no moment yet
+    await ctx.clickBadge('likes');
+    await ctx.env.flush();
+    const bar = ctx.shadow.querySelector('#dst-badge-bar');
     expect(bar.nextElementSibling.id).toBe('dst-feedback-bar');
+    expect(ctx.coffee().classList.contains('dst-pulsing')).toBe(false);
   });
 });

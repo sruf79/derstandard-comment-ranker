@@ -2844,6 +2844,10 @@
   //       used, all postings loaded (ring with check), or the voter list
   //       fully loaded;
   //   (E) the review prompt (rating.js) is not shown on the same day.
+  //   (R) v4.21.0: the review request is settled first — rated, or dismissed
+  //       three times (reach before donations);
+  //   (W) v4.21.0: a due pulse shows on at most 3 usage days; after that it
+  //       counts as seen (n + 1) as if clicked, instead of pulsing forever.
   // While the loading ring occupies the coffee slot, the pulse waits.
   // Schedule (shared with popup.js): pulse #(n+1) is due at
   // 20 · (1.5^(n+1) − 1) usage days → 10, 25, 47.5, 81.25, …
@@ -2853,6 +2857,12 @@
   const DST_USAGE_DAYS_KEY = 'dstUsageDays';                    // local
   const DST_LAST_USAGE_DAY_KEY = 'dstLastUsageDay';             // local, 'YYYY-MM-DD'
   const DST_REVIEW_SHOWN_DAY_KEY = 'dstRanker_reviewShownDay';  // sync, written by rating.js
+  const DST_RATING_GIVEN_KEY = 'dstRanker_ratingGiven';         // sync (rating.js / popup.js)
+  const DST_DISMISS_COUNT_KEY = 'dstRanker_dismissCount';       // sync, written by rating.js
+  const DST_PULSE_N_KEY = 'dstDonatePulseN';                    // local: n of the current window
+  const DST_PULSE_FROM_KEY = 'dstDonatePulseFrom';              // local: usage day it started
+  const DST_PULSE_DAYS = 3;
+  const DST_REVIEW_MAX_DISMISS = 3;
 
   function dstToday() {
     const d = new Date();
@@ -2889,7 +2899,15 @@
 
   function markCoffeeMoment() {
     coffeeMoment = true;
+    signalHelpfulMoment();
     applyCoffeePulse();
+  }
+
+  // v4.21.0: rating.js asks for a review only in such a moment too. The flag
+  // covers a moment that came before rating.js started listening.
+  function signalHelpfulMoment() {
+    document.documentElement.setAttribute('data-dst-moment', '1');
+    document.dispatchEvent(new Event('dst-helpful-moment'));
   }
 
   // Counts today as a usage day (once per page view) and decides whether a
@@ -2899,7 +2917,8 @@
     usageRecorded = true;
     try {
       if (!chrome?.storage?.local || !chrome?.storage?.sync) return;
-      chrome.storage.local.get([DST_USAGE_DAYS_KEY, DST_LAST_USAGE_DAY_KEY, DST_INSTALL_TS_KEY], (local) => {
+      chrome.storage.local.get([DST_USAGE_DAYS_KEY, DST_LAST_USAGE_DAY_KEY, DST_INSTALL_TS_KEY,
+        DST_PULSE_N_KEY, DST_PULSE_FROM_KEY], (local) => {
         if (chrome.runtime && chrome.runtime.lastError) return;
         local = local || {};
         const today = dstToday();
@@ -2914,11 +2933,22 @@
         if (Object.keys(update).length) {
           try { chrome.storage.local.set(update); } catch (err) { /* noop */ }
         }
-        chrome.storage.sync.get([DST_DONATE_ACK_N_KEY, DST_REVIEW_SHOWN_DAY_KEY], (sync) => {
+        chrome.storage.sync.get([DST_DONATE_ACK_N_KEY, DST_REVIEW_SHOWN_DAY_KEY,
+          DST_RATING_GIVEN_KEY, DST_DISMISS_COUNT_KEY], (sync) => {
           if (chrome.runtime && chrome.runtime.lastError) return;
           sync = sync || {};
           const n = (typeof sync[DST_DONATE_ACK_N_KEY] === 'number') ? sync[DST_DONATE_ACK_N_KEY] : 0;
-          coffeeDue = days >= dstNextPulseDay(n) && sync[DST_REVIEW_SHOWN_DAY_KEY] !== today;
+          const dismissed = (typeof sync[DST_DISMISS_COUNT_KEY] === 'number') ? sync[DST_DISMISS_COUNT_KEY] : 0;
+          const reviewSettled = sync[DST_RATING_GIVEN_KEY] === true || dismissed >= DST_REVIEW_MAX_DISMISS;
+          if (!reviewSettled || days < dstNextPulseDay(n)) return;
+          // (W) the pulse window of this n: starts today, ends after 3 usage days
+          if (local[DST_PULSE_N_KEY] !== n || typeof local[DST_PULSE_FROM_KEY] !== 'number') {
+            try { chrome.storage.local.set({ [DST_PULSE_N_KEY]: n, [DST_PULSE_FROM_KEY]: days }); } catch (err) { /* noop */ }
+          } else if (days >= local[DST_PULSE_FROM_KEY] + DST_PULSE_DAYS) {
+            try { chrome.storage.sync.set({ [DST_DONATE_ACK_N_KEY]: n + 1 }); } catch (err) { /* noop */ }
+            return;
+          }
+          coffeeDue = sync[DST_REVIEW_SHOWN_DAY_KEY] !== today;
           applyCoffeePulse();
         });
       });
@@ -3454,6 +3484,7 @@
     completeNotice = notice;
     renderCompleteNotice(shadowRoot);
     coffeeMoment = true; // v4.20.0: pulses once the ring is gone (hideProgressBar)
+    signalHelpfulMoment();
 
     // the 100% stays for a moment, then the cup comes back. Timed by frames:
     // right after loading the final sort keeps the page busy and delayed a

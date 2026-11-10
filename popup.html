@@ -239,6 +239,26 @@
       color: #333;   /* v4.12.2: same text colour as the other buttons */
     }
     
+    /* v4.21.0: "Weiterempfehlen" — same pill as the review badge */
+    .share-badge {
+      width: 100%;
+      justify-content: center;
+      gap: 8px;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .share-icon {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+      color: #2a6f97;
+    }
+    .share-badge:hover { background: #fff; }
+    .share-badge.done { color: #2e7d32; }
+    .share-badge.done .share-icon { color: #2e7d32; }
+
     /* Coffee badge: golden ring always on, like the coffee button on the
        site; hovering gives one short golden flash and starts the steam. The
        reminder (.prompting, see popup.js) keeps the light background and the
@@ -368,6 +388,15 @@
     <span class="review-stars" aria-hidden="true">★★★★★</span>
   </a>
   
+  <!-- v4.21.0: recommend to friends (copies a text with both store links) -->
+  <button type="button" class="badge-box share-badge" id="shareBtn" title="Kurzen Text mit Link zur Erweiterung kopieren">
+    <svg class="share-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/>
+      <path d="M8.3 10.8l7.4-4.4M8.3 13.2l7.4 4.4"/>
+    </svg>
+    <span class="share-text">Weiterempfehlen</span>
+  </button>
+
   <!-- Coffee (donate) with steam -->
   <a class="badge-box coffee-badge" id="donateBtn" href="https://buymeacoffee.com/diversion" target="_blank" rel="noopener">
     <span class="coffee-text">Danke sagen</span>

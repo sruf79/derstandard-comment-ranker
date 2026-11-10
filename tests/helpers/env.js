@@ -44,7 +44,7 @@ const EXPOSE = {
   ],
   'rating.js': [
     'KEYS', 'detectIsFirefox', 'getReviewURL', 'storageGet', 'storageSet',
-    'createFeedbackBar', 'main'
+    'createFeedbackBar', 'main', 'reviewDue'
   ],
   'forum-hook.js': ['collectPairs', 'relay', 'isForumGraphql']
 };

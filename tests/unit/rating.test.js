@@ -16,40 +16,51 @@ const UA = {
   neutral: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/605.1.15 (KHTML, like Gecko)'
 };
 
-// Storage of an existing user (v4.x has no one-time migrations any more).
-function migrated(extra) {
-  return { ...extra };
-}
+// v4.21.0: the bar is due after 5 USAGE days (dstUsageDays, local, written by
+// content.js) and appears only in a helpful moment (content.js sets
+// data-dst-moment / fires 'dst-helpful-moment').
+const DUE_LOCAL = { dstUsageDays: 5 };
 
-async function run({ sync = {}, badgeBar = true, url, userAgent, browserGlobal } = {}) {
-  const env = track(await createEnv({ sync, url, userAgent, browserGlobal }));
+async function run({ sync = {}, local = DUE_LOCAL, badgeBar = true, moment = true, url, userAgent, browserGlobal } = {}) {
+  const env = track(await createEnv({ sync, local, url, userAgent, browserGlobal }));
   const { main, shadow } = buildForum(env.document, { postings: [{ id: 'A' }] });
   if (badgeBar) {
     const bar = env.document.createElement('div');
     bar.id = 'dst-badge-bar';
     main.insertBefore(bar, main.firstChild);
   }
+  if (moment) env.document.documentElement.setAttribute('data-dst-moment', '1');
   const r = env.load('rating.js');
   await env.tick(1000); // main() starts 1s after load
   await env.flush();
   const bar = () => shadow.querySelector('#dst-feedback-bar');
-  return { env, r, shadow, main, bar, data: env.chrome.storage.sync.data };
+  return { env, r, shadow, main, bar, data: env.chrome.storage.sync.data, localData: env.chrome.storage.local.data };
 }
 
+describe('reviewDue (v4.21.0)', () => {
+  it.each([
+    // usage days, rated, dismissals, usage day of the last ✕, due
+    [4, false, 0, undefined, false],
+    [5, false, 0, undefined, true],
+    [50, true, 0, undefined, false],
+    [11, false, 1, 5, false], [12, false, 1, 5, true],     // 1st ✕: +7
+    [32, false, 2, 12, false], [33, false, 2, 12, true],   // 2nd ✕: +21
+    [500, false, 3, 33, false]                             // 3rd ✕: never again
+  ])('%i days, rated=%s, %i dismissals (at %s) → %s', async (days, rated, count, at, due) => {
+    const env = track(await createEnv({}));
+    expect(env.load('rating.js').reviewDue(days, rated, count, at)).toBe(due);
+  });
+});
+
 describe('feedback bar timing', () => {
-  it('first page load only records the install date', async () => {
-    const { bar, data } = await run();
+  it('stays hidden before 5 usage days, whatever the calendar says', async () => {
+    const { bar, data } = await run({ local: { dstUsageDays: 4 }, sync: { dstRanker_installDate: NOW - 300 * DAY } });
     expect(bar()).toBeNull();
-    expect(data).toEqual({ dstRanker_installDate: NOW + 1000 });
+    expect(data.dstRanker_reviewShownDay).toBeUndefined();
   });
 
-  it('stays hidden during the first 3 days', async () => {
-    const { bar } = await run({ sync: migrated({ dstRanker_installDate: NOW - 3 * DAY + 60 * 1000 }) });
-    expect(bar()).toBeNull();
-  });
-
-  it('appears after 3 days, right after the badge bar, with a dismiss button', async () => {
-    const { bar, main } = await run({ sync: migrated({ dstRanker_installDate: NOW - 3 * DAY }) });
+  it('appears from 5 usage days, right after the badge bar, with a dismiss button', async () => {
+    const { bar, main } = await run();
     expect(bar()).not.toBeNull();
     expect(main.querySelector('#dst-badge-bar').nextElementSibling).toBe(bar());
     expect(bar().style.order).toBe('-1');
@@ -57,27 +68,39 @@ describe('feedback bar timing', () => {
     expect(bar().querySelector('.dst-fdbk-dismiss')).not.toBeNull();
   });
 
+  it('waits for a moment in which the extension has just helped', async () => {
+    const { env, bar } = await run({ moment: false });
+    await env.tick(20000);
+    expect(bar()).toBeNull();
+    env.document.dispatchEvent(new env.window.Event('dst-helpful-moment'));
+    await env.flush();
+    expect(bar()).not.toBeNull();
+  });
+
   it('never appears again once rated', async () => {
-    const { bar } = await run({ sync: migrated({ dstRanker_installDate: NOW - 30 * DAY, dstRanker_ratingGiven: true }) });
+    const { bar } = await run({ local: { dstUsageDays: 50 }, sync: { dstRanker_ratingGiven: true } });
     expect(bar()).toBeNull();
   });
 
-  it('every dismissal snoozes the bar for 3 days (v3.1.0)', async () => {
-    const base = { dstRanker_installDate: NOW - 30 * DAY };
-    expect((await run({ sync: migrated({ ...base, dstRanker_lastDismissed: NOW - 3 * DAY + 60000 }) })).bar()).toBeNull();
-    const later = await run({ sync: migrated({ ...base, dstRanker_lastDismissed: NOW - 3 * DAY }) });
-    expect(later.bar()).not.toBeNull();
+  it('dismissals snooze with growing gaps (7, then 21 usage days) and stop after the 3rd', async () => {
+    const at = (days, count, last) => run({ local: { dstUsageDays: days, dstRanker_dismissedAtDay: last }, sync: { dstRanker_dismissCount: count } });
+    expect((await at(11, 1, 5)).bar()).toBeNull();
+    expect((await at(12, 1, 5)).bar()).not.toBeNull();
+    expect((await at(32, 2, 12)).bar()).toBeNull();
+    expect((await at(33, 2, 12)).bar()).not.toBeNull();
+    expect((await at(900, 3, 33)).bar()).toBeNull();
   });
 
-  it('the dismiss button is always there, also after many dismissals', async () => {
-    const { bar } = await run({ sync: migrated({
-      dstRanker_installDate: NOW - 30 * DAY, dstRanker_dismissCount: 7, dstRanker_lastDismissed: NOW - 10 * DAY
-    }) });
-    expect(bar().querySelector('.dst-fdbk-dismiss')).not.toBeNull();
+  it('a ✕ from before v4.21 counts as the first dismissal, snoozing from today', async () => {
+    const { bar, data, localData } = await run({ local: { dstUsageDays: 40 }, sync: { dstRanker_lastDismissed: NOW - 30 * DAY } });
+    expect(bar()).toBeNull();
+    expect(data.dstRanker_dismissCount).toBe(1);
+    expect(localData.dstRanker_dismissedAtDay).toBe(40);
+    expect((await run({ local: { dstUsageDays: 47, dstRanker_dismissedAtDay: 40 }, sync: { dstRanker_lastDismissed: NOW - 30 * DAY, dstRanker_dismissCount: 1 } })).bar()).not.toBeNull();
   });
 
   it('stars are real buttons with labels (keyboard accessible)', async () => {
-    const { bar } = await run({ sync: migrated({ dstRanker_installDate: NOW - 30 * DAY }) });
+    const { bar } = await run();
     const stars = Array.from(bar().querySelectorAll('.dst-fdbk-star'));
     expect(stars.map((s) => s.tagName)).toEqual(Array(5).fill('BUTTON'));
     expect(stars[0].getAttribute('aria-label')).toBe('1 Stern – Schlecht');
@@ -85,7 +108,7 @@ describe('feedback bar timing', () => {
   });
 
   it('does nothing without a badge bar (extension inactive / no forum)', async () => {
-    const { env, bar } = await run({ badgeBar: false, sync: migrated({ dstRanker_installDate: NOW - 30 * DAY }) });
+    const { env, bar } = await run({ badgeBar: false });
     await env.tick(16000);
     expect(bar()).toBeNull();
   });
@@ -97,7 +120,7 @@ describe('feedback bar timing', () => {
   });
 
   it('never injects the bar twice', async () => {
-    const { env, r, shadow } = await run({ sync: migrated({ dstRanker_installDate: NOW - 30 * DAY }) });
+    const { env, r, shadow } = await run();
     await r.main();
     await env.flush();
     expect(shadow.querySelectorAll('#dst-feedback-bar')).toHaveLength(1);
@@ -105,18 +128,18 @@ describe('feedback bar timing', () => {
   });
 
   it('writes nothing when storage cannot be read', async () => {
-    const env = track(await createEnv({ sync: { dstRanker_installDate: NOW - 30 * DAY } }));
+    const env = track(await createEnv({ sync: { dstRanker_lastDismissed: NOW - 30 * DAY }, local: { dstUsageDays: 40 } }));
     const r = env.load('rating.js');
     env.chrome.storage.sync.failNextGet = new Error('sync disabled');
     await r.main();
     expect(env.chrome.storage.sync.set).not.toHaveBeenCalled();
-    expect(env.chrome.storage.sync.remove).not.toHaveBeenCalled();
+    expect(env.chrome.storage.local.set).not.toHaveBeenCalled();
   });
 });
 
 describe('feedback bar interaction', () => {
   async function shown(opts = {}) {
-    return run({ ...opts, sync: migrated({ dstRanker_installDate: NOW - 10 * DAY, ...(opts.sync || {}) }) });
+    return run(opts);
   }
 
   it.each([4, 5])('%i stars opens the store review page and hides the bar forever', async (stars) => {
@@ -147,11 +170,12 @@ describe('feedback bar interaction', () => {
     expect(env.window.open).toHaveBeenCalledTimes(1);
   });
 
-  it('dismiss stores the timestamp and removes the bar', async () => {
-    const { env, bar, data } = await shown();
+  it('dismiss counts the dismissal, remembers the usage day and removes the bar', async () => {
+    const { env, bar, data, localData } = await shown({ local: { dstUsageDays: 12, dstRanker_dismissedAtDay: 5 }, sync: { dstRanker_dismissCount: 1 } });
     bar().querySelector('.dst-fdbk-dismiss').click();
     await env.flush();
-    expect(data.dstRanker_lastDismissed).toBe(env.window.Date.now());
+    expect(data.dstRanker_dismissCount).toBe(2);
+    expect(localData.dstRanker_dismissedAtDay).toBe(12);
     expect(data.dstRanker_ratingGiven).toBeUndefined();
     await env.tick(400);
     expect(bar()).toBeNull();

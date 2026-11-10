@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { createEnv, readSource, DAY, DEFAULT_NOW } from '../helpers/env.js';
 import { track } from '../helpers/setup.js';
 
@@ -83,29 +83,34 @@ describe('review badge', () => {
     expect($('#reviewBtn').getAttribute('href')).toBe(url);
   });
 
-  it('records the install time on first open and does not pulse yet', async () => {
-    const { $, local } = await openPopup();
-    expect(local.dstInstallTimestamp).toBe(NOW);
-    expect($('#reviewBtn').classList.contains('pulsing')).toBe(false);
+  const reviewPulsing = ($) => $('#reviewBtn').classList.contains('pulsing');
+
+  it('pulses from 5 usage days (v4.21.0), not by calendar age', async () => {
+    expect(reviewPulsing((await openPopup({ local: { dstUsageDays: 4, dstInstallTimestamp: NOW - 300 * DAY } })).$)).toBe(false);
+    expect(reviewPulsing((await openPopup({ local: { dstUsageDays: 5 } })).$)).toBe(true);
   });
 
-  it('pulses after 3 days of usage', async () => {
-    expect((await openPopup({ local: { dstInstallTimestamp: NOW - 3 * DAY + 1000 } }))
-      .$('#reviewBtn').classList.contains('pulsing')).toBe(false);
-    expect((await openPopup({ local: { dstInstallTimestamp: NOW - 3 * DAY } }))
-      .$('#reviewBtn').classList.contains('pulsing')).toBe(true);
+  it('follows the on-page snooze: growing gaps, none after the 3rd dismissal', async () => {
+    const at = async (days, count, last) => reviewPulsing((await openPopup({
+      local: { dstUsageDays: days, dstRanker_dismissedAtDay: last }, sync: { dstRanker_dismissCount: count }
+    })).$);
+    expect(await at(11, 1, 5)).toBe(false);
+    expect(await at(12, 1, 5)).toBe(true);
+    expect(await at(32, 2, 12)).toBe(false);
+    expect(await at(33, 2, 12)).toBe(true);
+    expect(await at(900, 3, 33)).toBe(false);
   });
 
   it('never pulses once reviewed (flag shared with rating.js)', async () => {
     const { $ } = await openPopup({
-      local: { dstInstallTimestamp: NOW - 30 * DAY },
+      local: { dstUsageDays: 30 },
       sync: { dstRanker_ratingGiven: true }
     });
-    expect($('#reviewBtn').classList.contains('pulsing')).toBe(false);
+    expect(reviewPulsing($)).toBe(false);
   });
 
   it('click stores the shared flag and opens the store', async () => {
-    const { env, $, sync } = await openPopup({ local: { dstInstallTimestamp: NOW - 30 * DAY } });
+    const { env, $, sync } = await openPopup({ local: { dstUsageDays: 30 } });
     const btn = $('#reviewBtn');
     btn.click();
     expect(btn.classList.contains('pulsing')).toBe(false);
@@ -113,16 +118,16 @@ describe('review badge', () => {
     expect(env.chrome.tabs.create).toHaveBeenCalledWith({ url: btn.getAttribute('href') });
   });
 
-  it('fails safe (no pulse, no overwrite) when local storage cannot be read', async () => {
+  it('fails safe (no pulse, no write) when local storage cannot be read', async () => {
     const env = track(await createEnv({
       url: 'https://popup.test/popup.html', html: readSource('popup.html'),
-      local: { dstInstallTimestamp: NOW - 30 * DAY }
+      local: { dstUsageDays: 30 }
     }));
     env.chrome.storage.local.failNextGet = new Error('boom');
     env.load('popup.js');
     await env.flush();
     expect(env.document.querySelector('#reviewBtn').classList.contains('pulsing')).toBe(false);
-    expect(env.chrome.storage.local.data.dstInstallTimestamp).toBe(NOW - 30 * DAY);
+    expect(env.chrome.storage.local.set).not.toHaveBeenCalled();
   });
 });
 
@@ -132,8 +137,9 @@ function localDay(ts) {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
-describe('donation badge (v2.5.0: usage days, one request at a time)', () => {
+describe('donation badge (usage days, review first, 3-day window)', () => {
   const pulsing = ($) => $('#donateBtn').classList.contains('prompting');
+  const RATED = { dstRanker_ratingGiven: true };
 
   it('dstNextPulseDay follows 20·(1.5^(n+1) − 1) usage days', async () => {
     const { env } = await openPopup();
@@ -152,9 +158,28 @@ describe('donation badge (v2.5.0: usage days, one request at a time)', () => {
   ])('n=%i, %i usage days → pulsing=%s', async (n, days, expected) => {
     const { $ } = await openPopup({
       local: { dstUsageDays: days },
-      sync: n ? { dstDonateAckN: n } : {}
+      sync: n ? { ...RATED, dstDonateAckN: n } : RATED
     });
     expect(pulsing($)).toBe(expected);
+  });
+
+  it('waits until the review request is settled: rated or dismissed three times (v4.21.0)', async () => {
+    expect(pulsing((await openPopup({ local: { dstUsageDays: 30 } })).$)).toBe(false);
+    expect(pulsing((await openPopup({ local: { dstUsageDays: 30 }, sync: { dstRanker_dismissCount: 2 } })).$)).toBe(false);
+    expect(pulsing((await openPopup({ local: { dstUsageDays: 30 }, sync: { dstRanker_dismissCount: 3 } })).$)).toBe(true);
+    expect(pulsing((await openPopup({ local: { dstUsageDays: 30 }, sync: RATED })).$)).toBe(true);
+  });
+
+  it('a due pulse lasts 3 usage days (window started by content.js)', async () => {
+    const at = async (days) => pulsing((await openPopup({
+      local: { dstUsageDays: days, dstDonatePulseN: 0, dstDonatePulseFrom: 10 }, sync: RATED
+    })).$);
+    expect(await at(12)).toBe(true);
+    expect(await at(13)).toBe(false);
+    // a window of an earlier n does not count
+    expect(pulsing((await openPopup({
+      local: { dstUsageDays: 30, dstDonatePulseN: 0, dstDonatePulseFrom: 10 }, sync: { ...RATED, dstDonateAckN: 1 }
+    })).$)).toBe(true);
   });
 
   it('calendar age alone does not trigger it any more', async () => {
@@ -166,28 +191,20 @@ describe('donation badge (v2.5.0: usage days, one request at a time)', () => {
   });
 
   it('stays calm while the review badge pulses', async () => {
-    const { $ } = await openPopup({ local: { dstInstallTimestamp: NOW - 10 * DAY, dstUsageDays: 30 } });
+    const { $ } = await openPopup({ local: { dstUsageDays: 30 } });
     expect($('#reviewBtn').classList.contains('pulsing')).toBe(true);
     expect(pulsing($)).toBe(false);
   });
 
-  it('pulses once the user has reviewed', async () => {
-    const { $ } = await openPopup({
-      local: { dstInstallTimestamp: NOW - 10 * DAY, dstUsageDays: 30 },
-      sync: { dstRanker_ratingGiven: true }
-    });
-    expect(pulsing($)).toBe(true);
-  });
-
   it('stays calm on a day the on-page review bar was shown', async () => {
-    const today = await openPopup({ local: { dstUsageDays: 30 }, sync: { dstRanker_reviewShownDay: localDay(NOW) } });
+    const today = await openPopup({ local: { dstUsageDays: 30 }, sync: { ...RATED, dstRanker_reviewShownDay: localDay(NOW) } });
     expect(pulsing(today.$)).toBe(false);
-    const yesterday = await openPopup({ local: { dstUsageDays: 30 }, sync: { dstRanker_reviewShownDay: localDay(NOW - DAY) } });
+    const yesterday = await openPopup({ local: { dstUsageDays: 30 }, sync: { ...RATED, dstRanker_reviewShownDay: localDay(NOW - DAY) } });
     expect(pulsing(yesterday.$)).toBe(true);
   });
 
   it('click acknowledges (n+1) and opens the donation page', async () => {
-    const { env, $, sync } = await openPopup({ local: { dstUsageDays: 20 }, sync: { dstDonateAckN: 0 } });
+    const { env, $, sync } = await openPopup({ local: { dstUsageDays: 20 }, sync: { ...RATED, dstDonateAckN: 0 } });
     const btn = $('#donateBtn');
     expect(btn.classList.contains('prompting')).toBe(true);
     btn.click();
@@ -208,6 +225,54 @@ describe('donation badge (v2.5.0: usage days, one request at a time)', () => {
     const { local } = await openPopup({ local: { dstUsageDays: 4 } });
     expect(local.dstUsageDays).toBe(4);
     expect(local.dstLastUsageDay).toBeUndefined();
+  });
+});
+
+describe('share button (v4.21.0)', () => {
+  const STORE_LINES = [
+    'Chrome: https://chromewebstore.google.com/detail/kcnlkimhnhlacphcnigicjkkbenhfkeb',
+    'Firefox: https://addons.mozilla.org/firefox/addon/derstandard-comment-ranker/'
+  ];
+
+  it('copies a short text with both store links and confirms it', async () => {
+    const { env, $ } = await openPopup();
+    const writeText = env.window.navigator.clipboard
+      ? (env.window.navigator.clipboard.writeText = vi.fn(async () => {}))
+      : null;
+    if (!writeText) {
+      const fn = vi.fn(async () => {});
+      Object.defineProperty(env.window.navigator, 'clipboard', { value: { writeText: fn }, configurable: true });
+    }
+    $('#shareBtn').click();
+    await env.flush();
+    const text = env.window.navigator.clipboard.writeText.mock.calls[0][0];
+    for (const line of STORE_LINES) expect(text).toContain(line);
+    expect(text).toMatch(/^derStandard Comment Ranker: /);
+    expect($('#shareBtn .share-text').textContent).toBe('Text mit Link kopiert ✓');
+    expect($('#shareBtn').classList.contains('done')).toBe(true);
+    await env.tick(2500);
+    expect($('#shareBtn .share-text').textContent).toBe('Weiterempfehlen');
+  });
+
+  it('opens the system share sheet on Android', async () => {
+    const { env, $ } = await openPopup({ userAgent: 'Mozilla/5.0 (Android 14; Mobile; rv:144.0) Gecko/144.0 Firefox/144.0' });
+    const share = vi.fn(async () => {});
+    Object.defineProperty(env.window.navigator, 'share', { value: share, configurable: true });
+    $('#shareBtn').click();
+    await env.flush();
+    expect(share).toHaveBeenCalledTimes(1);
+    expect(share.mock.calls[0][0].text).toContain(STORE_LINES[1]);
+    expect($('#shareBtn .share-text').textContent).toBe('Weiterempfehlen');
+  });
+
+  it('falls back to execCommand when the clipboard API is missing', async () => {
+    const { env, $ } = await openPopup();
+    Object.defineProperty(env.window.navigator, 'clipboard', { value: undefined, configurable: true });
+    env.document.execCommand = vi.fn(() => true);
+    $('#shareBtn').click();
+    await env.flush();
+    expect(env.document.execCommand).toHaveBeenCalledWith('copy');
+    expect($('#shareBtn .share-text').textContent).toBe('Text mit Link kopiert ✓');
   });
 });
 

@@ -2,11 +2,14 @@
 //  rating.js — derStandard Comment Ranker
 //  Review prompt for the Chrome Web Store / AMO, shown below the sort bar
 //
-//  v3.1.0 DISMISSALS:
-//  - Bar appears after 3 days
-//  - ✕ is always there; every dismissal snoozes the bar for 3 days
-//    (v2.1.0 removed the ✕ after the 2nd dismissal — no longer)
-//  - Rating (1-5★) → bar disappears forever
+//  v4.21.0 TIMING:
+//  - First prompt after 5 USAGE days (days on which content.js sorted a
+//    forum, 'dstUsageDays'), and only in a moment the extension has just
+//    helped (content.js signals 'dst-helpful-moment': sort used, all postings
+//    loaded, voter list complete)
+//  - ✕ snoozes with growing gaps: 7 usage days after the 1st, 21 after the
+//    2nd; after the 3rd dismissal the bar never comes back
+//  - Rating (1-5★) → bar disappears forever (unchanged)
 //
 //  v2.0.8 UNIFIED REVIEW LOGIC + ADBLOCKER-RESISTANT:
 //  - Uses SHARED storage key 'dstRanker_ratingGiven' (chrome.storage.sync)
@@ -23,11 +26,6 @@
 //  - No browser.* API needed — chrome.* is the universal MV3 standard
 //  - Async/await with Promise wrappers for chrome.storage
 //  - Browser-detection for correct review URL (Chrome Web Store vs AMO)
-//
-//  TIMING & DISMISS LOGIC:
-//  - First prompt: 3 days after first page load (installDate)
-//  - Every dismiss: re-prompt after 3 days
-//  - Star click (ratingGiven=true): NEVER show again
 // ═══════════════════════════════════════════════════════════════════════
 
 (function () {
@@ -35,16 +33,29 @@
 
   // ── Storage keys (own namespace, no conflicts with content.js) ──
   const KEYS = {
-    INSTALL_DATE:    'dstRanker_installDate',
+    INSTALL_DATE:    'dstRanker_installDate',   // ≤ v4.20 (calendar timing), no longer read
     RATING_GIVEN:    'dstRanker_ratingGiven',
-    LAST_DISMISSED:  'dstRanker_lastDismissed',
+    LAST_DISMISSED:  'dstRanker_lastDismissed', // ≤ v4.20: timestamp of the last ✕
+    DISMISS_COUNT:   'dstRanker_dismissCount',  // v4.21.0, sync
+    DISMISSED_AT:    'dstRanker_dismissedAtDay', // v4.21.0, local: usage day of the last ✕
+    USAGE_DAYS:      'dstUsageDays',             // local, written by content.js
     // v4.20.0: day ('YYYY-MM-DD') the bar was last shown. content.js and
     // popup.js keep the coffee badge calm on that day (one request at a time).
     SHOWN_DAY:       'dstRanker_reviewShownDay',
   };
 
-  const DELAY_FIRST_PROMPT  = 3 * 24 * 60 * 60 * 1000;  // 3 days in ms
-  const DELAY_AFTER_DISMISS = 3 * 24 * 60 * 60 * 1000;  // 3 days in ms
+  const FIRST_PROMPT_DAYS = 5;          // usage days
+  const SNOOZE_DAYS = [0, 7, 21];       // usage days after the 1st / 2nd ✕
+  const MAX_DISMISS = 3;                // after the 3rd ✕: never again
+
+  // Shared rule (popup.js has the same one for its review badge).
+  function reviewDue(usageDays, rated, dismissCount, dismissedAtDay) {
+    if (rated) return false;
+    if (dismissCount >= MAX_DISMISS) return false;
+    if (usageDays < FIRST_PROMPT_DAYS) return false;
+    if (dismissCount > 0 && usageDays < (dismissedAtDay || 0) + SNOOZE_DAYS[dismissCount]) return false;
+    return true;
+  }
 
   // ── Browser-detection for correct review URL ────────────────────
   // GOAL: every Chromium-based browser (Chrome, Brave, Edge, Opera, Vivaldi,
@@ -128,6 +139,42 @@
       } catch (e) {
         resolve();
       }
+    });
+  }
+
+  function localGet(keys) {
+    return new Promise((resolve, reject) => {
+      try {
+        chrome.storage.local.get(keys, (data) => {
+          const lastErr = (typeof chrome !== 'undefined' &&
+                           chrome.runtime && chrome.runtime.lastError);
+          if (lastErr) return reject(lastErr);
+          resolve(data || {});
+        });
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+
+  function localSet(obj) {
+    return new Promise((resolve) => {
+      try {
+        chrome.storage.local.set(obj, () => resolve());
+      } catch (e) {
+        resolve();
+      }
+    });
+  }
+
+  function num(v) { return typeof v === 'number' && isFinite(v) ? v : 0; }
+
+  // v4.21.0: resolves once content.js reports that the extension has just
+  // helped on this page (the flag covers a moment before we listened).
+  function waitForHelpfulMoment() {
+    return new Promise((resolve) => {
+      if (document.documentElement.hasAttribute('data-dst-moment')) return resolve();
+      document.addEventListener('dst-helpful-moment', () => resolve(), { once: true });
     });
   }
 
@@ -373,7 +420,12 @@
         if (rated) return;
         rated = true;
 
-        await storageSet({ [KEYS.LAST_DISMISSED]: Date.now() });
+        // v4.21.0: count the dismissal and remember the usage day
+        let sync = {}, local = {};
+        try { sync = await storageGet([KEYS.DISMISS_COUNT]); } catch (e) { /* noop */ }
+        try { local = await localGet([KEYS.USAGE_DAYS]); } catch (e) { /* noop */ }
+        await storageSet({ [KEYS.DISMISS_COUNT]: num(sync[KEYS.DISMISS_COUNT]) + 1 });
+        await localSet({ [KEYS.DISMISSED_AT]: num(local[KEYS.USAGE_DAYS]) });
 
         bar.classList.add('dst-golden-fading');
         setTimeout(() => {
@@ -391,57 +443,36 @@
     if (!host.includes('derstandard.at') && !host.includes('derstandard.de')) return;
 
     // 1. Read storage
-    //    If the read FAILS (sync disabled, runtime error, etc.) we abort
-    //    completely and write NOTHING — this guarantees installDate /
-    //    ratingGiven / lastDismissed can never be clobbered
-    //    by a transient read error that looks like a "fresh install".
-    let data;
+    //    If a read FAILS (sync disabled, runtime error, etc.) we abort
+    //    completely and write NOTHING.
+    let data, local;
     try {
-      data = await storageGet([
-        KEYS.INSTALL_DATE,
-        KEYS.RATING_GIVEN,
-        KEYS.LAST_DISMISSED,
-      ]);
+      data = await storageGet([KEYS.RATING_GIVEN, KEYS.DISMISS_COUNT, KEYS.LAST_DISMISSED]);
+      local = await localGet([KEYS.USAGE_DAYS, KEYS.DISMISSED_AT]);
     } catch (e) {
       return; // Storage unreadable → do nothing, never overwrite existing data
     }
 
-    // 2. First ever load? Set installDate — but NEVER overwrite an existing one.
-    if (!data[KEYS.INSTALL_DATE]) {
-      // Defensive double-check: re-read once more right before writing.
-      // Guards against a race (two tabs loading at once) and confirms the
-      // key is genuinely absent rather than missing due to a fluke.
-      let recheck;
-      try {
-        recheck = await storageGet([KEYS.INSTALL_DATE]);
-      } catch (e) {
-        return; // Can't confirm → abort without writing
-      }
-      if (recheck[KEYS.INSTALL_DATE]) {
-        // It actually existed → adopt the real value, do NOT overwrite.
-        data[KEYS.INSTALL_DATE] = recheck[KEYS.INSTALL_DATE];
-      } else {
-        await storageSet({ [KEYS.INSTALL_DATE]: Date.now() });
-        return; // Don't show on first load
-      }
-    }
-
-    // 3. Already rated? → NEVER show again
+    // 2. Already rated? → NEVER show again
     if (data[KEYS.RATING_GIVEN]) return;
 
-    // 4. Time check: only show after 3 days since install
-    const now = Date.now();
-    const installAge = now - data[KEYS.INSTALL_DATE];
+    const usageDays = num(local[KEYS.USAGE_DAYS]);
+    let dismissCount = num(data[KEYS.DISMISS_COUNT]);
+    let dismissedAt = local[KEYS.DISMISSED_AT];
 
-    // Not yet 3 days since install
-    if (installAge < DELAY_FIRST_PROMPT) return;
-
-    // 5. Snooze check
-    // v3.1.0: every dismissal snoozes for 3 days (no permanent bar any more)
-    if (data[KEYS.LAST_DISMISSED]) {
-      const dismissAge = now - data[KEYS.LAST_DISMISSED];
-      if (dismissAge < DELAY_AFTER_DISMISS) return; // Still in snooze period
+    // 3. v4.21.0: a ✕ from before v4.21 counts as the first dismissal,
+    //    snoozing from today's usage day.
+    if (data[KEYS.DISMISS_COUNT] === undefined && data[KEYS.LAST_DISMISSED]) {
+      dismissCount = 1;
+      await storageSet({ [KEYS.DISMISS_COUNT]: 1 });
     }
+    if (dismissCount > 0 && typeof dismissedAt !== 'number') {
+      dismissedAt = usageDays;
+      await localSet({ [KEYS.DISMISSED_AT]: usageDays });
+    }
+
+    // 4. Due? (usage days, growing snooze, at most 3 dismissals)
+    if (!reviewDue(usageDays, false, dismissCount, dismissedAt)) return;
 
     // 6. Wait for badge bar (proves extension & forum are active)
     const badgeBar = await waitForBadgeBar();
@@ -452,8 +483,13 @@
     if (!forum || !forum.shadowRoot) return;
     const shadowRoot = forum.shadowRoot;
 
-    // 8. Don't inject twice
+    // 8. v4.21.0: wait until the extension has just helped on this page
+    await waitForHelpfulMoment();
+
+    // 9. Don't inject twice (the badge bar may have been re-created meanwhile)
     if (shadowRoot.querySelector('#dst-feedback-bar')) return;
+    const bar = shadowRoot.querySelector('#dst-badge-bar');
+    if (!bar) return;
 
     // 9. Inject CSS + feedback bar
     injectCSS(shadowRoot);
@@ -464,7 +500,7 @@
     // v2.4.10: explicit order, otherwise the forum's default order rule
     // (content.js) would push the bar to the very end of the forum.
     feedbackBar.style.order = '-1';
-    badgeBar.insertAdjacentElement('afterend', feedbackBar);
+    bar.insertAdjacentElement('afterend', feedbackBar);
 
     // 11. v4.20.0: never ask for a review and a coffee on the same day.
     //     content.js listens and keeps the coffee badge calm for this page.
