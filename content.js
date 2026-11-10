@@ -777,6 +777,14 @@
       .dst-fb, .dst-fb g, .dst-more-acts, dst-posting[data-dst-tile] dst-posting-footer > * { transition: none; }
     }
     dst-posting[data-dst-tile] dst-posting-footer dst-reply-postingbox button { white-space: nowrap; }
+    /* v4.20.1: derStandard's global focus ring (3px, 2px outside) shows on
+       "Antworten" and − / + once their reply box has taken and handed back
+       focus, and runs into the neighbouring buttons of this tight row.
+       A slimmer ring drawn inside each button instead. */
+    dst-posting[data-dst-tile] dst-posting-footer button:focus-visible {
+      outline: 2px solid hsl(var(--theme--on-secondary--hsl, 0 0% 13%) / .7) !important;
+      outline-offset: -2px !important;
+    }
     /* narrow cards (phones, deeply indented replies): smaller icons and gaps */
     @container (max-width: 420px) {
       dst-posting-footer, .dst-fb, dst-posting-head { --dst-ic: 26px; --dst-gap: 2px; --dst-i: 19px;

@@ -130,6 +130,22 @@ test.describe('reply threads (v4.19.x, real clicks)', () => {
     expect(b.y - (p.y + p.height)).toBeLessThan(60);
   });
 
+  // derStandard's global :focus-visible ring is 3px wide and 2px outside the
+  // button; in the card footer it ran into − and + next to "Antworten".
+  test('the focus ring of "Antworten" stays inside the button', async ({ context, site }) => {
+    const page = await context.newPage();
+    await page.goto(site.ARTICLE_URL);
+    await waitLoaded(page);
+    const btn = shadow(page, 'dst-posting:has(dst-posting--ratinglog[postingid="E4"]) > dst-posting-footer .answer-button');
+    await page.keyboard.press('Shift'); // last input = keyboard, so .focus() is :focus-visible
+    await btn.focus();
+    const ring = await btn.evaluate((b) => {
+      const cs = getComputedStyle(b);
+      return { visible: b.matches(':focus-visible'), style: cs.outlineStyle, width: cs.outlineWidth, offset: cs.outlineOffset };
+    });
+    expect(ring).toEqual({ visible: true, style: 'solid', width: '2px', offset: '-2px' });
+  });
+
   test('opening a thread does not move the posting the reader clicked', async ({ context, site }) => {
     const page = await context.newPage();
     await page.goto(site.ARTICLE_URL + '?gen=40');

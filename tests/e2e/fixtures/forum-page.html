@@ -171,7 +171,8 @@
     }
     render() {
       const style = document.createElement('style');
-      style.textContent = 'dst-posting{display:block;min-height:40px;border-bottom:1px solid #ccc}' +
+      style.textContent = ':focus-visible{outline:3px solid #000;outline-offset:2px}' + // derStandard's global ring
+        'dst-posting{display:block;min-height:40px;border-bottom:1px solid #ccc}' +
         '.thread{display:block;padding-left:16px}.thread.collapsed{display:none}' +
         'dst-posting--ratinglog{cursor:pointer;font-weight:bold}';
       const header = document.createElement('header');
