@@ -1098,16 +1098,22 @@
     .dst-donate {
       position: absolute; top: calc(100% - 25px); z-index: 30;
       width: min(330px, calc(100% - 8px)); box-sizing: border-box;
-      padding: 14px; border-radius: 18px;
+      padding: 14px; border-radius: 18px 8px 18px 18px; /* tip near the top-right corner */
       background: #f7fafb; color: #333;
       box-shadow: 0 0 0 1px var(--dst-track-border, #a9bcc5), 0 10px 28px rgba(0, 0, 0, .22);
       font-family: inherit; text-align: left;
     }
-    .dst-donate::before {
-      content: ''; position: absolute; top: -7px; right: var(--dst-don-tip, 16px);
-      width: 12px; height: 12px; background: #f7fafb; transform: rotate(45deg);
-      box-shadow: -1px -1px 0 var(--dst-track-border, #a9bcc5);
+    /* the tip: a triangle in the frame colour, and over it the same
+       triangle in the panel colour, 1px lower — so the frame runs along
+       both edges and the fill covers the frame line underneath */
+    .dst-donate::before,
+    .dst-donate::after {
+      content: ''; position: absolute; right: var(--dst-don-tip, 14px);
+      width: 18px; height: 9px;
+      clip-path: polygon(50% 0, 100% 100%, 0 100%);
     }
+    .dst-donate::before { top: -10px; background: var(--dst-track-border, #a9bcc5); }
+    .dst-donate::after { top: -8.4px; height: 9.4px; background: #f7fafb; }
     .dst-donate-head { display: flex; align-items: center; justify-content: space-between; }
     .dst-donate-title { font-size: 15px; font-weight: 700; }
     .dst-donate-close {
@@ -2969,7 +2975,7 @@
     const cr = btn.getBoundingClientRect();
     const right = Math.max(br.right - cr.right, br.right - document.documentElement.clientWidth + 4);
     panel.style.right = right + 'px';
-    const tip = (br.right - right) - (cr.left + cr.width / 2) - 6;
+    const tip = (br.right - right) - (cr.left + cr.width / 2) - 9;
     panel.style.setProperty('--dst-don-tip', Math.max(10, tip) + 'px');
   }
 
