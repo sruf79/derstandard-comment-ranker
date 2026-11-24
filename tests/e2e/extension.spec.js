@@ -253,6 +253,25 @@ test.describe('popup', () => {
     expect(text).toContain('https://addons.mozilla.org/firefox/addon/derstandard-comment-ranker/');
   });
 
+  test('the coffee opens "Danke sagen" with PayPal and Buy Me a Coffee under it (v4.22.0)', async ({ context, site }) => {
+    const page = await context.newPage();
+    await page.goto(site.ARTICLE_URL);
+    await waitLoaded(page);
+    await coffee(page).click();
+    const panel = shadow(page, '#dst-badge-bar > .dst-donate');
+    await expect(panel).toBeVisible();
+    // both logos are loaded from the extension itself
+    const logos = await panel.locator('img').evaluateAll((imgs) => imgs.map((i) => [i.naturalWidth > 0, i.src.startsWith('chrome-extension://')]));
+    expect(logos).toEqual([[true, true], [true, true]]);
+    // the tip of the panel points at the coffee button, the panel stays on screen
+    const [c, p] = await Promise.all([coffee(page).boundingBox(), panel.boundingBox()]);
+    expect(p.y).toBeGreaterThan(c.y + c.height - 2);
+    expect(p.x + p.width).toBeLessThanOrEqual(page.viewportSize().width);
+    expect(p.x + p.width).toBeGreaterThanOrEqual(c.x + c.width / 2);
+    await page.keyboard.press('Escape');
+    await expect(panel).toHaveCount(0);
+  });
+
   test('the design switch changes the page live', async ({ context, site, extensionId }) => {
     test.skip(!extensionId, 'extension id not resolvable in this Chromium build');
     const page = await context.newPage();

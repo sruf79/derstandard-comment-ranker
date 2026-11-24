@@ -7,3 +7,17 @@ Version 2.0 (https://www.apache.org/licenses/LICENSE-2.0); the Noto Emoji
 font is licensed under the SIL Open Font License, Version 1.1
 (https://openfontlicense.org). The image is used unmodified apart from
 removing editor metadata.
+
+icons/donate-paypal.svg
+
+The PayPal logo, unmodified, as published by PayPal at
+https://www.paypalobjects.com/paypal-ui/logos/svg/paypal-color.svg.
+PayPal is a trademark of PayPal, Inc. It is used only on a link to the
+developer's PayPal.Me page.
+
+icons/donate-bmc.svg
+
+The Buy Me a Coffee logo ("bmc-full-logo.svg"), unmodified, from the brand
+kit Buy Me a Coffee provides at https://buymeacoffee.com/brand. Buy Me a
+Coffee is a trademark of Buy Me a Coffee. It is used only on a link to the
+developer's Buy Me a Coffee page.

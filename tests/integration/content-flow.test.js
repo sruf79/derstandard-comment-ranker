@@ -884,18 +884,82 @@ describe('coffee reminder (v4.20.0)', () => {
     });
   });
 
-  it('click acknowledges (n+1), opens the donation page and ends the pulse', async () => {
-    const ctx = await boot({ postings: BASIC, local: DUE });
-    await ctx.clickBadge('likes');
-    const btn = ctx.coffee();
-    expect(btn.classList.contains('dst-pulsing')).toBe(true);
-    btn.click();
-    await ctx.env.tick(400);
-    expect(btn.classList.contains('dst-pulsing')).toBe(false);
-    expect(ctx.env.chrome.storage.sync.data.dstDonateAckN).toBe(1);
-    expect(ctx.env.window.open).toHaveBeenCalledWith('https://buymeacoffee.com/diversion', '_blank');
-    await ctx.clickBadge('timeline');
-    expect(isPulsing(ctx)).toBe(false);
+  describe('"Danke sagen" panel (v4.22.0)', () => {
+    const panel = (ctx) => ctx.shadow.querySelector('#dst-badge-bar > .dst-donate');
+    // jsdom cannot navigate: keep the link click from trying
+    const noNav = (ctx) => ctx.env.document.addEventListener('click', (e) => e.preventDefault(), true);
+
+    it('a click on the coffee opens the panel; opening alone is no acknowledgement', async () => {
+      const ctx = await boot({ postings: BASIC, local: DUE });
+      await ctx.clickBadge('likes');
+      const btn = ctx.coffee();
+      btn.click();
+      const p = panel(ctx);
+      expect(p).not.toBeNull();
+      expect(btn.getAttribute('aria-expanded')).toBe('true');
+      expect(p.querySelector('p').textContent).toBe('Diese Erweiterung wird immer gratis bleiben. Wenn sie dir gefällt, freue ich mich über einen kleinen Beitrag.');
+      const links = Array.from(p.querySelectorAll('a'));
+      expect(links.map((a) => [a.getAttribute('href'), a.target, a.getAttribute('aria-label')])).toEqual([
+        ['https://paypal.me/neoskycat', '_blank', 'PayPal'],
+        ['https://buymeacoffee.com/diversion', '_blank', 'Buy Me a Coffee']
+      ]);
+      expect(links.map((a) => a.querySelector('img').getAttribute('src'))).toEqual([
+        'chrome-extension://test-extension-id/icons/donate-paypal.svg',
+        'chrome-extension://test-extension-id/icons/donate-bmc.svg'
+      ]);
+      await ctx.env.flush();
+      expect(ctx.env.chrome.storage.sync.data.dstDonateAckN).toBeUndefined();
+      expect(isPulsing(ctx)).toBe(true);
+    });
+
+    it('closes with ×, a second coffee click, Escape or a click elsewhere', async () => {
+      const ctx = await boot({ postings: BASIC, local: DUE });
+      ctx.coffee().click();
+      panel(ctx).querySelector('.dst-donate-close').click();
+      expect(panel(ctx)).toBeNull();
+      ctx.coffee().click();
+      ctx.coffee().click();
+      expect(panel(ctx)).toBeNull();
+      ctx.coffee().click();
+      ctx.env.document.dispatchEvent(new ctx.env.window.KeyboardEvent('keydown', { key: 'Escape' }));
+      expect(panel(ctx)).toBeNull();
+      ctx.coffee().click();
+      ctx.env.document.body.click();
+      expect(panel(ctx)).toBeNull();
+      expect(ctx.coffee().getAttribute('aria-expanded')).toBe('false');
+    });
+
+    it('a click inside the panel keeps it open', async () => {
+      const ctx = await boot({ postings: BASIC, local: DUE });
+      ctx.coffee().click();
+      panel(ctx).querySelector('p').click();
+      expect(panel(ctx)).not.toBeNull();
+    });
+
+    it.each([0, 1])('link %i acknowledges (n+1), ends the pulse and closes the panel', async (i) => {
+      const ctx = await boot({ postings: BASIC, local: DUE });
+      await ctx.clickBadge('likes');
+      expect(isPulsing(ctx)).toBe(true);
+      noNav(ctx);
+      ctx.coffee().click();
+      panel(ctx).querySelectorAll('a')[i].click();
+      await ctx.env.tick(10);
+      expect(isPulsing(ctx)).toBe(false);
+      expect(ctx.env.chrome.storage.sync.data.dstDonateAckN).toBe(1);
+      expect(panel(ctx)).toBeNull();
+      await ctx.clickBadge('timeline');
+      expect(isPulsing(ctx)).toBe(false);
+    });
+
+    it('stays open when the bar is re-created', async () => {
+      const ctx = await boot({ postings: BASIC, local: DUE });
+      ctx.coffee().click();
+      ctx.shadow.querySelector('#dst-badge-bar').remove();
+      appendPostings(ctx.env.document, ctx.main, [{ id: 'new' }]); // observer re-sort re-creates the bar
+      await ctx.env.tick(400);
+      expect(ctx.shadow.querySelector('#dst-badge-bar')).not.toBeNull();
+      expect(panel(ctx)).not.toBeNull();
+    });
   });
 
   it('fails safe (no pulse) when storage cannot be read', async () => {

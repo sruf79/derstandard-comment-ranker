@@ -277,6 +277,42 @@
       100% { background-color: #fff8e1; box-shadow: var(--gold-ring), 0 0 0 0 rgba(255, 200, 0, 0); }
     }
     
+    /* v4.22.0: the coffee badge is a button now */
+    button.coffee-badge { width: 100%; font: inherit; border: 0; }
+    .coffee-badge[hidden] { display: none; }
+    body.kbd .coffee-badge:focus-visible { outline: 2px solid #333; outline-offset: 3px; }
+
+    /* v4.22.0: "Danke sagen" panel — PayPal / Buy Me a Coffee. Same 12px
+       gap above (from the pill before) and below (to the feedback line). */
+    .support {
+      margin: 0 0 12px;
+      padding: 14px 14px 12px;
+      border-radius: 18px;
+      background: color-mix(in srgb, var(--track) 70%, #fff);
+      box-shadow: 0 0 0 1px var(--track-border), inset 0 1.5px 0 rgba(255, 255, 255, .95), 0 3px 8px rgba(0, 0, 0, .12);
+    }
+    .support[hidden] { display: none; }
+    .support-head { display: flex; align-items: center; justify-content: space-between; }
+    .support-title { font-size: 15px; font-weight: 700; color: #333; }
+    .support-close {
+      width: 28px; height: 28px; margin: -6px -6px -6px 0; padding: 0; border: 0; border-radius: 50%;
+      background: none; color: #777; font: inherit; font-size: 20px; line-height: 1; cursor: pointer;
+    }
+    .support-close:hover { background: rgba(0, 0, 0, .06); color: #333; }
+    .support p { font-size: 12.5px; line-height: 1.45; color: #555; margin: 6px 0 12px; }
+    .pay { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .pay a { height: 46px; border-radius: 999px; display: flex; align-items: center; justify-content: center; }
+    .pay img { display: block; width: auto; }
+    .pay-pp { background: var(--pill-bg); box-shadow: var(--pill-shadow); }
+    .pay-pp img { height: 20px; }
+    .pay-bmc { background: #ffdd00; box-shadow: 0 0 0 1px #e0c200, 0 2px 6px rgba(0, 0, 0, .14); }
+    .pay-bmc img { height: 22px; }
+    .pay a:hover { filter: brightness(.97); }
+    body.kbd .pay a:focus-visible, body.kbd .support-close:focus-visible { outline: 2px solid #333; outline-offset: 2px; }
+    .pay a:focus-visible, .support-close:focus-visible { outline: none; }
+    body.flat .support { background: var(--track); box-shadow: 0 0 0 1px var(--track-border); }
+    body.flat .pay-bmc { box-shadow: 0 0 0 1px #e0c200; }
+
     .coffee-text {
       font-size: 14px;
       color: #333;
@@ -397,8 +433,8 @@
     <span class="share-text">Weiterempfehlen</span>
   </button>
 
-  <!-- Coffee (donate) with steam -->
-  <a class="badge-box coffee-badge" id="donateBtn" href="https://buymeacoffee.com/diversion" target="_blank" rel="noopener">
+  <!-- Coffee (donate) with steam; v4.22.0: opens the "Danke sagen" panel -->
+  <button type="button" class="badge-box coffee-badge" id="donateBtn" aria-expanded="false" aria-controls="donatePanel">
     <span class="coffee-text">Danke sagen</span>
     <span class="coffee-icon-container">
       <img class="coffee-icon" src="icons/coffee.svg" alt="">
@@ -410,7 +446,19 @@
         <span class="steam-wisp"></span>
       </span>
     </span>
-  </a>
+  </button>
+  <!-- v4.22.0: PayPal / Buy Me a Coffee (official logos, bundled) -->
+  <div class="support" id="donatePanel" role="group" aria-label="Danke sagen" hidden>
+    <div class="support-head">
+      <span class="support-title">Danke sagen</span>
+      <button type="button" class="support-close" id="donateClose" aria-label="Schließen">×</button>
+    </div>
+    <p>Diese Erweiterung wird immer gratis bleiben. Wenn sie dir gefällt, freue ich mich über einen kleinen Beitrag.</p>
+    <div class="pay">
+      <a class="pay-pp" id="donatePayPal" href="https://paypal.me/neoskycat" target="_blank" rel="noopener noreferrer" aria-label="PayPal"><img src="icons/donate-paypal.svg" alt=""></a>
+      <a class="pay-bmc" id="donateBMC" href="https://buymeacoffee.com/diversion" target="_blank" rel="noopener noreferrer" aria-label="Buy Me a Coffee"><img src="icons/donate-bmc.svg" alt=""></a>
+    </div>
+  </div>
   <!-- v4.19.0: contact for feedback; the address stays readable for webmail users -->
   <p class="feedback">Feedback oder Ideen?
     <a href="mailto:neosky.cat@icloud.com?subject=Feedback%20derStandard%20Comment%20Ranker" target="_blank" rel="noopener">neosky.cat@icloud.com</a></p>

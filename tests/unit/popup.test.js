@@ -203,20 +203,49 @@ describe('donation badge (usage days, review first, 3-day window)', () => {
     expect(pulsing(yesterday.$)).toBe(true);
   });
 
-  it('click acknowledges (n+1) and opens the donation page', async () => {
+  it('"Danke sagen" opens the panel with PayPal and Buy Me a Coffee; opening alone is no acknowledgement (v4.22.0)', async () => {
     const { env, $, sync } = await openPopup({ local: { dstUsageDays: 20 }, sync: { ...RATED, dstDonateAckN: 0 } });
-    const btn = $('#donateBtn');
-    expect(btn.classList.contains('prompting')).toBe(true);
-    btn.click();
+    expect($('#donatePanel').hidden).toBe(true);
+    $('#donateBtn').click();
     await env.flush();
-    expect(btn.classList.contains('prompting')).toBe(false);
+    expect($('#donatePanel').hidden).toBe(false);
+    expect($('#donateBtn').hidden).toBe(true);
+    expect($('#donatePanel p').textContent).toBe('Diese Erweiterung wird immer gratis bleiben. Wenn sie dir gefällt, freue ich mich über einen kleinen Beitrag.');
+    expect($('#donatePayPal').getAttribute('href')).toBe('https://paypal.me/neoskycat');
+    expect($('#donateBMC').getAttribute('href')).toBe('https://buymeacoffee.com/diversion');
+    expect($('#donatePayPal img').getAttribute('src')).toBe('icons/donate-paypal.svg');
+    expect(sync.dstDonateAckN).toBe(0);
+    expect(env.chrome.tabs.create).not.toHaveBeenCalled();
+    $('#donateClose').click();
+    expect($('#donatePanel').hidden).toBe(true);
+    expect($('#donateBtn').hidden).toBe(false);
+  });
+
+  it('Escape closes the panel', async () => {
+    const { env, $ } = await openPopup();
+    $('#donateBtn').click();
+    env.document.dispatchEvent(new env.window.KeyboardEvent('keydown', { key: 'Escape' }));
+    expect($('#donatePanel').hidden).toBe(true);
+  });
+
+  it.each([
+    ['#donatePayPal', 'https://paypal.me/neoskycat'],
+    ['#donateBMC', 'https://buymeacoffee.com/diversion']
+  ])('%s acknowledges (n+1), ends the pulse and opens %s', async (sel, url) => {
+    const { env, $, sync } = await openPopup({ local: { dstUsageDays: 20 }, sync: { ...RATED, dstDonateAckN: 0 } });
+    expect($('#donateBtn').classList.contains('prompting')).toBe(true);
+    $('#donateBtn').click();
+    $(sel).click();
+    await env.flush();
+    expect($('#donateBtn').classList.contains('prompting')).toBe(false);
     expect(sync.dstDonateAckN).toBe(1);
-    expect(env.chrome.tabs.create).toHaveBeenCalledWith({ url: 'https://buymeacoffee.com/diversion' });
+    expect(env.chrome.tabs.create).toHaveBeenCalledWith({ url });
   });
 
   it('treats a corrupt counter as 0', async () => {
     const { env, $, sync } = await openPopup({ sync: { dstDonateAckN: 'x' } });
     $('#donateBtn').click();
+    $('#donatePayPal').click();
     await env.flush();
     expect(sync.dstDonateAckN).toBe(1);
   });

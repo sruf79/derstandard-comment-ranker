@@ -1089,6 +1089,54 @@
     }
     :host(.dst-flat) #dst-voter-head { background: #fff; box-shadow: 0 1px 0 var(--dst-track-border); }
     :host(.dst-flat) .dst-voter-list { box-shadow: none; }
+
+    /* ═══ v4.22.0: "Danke sagen" panel under the coffee button ═════════
+       Two plain links (PayPal, Buy Me a Coffee) with the official logos,
+       bundled with the extension: nothing is loaded from those services
+       until the reader clicks. */
+    #dst-badge-bar { position: relative; }
+    .dst-donate {
+      position: absolute; top: calc(100% - 25px); z-index: 30;
+      width: min(330px, calc(100% - 8px)); box-sizing: border-box;
+      padding: 14px; border-radius: 18px;
+      background: #f7fafb; color: #333;
+      box-shadow: 0 0 0 1px var(--dst-track-border, #a9bcc5), 0 10px 28px rgba(0, 0, 0, .22);
+      font-family: inherit; text-align: left;
+    }
+    .dst-donate::before {
+      content: ''; position: absolute; top: -7px; right: var(--dst-don-tip, 16px);
+      width: 12px; height: 12px; background: #f7fafb; transform: rotate(45deg);
+      box-shadow: -1px -1px 0 var(--dst-track-border, #a9bcc5);
+    }
+    .dst-donate-head { display: flex; align-items: center; justify-content: space-between; }
+    .dst-donate-title { font-size: 15px; font-weight: 700; }
+    .dst-donate-close {
+      width: 28px; height: 28px; margin: -6px -6px -6px 0; padding: 0; border: 0; border-radius: 50%;
+      background: none; color: #777; font: inherit; font-size: 20px; line-height: 1; cursor: pointer;
+    }
+    .dst-donate-close:hover { background: rgba(0, 0, 0, .06); color: #333; }
+    .dst-donate-close { display: flex; align-items: center; justify-content: center; }
+    .dst-donate-close svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+    .dst-donate p { margin: 6px 0 12px; font-size: 13px; line-height: 1.45; color: #555; }
+    .dst-donate-links { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .dst-donate-links a {
+      height: 44px; border-radius: 999px; display: flex; align-items: center; justify-content: center;
+      text-decoration: none;
+    }
+    .dst-donate-links img { display: block; width: auto; pointer-events: none; }
+    .dst-don-pp {
+      background: linear-gradient(to bottom, #fff, #eef3f6);
+      box-shadow: 0 0 0 1px #9fb3bd, 0 2px 6px rgba(0, 0, 0, .15);
+    }
+    .dst-don-pp img { height: 19px; }
+    .dst-don-bmc { background: #ffdd00; box-shadow: 0 0 0 1px #e0c200, 0 2px 6px rgba(0, 0, 0, .14); }
+    .dst-don-bmc img { height: 21px; }
+    .dst-donate-links a:hover { filter: brightness(.97); }
+    .dst-donate-links a:focus-visible,
+    .dst-donate-close:focus-visible { outline: 2px solid #333; outline-offset: 2px; }
+    :host(.dst-flat) .dst-donate { box-shadow: 0 0 0 1px var(--dst-track-border, #a9bcc5); }
+    :host(.dst-flat) .dst-don-pp { background: #fff; box-shadow: 0 0 0 1px #9fb3bd; }
+    :host(.dst-flat) .dst-don-bmc { box-shadow: 0 0 0 1px #e0c200; }
   `;
 
   let sortEnabled = true;
@@ -2836,6 +2884,139 @@
     });
   }
 
+  // ── v4.22.0: "Danke sagen" panel ───────────────────────────────────
+  const DONATE_TEXT = 'Diese Erweiterung wird immer gratis bleiben. Wenn sie dir gefällt, ' +
+    'freue ich mich über einen kleinen Beitrag.';
+  const DONATE_LINKS = [
+    { cls: 'dst-don-pp', href: 'https://paypal.me/neoskycat', img: 'icons/donate-paypal.svg', label: 'PayPal' },
+    { cls: 'dst-don-bmc', href: 'https://buymeacoffee.com/diversion', img: 'icons/donate-bmc.svg', label: 'Buy Me a Coffee' }
+  ];
+  let donateOpen = false;
+
+  // A click on PayPal / Buy Me a Coffee: the pulse returns only at the next
+  // calculated usage day (n + 1).
+  function acknowledgeDonation() {
+    coffeeDue = false;
+    const forum = document.querySelector('dst-forum');
+    const btn = forum && forum.shadowRoot && forum.shadowRoot.querySelector('.dst-coffee-btn');
+    if (btn) btn.classList.remove('dst-pulsing');
+    try {
+      if (chrome?.storage?.sync) {
+        chrome.storage.sync.get([DST_DONATE_ACK_N_KEY], (res) => {
+          res = res || {};
+          const n = (typeof res[DST_DONATE_ACK_N_KEY] === 'number') ? res[DST_DONATE_ACK_N_KEY] : 0;
+          try { chrome.storage.sync.set({ [DST_DONATE_ACK_N_KEY]: n + 1 }); } catch (err) { /* noop */ }
+        });
+      }
+    } catch (err) { /* noop */ }
+  }
+
+  function buildDonatePanel(shadowRoot) {
+    const panel = document.createElement('div');
+    panel.className = 'dst-donate';
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-label', 'Danke sagen');
+    const head = document.createElement('div');
+    head.className = 'dst-donate-head';
+    const title = document.createElement('span');
+    title.className = 'dst-donate-title';
+    title.textContent = 'Danke sagen';
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'dst-donate-close';
+    close.setAttribute('aria-label', 'Schließen');
+    close.appendChild(svgEl('svg', { viewBox: '0 0 24 24', 'aria-hidden': 'true' },
+      [svgEl('path', { d: 'M6 6l12 12M18 6L6 18' })]));
+    close.addEventListener('click', (e) => { e.stopPropagation(); closeDonatePanel(shadowRoot, true); });
+    head.append(title, close);
+    const text = document.createElement('p');
+    text.textContent = DONATE_TEXT;
+    const links = document.createElement('div');
+    links.className = 'dst-donate-links';
+    DONATE_LINKS.forEach((d) => {
+      const a = document.createElement('a');
+      a.className = d.cls;
+      a.href = d.href;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.setAttribute('aria-label', d.label);
+      const img = document.createElement('img');
+      img.src = chrome.runtime.getURL(d.img);
+      img.alt = '';
+      img.draggable = false;
+      a.appendChild(img);
+      a.addEventListener('click', (e) => {
+        e.stopPropagation();
+        acknowledgeDonation();
+        setTimeout(() => closeDonatePanel(shadowRoot, false), 0);
+      });
+      links.appendChild(a);
+    });
+    panel.append(head, text, links);
+    // clicks inside the panel stay there (the sort bar must not react)
+    panel.addEventListener('click', (e) => e.stopPropagation());
+    return panel;
+  }
+
+  // The panel hangs in the badge bar, its tip under the coffee button
+  // (which may sit outside the sort pill on wide screens).
+  function placeDonatePanel(shadowRoot) {
+    const bar = shadowRoot.querySelector('#dst-badge-bar');
+    const panel = bar && bar.querySelector(':scope > .dst-donate');
+    const btn = bar && bar.querySelector('.dst-coffee-btn');
+    if (!panel || !btn) return;
+    const br = bar.getBoundingClientRect();
+    const cr = btn.getBoundingClientRect();
+    const right = Math.max(br.right - cr.right, br.right - document.documentElement.clientWidth + 4);
+    panel.style.right = right + 'px';
+    const tip = (br.right - right) - (cr.left + cr.width / 2) - 6;
+    panel.style.setProperty('--dst-don-tip', Math.max(10, tip) + 'px');
+  }
+
+  function openDonatePanel(shadowRoot) {
+    const bar = shadowRoot.querySelector('#dst-badge-bar');
+    if (!bar) return;
+    let panel = bar.querySelector(':scope > .dst-donate');
+    if (!panel) {
+      panel = buildDonatePanel(shadowRoot);
+      bar.appendChild(panel);
+    }
+    donateOpen = true;
+    const btn = bar.querySelector('.dst-coffee-btn');
+    if (btn) btn.setAttribute('aria-expanded', 'true');
+    placeDonatePanel(shadowRoot);
+    if (!openDonatePanel.bound) {
+      openDonatePanel.bound = true;
+      // a click anywhere else or Escape closes it
+      document.addEventListener('click', (e) => {
+        if (!donateOpen) return;
+        const path = e.composedPath ? e.composedPath() : [];
+        if (path.some((n) => n && n.classList && (n.classList.contains('dst-donate') || n.classList.contains('dst-coffee-btn')))) return;
+        const f = document.querySelector('dst-forum');
+        if (f && f.shadowRoot) closeDonatePanel(f.shadowRoot, false);
+      }, true);
+      document.addEventListener('keydown', (e) => {
+        if (!donateOpen || e.key !== 'Escape') return;
+        const f = document.querySelector('dst-forum');
+        if (f && f.shadowRoot) closeDonatePanel(f.shadowRoot, true);
+      });
+      window.addEventListener('resize', () => {
+        const f = document.querySelector('dst-forum');
+        if (donateOpen && f && f.shadowRoot) placeDonatePanel(f.shadowRoot);
+      });
+    }
+  }
+
+  function closeDonatePanel(shadowRoot, focusButton) {
+    donateOpen = false;
+    shadowRoot.querySelectorAll('.dst-donate').forEach((p) => p.remove());
+    const btn = shadowRoot.querySelector('.dst-coffee-btn');
+    if (btn) {
+      btn.setAttribute('aria-expanded', 'false');
+      if (focusButton) btn.focus();
+    }
+  }
+
   // ── v4.20.0: coffee (donation) pulse ──────────────────────────────
   // The coffee badge pulses only when ALL of these hold:
   //   (A) a pulse is due by USAGE days — days on which the extension sorted a
@@ -3230,27 +3411,19 @@
       });
     })();
     // v4.20.0: when the pulse shows is decided by applyCoffeePulse() (see above).
+    // v4.22.0: a click opens the "Danke sagen" panel (PayPal / Buy Me a
+    // Coffee); only a click on one of those counts as acknowledged.
+    coffeeBtn.setAttribute('aria-haspopup', 'dialog');
+    coffeeBtn.setAttribute('aria-expanded', 'false');
     coffeeBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       // v3.7.0: golden click flash like the sort segments' flash
       const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       coffeeBtn.classList.remove('dst-flash');
       if (!reduceMotion) requestAnimationFrame(() => coffeeBtn.classList.add('dst-flash'));
-      // Acknowledge by incrementing n, so pulse returns only at the next calculated day.
-      coffeeDue = false;
-      coffeeBtn.classList.remove('dst-pulsing');
-      try {
-        if (chrome?.storage?.sync) {
-          chrome.storage.sync.get([DST_DONATE_ACK_N_KEY], (res) => {
-            res = res || {};
-            const n = (typeof res[DST_DONATE_ACK_N_KEY] === 'number') ? res[DST_DONATE_ACK_N_KEY] : 0;
-            try { chrome.storage.sync.set({ [DST_DONATE_ACK_N_KEY]: n + 1 }); } catch (err) { /* noop */ }
-          });
-        }
-      } catch (err) { /* noop */ }
-      // Open the page once the flash has been seen (still within the click's
-      // user activation, so it is not blocked as a popup).
-      setTimeout(() => window.open('https://buymeacoffee.com/diversion', '_blank'), reduceMotion ? 0 : 350);
+      const sr = coffeeBtn.getRootNode();
+      if (donateOpen) closeDonatePanel(sr, false);
+      else openDonatePanel(sr);
     });
     coffeeBtn.addEventListener('animationend', (e) => {
       if (e.animationName === 'dst-coffee-flash') coffeeBtn.classList.remove('dst-flash');
@@ -3277,6 +3450,7 @@
     if (completeNotice) renderCompleteNotice(shadowRoot);
     else if (isLoadingAllPostings && lastProgress) showProgressBar(shadowRoot, ...lastProgress);
     applyCoffeePulse();
+    if (donateOpen) openDonatePanel(shadowRoot); // v4.22.0: the bar was re-created
   }
 
   // v4.8.0: when there is room right of the postings, the sort pill gets the

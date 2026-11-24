@@ -1,4 +1,4 @@
-// popup.js — derStandard Comment Ranker v4.21.0
+// popup.js — derStandard Comment Ranker v4.22.0
 // Popup: header (logo + title), on/off switch, review (browser-aware store
 // link with a delayed golden ring) and coffee (donate).
 //
@@ -185,7 +185,6 @@ function reviewSettled(rated, dismissCount) {
 // Pulse formula: usage day(n) = 20 · (1.5^(n+1) - 1), n = clicks so far
 //   → 1st pulse: day 10; 2nd: day 25; 3rd: day 47.5; 4th: day 81.25; …
 // A click increments n, so the pulse only returns at the next calculated day.
-var DONATE_URL    = 'https://buymeacoffee.com/diversion';
 var DONATE_ACK_N_KEY = 'dstDonateAckN'; // SYNC — pulse counter n
 var USAGE_DAYS_KEY = 'dstUsageDays';    // LOCAL — written by content.js
 var REVIEW_SHOWN_DAY_KEY = 'dstRanker_reviewShownDay'; // SYNC — written by rating.js
@@ -213,19 +212,37 @@ function dstToday() {
   try { if (chrome && chrome.storage && chrome.storage.local) localStore = chrome.storage.local; } catch (e) { /* noop */ }
   try { if (chrome && chrome.storage && chrome.storage.sync) syncStore = chrome.storage.sync; } catch (e) { /* noop */ }
 
-  donateBtn.href = DONATE_URL;
-  donateBtn.addEventListener('click', function(e) {
-    e.preventDefault();
-    // Acknowledge by incrementing n, so pulse returns only at the next calculated day.
-    donateBtn.classList.remove('prompting');
-    if (!syncStore) { chrome.tabs.create({ url: DONATE_URL }); return; }
-    // v4.10.1: the new tab closes the popup — open it only after the counter
-    // is written, otherwise the write was often lost
-    syncStore.get([DONATE_ACK_N_KEY], function(res) {
-      res = res || {}; // v2.4.10: res is undefined on storage errors
-      var n = (typeof res[DONATE_ACK_N_KEY] === 'number') ? res[DONATE_ACK_N_KEY] : 0;
-      try { syncStore.set({ [DONATE_ACK_N_KEY]: n + 1 }); } catch (e2) { /* noop */ }
-      chrome.tabs.create({ url: DONATE_URL });
+  // v4.22.0: "Danke sagen" opens a panel with PayPal and Buy Me a Coffee;
+  // only a click on one of those counts as acknowledged.
+  var panel = document.getElementById('donatePanel');
+  var closeBtn = document.getElementById('donateClose');
+  function showPanel(open) {
+    panel.hidden = !open;
+    donateBtn.hidden = open;
+    donateBtn.setAttribute('aria-expanded', String(open));
+    if (open) { var first = panel.querySelector('.pay a'); if (first) first.focus(); }
+    else donateBtn.focus();
+  }
+  donateBtn.addEventListener('click', function() { showPanel(true); });
+  closeBtn.addEventListener('click', function() { showPanel(false); });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && !panel.hidden) { e.preventDefault(); showPanel(false); }
+  });
+  panel.querySelectorAll('.pay a').forEach(function(a) {
+    a.addEventListener('click', function(e) {
+      e.preventDefault();
+      var url = a.getAttribute('href');
+      // Acknowledge by incrementing n, so pulse returns only at the next calculated day.
+      donateBtn.classList.remove('prompting');
+      if (!syncStore) { chrome.tabs.create({ url: url }); return; }
+      // v4.10.1: the new tab closes the popup — open it only after the counter
+      // is written, otherwise the write was often lost
+      syncStore.get([DONATE_ACK_N_KEY], function(res) {
+        res = res || {}; // v2.4.10: res is undefined on storage errors
+        var n = (typeof res[DONATE_ACK_N_KEY] === 'number') ? res[DONATE_ACK_N_KEY] : 0;
+        try { syncStore.set({ [DONATE_ACK_N_KEY]: n + 1 }); } catch (e2) { /* noop */ }
+        chrome.tabs.create({ url: url });
+      });
     });
   });
 

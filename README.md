@@ -81,9 +81,10 @@ Für die Stores werden nur die Erweiterungsdateien gepackt (`manifest.json`,
 Fehler und Ideen gern als [Issue](https://github.com/sruf79/derstandard-comment-ranker/issues)
 oder über die Adresse im Popup der Erweiterung.
 
-Wer Danke sagen will: [Buy me a coffee](https://buymeacoffee.com/diversion) ☕
+Wer Danke sagen will: [PayPal](https://paypal.me/neoskycat) oder [Buy me a coffee](https://buymeacoffee.com/diversion) ☕
 
 ## Lizenz
 
-[MIT](LICENSE). Das Kaffee-Symbol stammt aus Noto Emoji (Apache-2.0), siehe
+[MIT](LICENSE). Das Kaffee-Symbol stammt aus Noto Emoji (Apache-2.0); die Logos
+von PayPal und Buy Me a Coffee sind Marken ihrer Inhaber. Siehe
 [icons/NOTICE.txt](icons/NOTICE.txt).

@@ -44,15 +44,20 @@ describe('manifest.json', () => {
     expect(manifest.permissions).toEqual(['storage']);
   });
 
-  it('exposes only the coffee image to the page, and only on derStandard', () => {
+  it('exposes only the coffee and donation images to the page, and only on derStandard', () => {
     expect(manifest.web_accessible_resources).toEqual([
-      { resources: ['icons/coffee.svg'], matches: ['*://*.derstandard.at/*', '*://*.derstandard.de/*'] }
+      { resources: ['icons/coffee.svg', 'icons/donate-paypal.svg', 'icons/donate-bmc.svg'], matches: ['*://*.derstandard.at/*', '*://*.derstandard.de/*'] }
     ]);
   });
 
-  it('the bundled coffee image carries its license notice', () => {
-    expect(readSource('icons/NOTICE.txt')).toMatch(/Apache License/);
-    expect(readSource('icons/coffee.svg')).not.toMatch(/<script|on[a-z]+=/i);
+  it('the bundled images carry their notices and contain no active content', () => {
+    const notice = readSource('icons/NOTICE.txt');
+    expect(notice).toMatch(/Apache License/);
+    expect(notice).toMatch(/donate-paypal\.svg/);
+    expect(notice).toMatch(/donate-bmc\.svg/);
+    for (const f of ['icons/coffee.svg', 'icons/donate-paypal.svg', 'icons/donate-bmc.svg']) {
+      expect(readSource(f), f).not.toMatch(/<script|on[a-z]+=|<foreignObject|xlink:href="http|href="http/i);
+    }
   });
 
   it('declares Firefox data collection as none', () => {
@@ -89,7 +94,7 @@ describe('store-review hygiene', () => {
       const urls = readSource(file).match(/https?:\/\/[^\s'"`)]+/g) || [];
       for (const u of urls) {
         if (u === 'http://www.w3.org/2000/svg') continue; // SVG namespace, not a request
-        expect(u, file).toMatch(/^https:\/\/((apps|www)\.derstandard\.at|capi\.ds\.at|chromewebstore\.google\.com|addons\.mozilla\.org|buymeacoffee\.com)\//);
+        expect(u, file).toMatch(/^https:\/\/((apps|www)\.derstandard\.at|capi\.ds\.at|chromewebstore\.google\.com|addons\.mozilla\.org|buymeacoffee\.com|paypal\.me)\//);
       }
     }
   });
