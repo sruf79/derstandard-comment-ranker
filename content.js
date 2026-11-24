@@ -1103,17 +1103,19 @@
       box-shadow: 0 0 0 1px var(--dst-track-border, #a9bcc5), 0 10px 28px rgba(0, 0, 0, .22);
       font-family: inherit; text-align: left;
     }
-    /* the tip: a triangle in the frame colour, and over it the same
-       triangle in the panel colour, 1px lower — so the frame runs along
-       both edges and the fill covers the frame line underneath */
-    .dst-donate::before,
-    .dst-donate::after {
-      content: ''; position: absolute; right: var(--dst-don-tip, 14px);
-      width: 18px; height: 9px;
-      clip-path: polygon(50% 0, 100% 100%, 0 100%);
+    /* the tip: ONE small SVG. Its two edges are drawn in the frame colour
+       and meet the frame line exactly (the frame is a 1px ring just
+       outside the panel, i.e. the SVG's rows 9..10); the fill below them
+       hides the frame line under the tip. */
+    .dst-donate-tip {
+      position: absolute; top: -10px; right: var(--dst-don-tip, 14px);
+      width: 20px; height: 11px; overflow: visible; pointer-events: none;
     }
-    .dst-donate::before { top: -10px; background: var(--dst-track-border, #a9bcc5); }
-    .dst-donate::after { top: -8.4px; height: 9.4px; background: #f7fafb; }
+    .dst-donate-tip .dst-tip-fill { fill: #f7fafb; }
+    .dst-donate-tip .dst-tip-edge {
+      fill: none; stroke: var(--dst-track-border, #a9bcc5); stroke-width: 1;
+      stroke-linejoin: miter; stroke-linecap: butt; vector-effect: non-scaling-stroke;
+    }
     .dst-donate-head { display: flex; align-items: center; justify-content: space-between; }
     .dst-donate-title { font-size: 15px; font-weight: 700; }
     .dst-donate-close {
@@ -2958,7 +2960,12 @@
       });
       links.appendChild(a);
     });
-    panel.append(head, text, links);
+    const tip = svgEl('svg', { class: 'dst-donate-tip', viewBox: '0 0 20 11', 'aria-hidden': 'true' }, [
+      svgEl('path', { class: 'dst-tip-fill', d: 'M0 10L10 0.5L20 10V11H0Z' }),
+      // the edges run down into the frame row (9..10), so they join it
+      svgEl('path', { class: 'dst-tip-edge', d: 'M-0.5 10L10 0.5L20.5 10' })
+    ]);
+    panel.append(tip, head, text, links);
     // clicks inside the panel stay there (the sort bar must not react)
     panel.addEventListener('click', (e) => e.stopPropagation());
     return panel;
@@ -2975,8 +2982,14 @@
     const cr = btn.getBoundingClientRect();
     const right = Math.max(br.right - cr.right, br.right - document.documentElement.clientWidth + 4);
     panel.style.right = right + 'px';
-    const tip = (br.right - right) - (cr.left + cr.width / 2) - 9;
+    const tip = (br.right - right) - (cr.left + cr.width / 2) - 10;
     panel.style.setProperty('--dst-don-tip', Math.max(10, tip) + 'px');
+    // snap the panel to whole device pixels, so the tip's edges and the
+    // frame line meet without an anti-aliased seam
+    panel.style.marginTop = '0px';
+    const dpr = window.devicePixelRatio || 1;
+    const top = panel.getBoundingClientRect().top;
+    panel.style.marginTop = (Math.round(top * dpr) / dpr - top) + 'px';
   }
 
   function openDonatePanel(shadowRoot) {
